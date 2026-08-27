@@ -185,7 +185,7 @@ class PythonAnalyzer:
 
         # -- hashlib.md5 / hashlib.sha1 / hashlib.new("md5") --------------------
         hash_algo = None
-        if fname in ("hashlib.md5", "hashlib.sha1", "hashlib.sha256", "hashlib.sha3_256", "hashlib.sha512"):
+        if fname in ("hashlib.md5", "md5", "hashlib.sha1", "sha1", "hashlib.sha256", "sha256", "hashlib.sha3_256", "sha3_256", "hashlib.sha512", "sha512"):
             hash_algo = fname.split(".")[-1].replace("sha3_256", "sha3")
         elif fname == "hashlib.new" and node.args:
             lit = _resolve(node.args[0], table)

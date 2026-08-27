@@ -843,7 +843,7 @@ function updateDashboard(atRisk) {
   document.getElementById('hero-count').textContent = atRisk.length;
   
   // Summary Stats
-  document.getElementById('stat-risk').textContent = atRisk.length;
+  document.getElementById('stat-risk').innerText = migrationCandidates.length;
   document.getElementById('stat-quant').textContent = atRisk.filter(f => isQuantum(f)).length;
   document.getElementById('stat-crit').textContent = atRisk.filter(f => getSeverity(f) === 'CRITICAL').length;
   document.getElementById('stat-high').textContent = atRisk.filter(f => getSeverity(f) === 'HIGH').length;
