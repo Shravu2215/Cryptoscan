@@ -159,6 +159,7 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
     const cbom = buildCbom({
       scanId: scan.id,
       repoId: scan.repoId,
+      createdAt: scan.createdAt,
       rawFindings
     });
 
@@ -190,7 +191,7 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
         functionName: f.description
       }
     }));
-    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, rawFindings });
+    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
     const contentBuffer = Buffer.from(JSON.stringify(cbom));
 
     // Check if we use mock (from frontend or env)
@@ -254,7 +255,7 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
         functionName: f.description
       }
     }));
-    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, rawFindings });
+    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
     const contentBuffer = Buffer.from(JSON.stringify(cbom));
 
     // Read stored signature if it exists

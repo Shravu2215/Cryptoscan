@@ -101,7 +101,7 @@ function buildCbom(scan) {
     serialNumber: `urn:uuid:cbom-${scan.scanId}`,
     version: 1,
     metadata: {
-      timestamp: new Date().toISOString(),
+      timestamp: scan.createdAt ? new Date(scan.createdAt).toISOString() : new Date(0).toISOString(),
       component: {
         type: 'application',
         name: scan.repoId || scan.scanId,
