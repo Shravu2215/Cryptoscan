@@ -41,7 +41,7 @@ def _callee_name(callee: dict) -> str:
         node = node.get("object")
     if isinstance(node, dict) and node.get("type") == "Identifier":
         parts.append(node["name"])
-    return ".".join(reversed(parts))
+    return ".".join(str(p) for p in reversed(parts))
 
 
 def _arg_literal(node) -> Optional[Any]:
