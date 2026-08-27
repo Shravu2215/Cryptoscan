@@ -488,9 +488,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
                 <span class="status-badge sb-none" id="sig-status">— Not Available</span>
               </div>
               <div class="dl-list">
-                <div class="dl-item"><span class="dl-lbl">Algorithm</span><span class="dl-val">—</span></div>
-                <div class="dl-item"><span class="dl-lbl">Signer ID</span><span class="dl-val">—</span></div>
-                <div class="dl-item"><span class="dl-lbl">Signed At</span><span class="dl-val">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Algorithm</span><span class="dl-val" id="sig-algo">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Signer ID</span><span class="dl-val" id="sig-signer">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Signed At</span><span class="dl-val" id="sig-time">—</span></div>
               </div>
             </div>
             
@@ -501,9 +501,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
                 <span class="status-badge sb-none" id="anch-status">— Not Anchored</span>
               </div>
               <div class="dl-list">
-                <div class="dl-item"><span class="dl-lbl">Network</span><span class="dl-val">—</span></div>
-                <div class="dl-item"><span class="dl-lbl">Transaction</span><span class="dl-val">—</span></div>
-                <div class="dl-item"><span class="dl-lbl">Block</span><span class="dl-val">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Network</span><span class="dl-val" id="anch-network">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Transaction</span><span class="dl-val" id="anch-tx">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Block</span><span class="dl-val" id="anch-block">—</span></div>
               </div>
             </div>
           </div>
@@ -517,6 +517,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 <script src="engine.js"></script>
 <script>
 const API_BASE = 'http://localhost:5000';
+function getToken() { return localStorage.getItem('token') || 'dummy-token'; }
 let activeScan = null;
 let currentHashHex = '';
 
@@ -633,7 +634,7 @@ async function startVerification() {
   try {
     const anchorRes = await fetch(`${API_BASE}/scan/${activeScan.scanId}/anchor`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() }
     });
     
     if (!anchorRes.ok) {
@@ -647,17 +648,21 @@ async function startVerification() {
     document.getElementById('anch-status').className = 'status-badge sb-valid';
     document.getElementById('anch-status').textContent = '✓ Anchored';
     
-    // Fill in anchor details
-    const anchDl = document.querySelectorAll('.col.col-1')[1];
-    if (anchDl) {
-      const dlItems = anchDl.querySelectorAll('.dl-list')[1];
-      if (dlItems) {
-        const vals = dlItems.querySelectorAll('.dl-val');
-        if (vals[0]) vals[0].textContent = anchorResult.network || 'Hardhat Localhost';
-        if (vals[1]) vals[1].textContent = anchorResult.txHash ? anchorResult.txHash.substring(0, 20) + '…' : '—';
-        if (vals[1]) vals[1].title = anchorResult.txHash || '';
-        if (vals[2]) vals[2].textContent = anchorResult.blockNumber || '—';
-      }
+    // Fill anchor detail fields
+    document.getElementById('anch-network').textContent = anchorResult.network || 'Hardhat Localhost';
+    const txEl = document.getElementById('anch-tx');
+    txEl.textContent = anchorResult.txHash ? anchorResult.txHash.substring(0, 20) + '…' : '—';
+    txEl.title = anchorResult.txHash || '';
+    document.getElementById('anch-block').textContent = anchorResult.blockNumber || '—';
+    
+    // Fill signature detail fields (backend returns signature with anchor)
+    if (anchorResult.signature) {
+      document.getElementById('sig-status').className = 'status-badge sb-valid';
+      document.getElementById('sig-status').textContent = '✓ Signed';
+      document.getElementById('sig-algo').textContent = 'ECDSA (secp256k1)';
+      document.getElementById('sig-signer').textContent = anchorResult.signer || 'Hardhat Account #0';
+      document.getElementById('sig-time').textContent = new Date().toLocaleString();
+      updateStep(2, 'done');
     }
     
     updateStep(3, 'done');
@@ -678,7 +683,7 @@ async function startVerification() {
   try {
     const verifyRes = await fetch(`${API_BASE}/scan/${activeScan.scanId}/verify`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() }
     });
     
     if (!verifyRes.ok) {
