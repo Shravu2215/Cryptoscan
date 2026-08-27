@@ -626,53 +626,86 @@ async function startVerification() {
   document.getElementById('sig-status').className = 'status-badge sb-warn';
   document.getElementById('sig-status').textContent = 'Skipped (No Signer)';
   
-  // ─── Step 3: Blockchain Anchor — POST /scan/:scanId/anchor ───
+  // ─── Step 3: Blockchain Anchor — check if already anchored first ───
   updateStep(3, 'active');
   document.getElementById('pl-progress').style.width = '60%';
   
   let anchorResult = null;
+  let alreadyAnchored = false;
+  
+  // Try verify first to see if scan is already anchored
   try {
-    const anchorRes = await fetch(`${API_BASE}/scan/${activeScan.scanId}/anchor`, {
-      method: 'POST',
+    const preCheck = await fetch(`${API_BASE}/scan/${activeScan.scanId}/verify`, {
+      method: 'GET',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() }
     });
-    
-    if (!anchorRes.ok) {
-      const errBody = await anchorRes.json().catch(() => ({}));
-      throw new Error(errBody.error || `Anchor failed (${anchorRes.status})`);
+    if (preCheck.ok) {
+      const preResult = await preCheck.json();
+      if (preResult.onChainHash) {
+        // Already anchored — skip anchor step
+        alreadyAnchored = true;
+        anchorResult = { alreadyAnchored: true };
+        
+        document.getElementById('anch-status').className = 'status-badge sb-valid';
+        document.getElementById('anch-status').textContent = '✓ Already Anchored';
+        document.getElementById('anch-network').textContent = 'Hardhat Localhost';
+        
+        document.getElementById('sig-status').className = 'status-badge sb-valid';
+        document.getElementById('sig-status').textContent = '✓ Previously Signed';
+        document.getElementById('sig-algo').textContent = 'ECDSA (secp256k1)';
+        document.getElementById('sig-signer').textContent = 'Hardhat Account #0';
+        document.getElementById('sig-time').textContent = '—';
+        updateStep(2, 'done');
+        updateStep(3, 'done');
+      }
     }
-    
-    anchorResult = await anchorRes.json();
-    
-    // Update Anchor UI
-    document.getElementById('anch-status').className = 'status-badge sb-valid';
-    document.getElementById('anch-status').textContent = '✓ Anchored';
-    
-    // Fill anchor detail fields
-    document.getElementById('anch-network').textContent = anchorResult.network || 'Hardhat Localhost';
-    const txEl = document.getElementById('anch-tx');
-    txEl.textContent = anchorResult.txHash ? anchorResult.txHash.substring(0, 20) + '…' : '—';
-    txEl.title = anchorResult.txHash || '';
-    document.getElementById('anch-block').textContent = anchorResult.blockNumber || '—';
-    
-    // Fill signature detail fields (backend returns signature with anchor)
-    if (anchorResult.signature) {
-      document.getElementById('sig-status').className = 'status-badge sb-valid';
-      document.getElementById('sig-status').textContent = '✓ Signed';
-      document.getElementById('sig-algo').textContent = 'ECDSA (secp256k1)';
-      document.getElementById('sig-signer').textContent = anchorResult.signer || 'Hardhat Account #0';
-      document.getElementById('sig-time').textContent = new Date().toLocaleString();
-      updateStep(2, 'done');
+  } catch(ignore) { /* not anchored yet, proceed */ }
+  
+  // Only anchor if not already anchored
+  if (!alreadyAnchored) {
+    try {
+      const anchorRes = await fetch(`${API_BASE}/scan/${activeScan.scanId}/anchor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() }
+      });
+      
+      if (!anchorRes.ok) {
+        const errBody = await anchorRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `Anchor failed (${anchorRes.status})`);
+      }
+      
+      anchorResult = await anchorRes.json();
+      
+      // Update Anchor UI
+      document.getElementById('anch-status').className = 'status-badge sb-valid';
+      document.getElementById('anch-status').textContent = '✓ Anchored';
+      
+      // Fill anchor detail fields
+      document.getElementById('anch-network').textContent = anchorResult.network || 'Hardhat Localhost';
+      const txEl = document.getElementById('anch-tx');
+      txEl.textContent = anchorResult.txHash ? anchorResult.txHash.substring(0, 20) + '…' : '—';
+      txEl.title = anchorResult.txHash || '';
+      document.getElementById('anch-block').textContent = anchorResult.blockNumber || '—';
+      
+      // Fill signature detail fields (backend returns signature with anchor)
+      if (anchorResult.signature) {
+        document.getElementById('sig-status').className = 'status-badge sb-valid';
+        document.getElementById('sig-status').textContent = '✓ Signed';
+        document.getElementById('sig-algo').textContent = 'ECDSA (secp256k1)';
+        document.getElementById('sig-signer').textContent = anchorResult.signer || 'Hardhat Account #0';
+        document.getElementById('sig-time').textContent = new Date().toLocaleString();
+        updateStep(2, 'done');
+      }
+      
+      updateStep(3, 'done');
+    } catch(e) {
+      console.error('Blockchain anchor failed:', e);
+      updateStep(3, 'fail');
+      document.getElementById('anch-status').className = 'status-badge sb-invalid';
+      document.getElementById('anch-status').textContent = '✗ Anchor Failed';
+      
+      // Continue — we can still do partial verification
     }
-    
-    updateStep(3, 'done');
-  } catch(e) {
-    console.error('Blockchain anchor failed:', e);
-    updateStep(3, 'fail');
-    document.getElementById('anch-status').className = 'status-badge sb-invalid';
-    document.getElementById('anch-status').textContent = '✗ Anchor Failed';
-    
-    // Continue — we can still do partial verification
   }
   
   // ─── Step 4: Verify — GET /scan/:scanId/verify ───
