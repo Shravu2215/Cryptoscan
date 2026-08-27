@@ -132,7 +132,7 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
     const scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
 
-    const dbFindings = await prisma.finding.findMany({ where: { scanId } });
+    const dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
 
     // reconstruct rawFindings for the cbomGenerator
     const rawFindings = dbFindings.map(f => ({
@@ -180,10 +180,7 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
     }
 
     // Build CBOM to hash
-    let dbFindings = await prisma.finding.findMany({ where: { scanId } });
-    if (dbFindings.length === 0) {
-      dbFindings = await prisma.finding.findMany({ take: 20 });
-    }
+    let dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
     const rawFindings = dbFindings.map(f => ({
       id: f.id,
       file: f.filePath,
@@ -264,10 +261,7 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
     }
 
     // Build CBOM to hash
-    let dbFindings = await prisma.finding.findMany({ where: { scanId } });
-    if (dbFindings.length === 0) {
-      dbFindings = await prisma.finding.findMany({ take: 20 });
-    }
+    let dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
     const rawFindings = dbFindings.map(f => ({
       id: f.id,
       file: f.filePath,
