@@ -516,6 +516,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 
 <script src="engine.js"></script>
 <script>
+const API_BASE = 'http://localhost:5000';
 let activeScan = null;
 let currentHashHex = '';
 
@@ -538,16 +539,7 @@ function init() {
   document.getElementById('det-count').textContent = activeScan.assetsFound;
 }
 
-// Convert string to ArrayBuffer for hashing
-function str2ab(str) {
-  const buf = new ArrayBuffer(str.length);
-  const bufView = new Uint8Array(buf);
-  for (let i = 0; i < str.length; i++) {
-    bufView[i] = str.charCodeAt(i);
-  }
-  return buf;
-}
-
+// Generate SHA-256 hash in browser
 async function generateHash(dataObj) {
   const str = JSON.stringify(dataObj);
   const buffer = new TextEncoder().encode(str);
@@ -561,11 +553,29 @@ function updateStep(stepId, state) {
   el.className = 'pl-step ' + state;
   if(state === 'done') {
     el.querySelector('.pl-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else if (state === 'fail') {
+    el.querySelector('.pl-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 }
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function setHero(status, title, desc) {
+  const hero = document.getElementById('hero-card');
+  hero.className = 'verify-hero status-' + status;
+  document.getElementById('hero-icon').className = 'vh-icon ' + status;
+  
+  const iconPaths = {
+    verified: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+    failed: '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>',
+    incomplete: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>',
+    unverified: '<circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01"/>'
+  };
+  document.getElementById('hero-icon').innerHTML = iconPaths[status] || iconPaths.unverified;
+  document.getElementById('hero-title').textContent = title;
+  document.getElementById('hero-desc').textContent = desc;
 }
 
 async function startVerification() {
@@ -582,71 +592,148 @@ async function startVerification() {
   document.getElementById('hash-status').textContent = 'Generating...';
   document.getElementById('hash-box').className = 'hash-box';
   
-  // Step 1: Hash Generation
+  // ─── Step 1: SHA-256 Hash Generation ───
   updateStep(1, 'active');
-  document.getElementById('pl-progress').style.width = '25%';
-  await delay(800);
+  document.getElementById('pl-progress').style.width = '20%';
+  await delay(500);
   
   try {
-    // Generate real hash from actual cbom data
     currentHashHex = await generateHash(activeScan.cbom);
     
     document.getElementById('hash-text').textContent = currentHashHex;
     document.getElementById('hash-text').style.color = 'var(--text-h)';
     document.getElementById('hash-copy').style.display = 'block';
-    
     document.getElementById('hash-status').className = 'status-badge sb-valid';
     document.getElementById('hash-status').textContent = 'Hash Generated';
-    
     document.getElementById('comp-current').textContent = currentHashHex;
     
     updateStep(1, 'done');
-    
-    // Step 2: Digital Signature (Not Available logically as backend lacks it)
-    updateStep(2, 'active');
-    document.getElementById('pl-progress').style.width = '50%';
-    await delay(600);
-    
-    updateStep(2, 'warn');
-    
-    // Step 3: Blockchain Anchor (Not Anchored logically)
-    updateStep(3, 'active');
-    document.getElementById('pl-progress').style.width = '75%';
-    await delay(600);
-    
-    updateStep(3, 'warn');
-    
-    // Step 4: Final Result
-    updateStep(4, 'active');
-    document.getElementById('pl-progress').style.width = '100%';
-    await delay(400);
-    
-    // Set Final Result - Incomplete because signature/anchor missing
-    updateStep(4, 'warn');
-    
-    document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> VERIFICATION INCOMPLETE';
-    document.getElementById('comp-result').className = 'comp-res warn';
-    
-    const hero = document.getElementById('hero-card');
-    hero.className = 'verify-hero status-incomplete';
-    document.getElementById('hero-icon').className = 'vh-icon incomplete';
-    document.getElementById('hero-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>';
-    document.getElementById('hero-title').textContent = 'VERIFICATION INCOMPLETE';
-    document.getElementById('hero-desc').textContent = 'CBOM is not anchored to a blockchain network and lacks a digital signature.';
-    
   } catch(e) {
-    console.error(e);
-    // Error state
+    console.error('Hash generation failed:', e);
     updateStep(1, 'fail');
-    const hero = document.getElementById('hero-card');
-    hero.className = 'verify-hero status-failed';
-    document.getElementById('hero-icon').className = 'vh-icon failed';
-    document.getElementById('hero-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
-    document.getElementById('hero-title').textContent = 'VERIFICATION FAILED';
-    document.getElementById('hero-desc').textContent = 'An error occurred while generating the cryptographic hash.';
+    setHero('failed', 'HASH GENERATION FAILED', 'Could not generate SHA-256 hash of the CBOM.');
+    btn.textContent = 'Retry Verification';
+    btn.disabled = false;
+    return;
   }
   
-  btn.textContent = 'Verify Again';
+  // ─── Step 2: Digital Signature (skipped — no signing key in frontend) ───
+  updateStep(2, 'active');
+  document.getElementById('pl-progress').style.width = '40%';
+  await delay(400);
+  updateStep(2, 'warn');
+  document.getElementById('sig-status').className = 'status-badge sb-warn';
+  document.getElementById('sig-status').textContent = 'Skipped (No Signer)';
+  
+  // ─── Step 3: Blockchain Anchor — POST /scan/:scanId/anchor ───
+  updateStep(3, 'active');
+  document.getElementById('pl-progress').style.width = '60%';
+  
+  let anchorResult = null;
+  try {
+    const anchorRes = await fetch(`${API_BASE}/scan/${activeScan.scanId}/anchor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!anchorRes.ok) {
+      const errBody = await anchorRes.json().catch(() => ({}));
+      throw new Error(errBody.error || `Anchor failed (${anchorRes.status})`);
+    }
+    
+    anchorResult = await anchorRes.json();
+    
+    // Update Anchor UI
+    document.getElementById('anch-status').className = 'status-badge sb-valid';
+    document.getElementById('anch-status').textContent = '✓ Anchored';
+    
+    // Fill in anchor details
+    const anchDl = document.querySelectorAll('.col.col-1')[1];
+    if (anchDl) {
+      const dlItems = anchDl.querySelectorAll('.dl-list')[1];
+      if (dlItems) {
+        const vals = dlItems.querySelectorAll('.dl-val');
+        if (vals[0]) vals[0].textContent = anchorResult.network || 'Hardhat Localhost';
+        if (vals[1]) vals[1].textContent = anchorResult.txHash ? anchorResult.txHash.substring(0, 20) + '…' : '—';
+        if (vals[1]) vals[1].title = anchorResult.txHash || '';
+        if (vals[2]) vals[2].textContent = anchorResult.blockNumber || '—';
+      }
+    }
+    
+    updateStep(3, 'done');
+  } catch(e) {
+    console.error('Blockchain anchor failed:', e);
+    updateStep(3, 'fail');
+    document.getElementById('anch-status').className = 'status-badge sb-invalid';
+    document.getElementById('anch-status').textContent = '✗ Anchor Failed';
+    
+    // Continue — we can still do partial verification
+  }
+  
+  // ─── Step 4: Verify — GET /scan/:scanId/verify ───
+  updateStep(4, 'active');
+  document.getElementById('pl-progress').style.width = '80%';
+  
+  let verifyResult = null;
+  try {
+    const verifyRes = await fetch(`${API_BASE}/scan/${activeScan.scanId}/verify`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!verifyRes.ok) {
+      const errBody = await verifyRes.json().catch(() => ({}));
+      throw new Error(errBody.error || `Verify failed (${verifyRes.status})`);
+    }
+    
+    verifyResult = await verifyRes.json();
+    
+    // Fill comparison section
+    document.getElementById('comp-chain').textContent = verifyResult.onChainHash || '—';
+    
+    if (verifyResult.verified) {
+      // ✅ Full verification passed
+      document.getElementById('pl-progress').style.width = '100%';
+      updateStep(4, 'done');
+      
+      document.getElementById('hash-box').className = 'hash-box match';
+      document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> MATCH — VERIFIED';
+      document.getElementById('comp-result').className = 'comp-res match';
+      
+      setHero('verified', 'VERIFIED', 'CBOM integrity confirmed. The on-chain hash matches the current CBOM hash.');
+      
+    } else {
+      // ❌ Verification failed — hash mismatch
+      document.getElementById('pl-progress').style.width = '100%';
+      updateStep(4, 'fail');
+      
+      document.getElementById('hash-box').className = 'hash-box mismatch';
+      document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> MISMATCH — INTEGRITY FAILED';
+      document.getElementById('comp-result').className = 'comp-res mismatch';
+      
+      setHero('failed', 'VERIFICATION FAILED', 'The on-chain hash does not match the current CBOM. The inventory may have been tampered with.');
+    }
+    
+  } catch(e) {
+    console.error('Verification API failed:', e);
+    document.getElementById('pl-progress').style.width = '100%';
+    
+    if (anchorResult) {
+      // Anchor succeeded but verify failed — incomplete
+      updateStep(4, 'warn');
+      document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> VERIFY CALL FAILED';
+      document.getElementById('comp-result').className = 'comp-res warn';
+      setHero('incomplete', 'VERIFICATION INCOMPLETE', 'CBOM was anchored but the verification API returned an error: ' + e.message);
+    } else {
+      // Both anchor and verify failed
+      updateStep(4, 'fail');
+      document.getElementById('comp-result').innerHTML = '✗ NOT VERIFIED';
+      document.getElementById('comp-result').className = 'comp-res mismatch';
+      setHero('failed', 'VERIFICATION FAILED', 'Both blockchain anchoring and verification failed. Check that the Hardhat network and backend are running.');
+    }
+  }
+  
+  btn.innerHTML = 'Verify Again';
   btn.disabled = false;
 }
 

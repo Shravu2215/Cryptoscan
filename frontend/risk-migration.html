@@ -574,7 +574,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="ig-arrow">↓</div>
         <div class="ig-node" id="ig-files">X Affected Files</div>
         <div class="ig-arrow">↓</div>
-        <div class="ig-node">Direct Dependencies</div>
+        <div class="ig-node" id="ig-filelist" style="text-align:left; font-size:12px; line-height:1.6;">Direct Dependencies</div>
         <div class="ig-arrow">↓</div>
         <div class="ig-node" style="border-color:var(--green); color:var(--green);">Application Module</div>
       </div>
@@ -682,6 +682,19 @@ function init() {
   updateDashboard(atRisk);
   renderRecommendations();
   renderTimeline();
+  
+  // Auto-open drawer if ?algo= param is passed
+  const urlAlgo = new URLSearchParams(window.location.search).get('algo');
+  if (urlAlgo) {
+    const candidate = migrationCandidates.find(c => 
+      c.algorithm.toLowerCase() === urlAlgo.toLowerCase() || 
+      c.algorithm.toLowerCase().includes(urlAlgo.toLowerCase())
+    );
+    if (candidate) {
+      const cStr = encodeURIComponent(JSON.stringify({...candidate, affectedFiles:Array.from(candidate.affectedFiles)}));
+      openDrawer(cStr);
+    }
+  }
 }
 
 function updateDashboard(atRisk) {
@@ -821,6 +834,21 @@ function openDrawer(cEncoded) {
   
   document.getElementById('ig-algo').textContent = c.algorithm;
   document.getElementById('ig-files').textContent = `${c.fileCount} Affected Files`;
+  
+  // Populate ig-filelist with real file names
+  const filelist = document.getElementById('ig-filelist');
+  const files = c.affectedFiles || [];
+  const maxShow = 4;
+  if (files.length === 0) {
+    filelist.textContent = 'No files identified';
+  } else {
+    const shown = files.slice(0, maxShow);
+    let html = shown.map(f => `<div style="font-family:'JetBrains Mono',monospace; padding:2px 0; color:var(--text-h);">${f}</div>`).join('');
+    if (files.length > maxShow) {
+      html += `<div style="color:var(--text-s); font-style:italic; padding-top:4px;">+${files.length - maxShow} more files</div>`;
+    }
+    filelist.innerHTML = html;
+  }
   
   document.getElementById('drawer-overlay').classList.add('active');
   document.getElementById('drawer').classList.add('active');

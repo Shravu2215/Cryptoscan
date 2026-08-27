@@ -551,16 +551,27 @@ tbody tr:hover { background: var(--bg-card-hover); }
     
   </div>
   <div class="drawer-ft">
-    <button class="btn-p" style="flex:1; justify-content:center;" onclick="alert('Navigating to Migration Guide...')">View Migration Recommendation</button>
+    <button class="btn-p" style="flex:1; justify-content:center;" onclick="goToMigration()">View Migration Recommendation</button>
   </div>
 </div>
 
 <script src="engine.js"></script>
 <script>
+let currentDrawerFinding = null;
 let allFindings = [];
 let filteredFindings = [];
 let currentPage = 1;
 const itemsPerPage = 15;
+
+function goToMigration() {
+  if (currentDrawerFinding && currentDrawerFinding.algorithm) {
+    window.location.href = `risk-migration.html?algo=${encodeURIComponent(currentDrawerFinding.algorithm)}`;
+  } else if (currentDrawerFinding && currentDrawerFinding.title) {
+    window.location.href = `risk-migration.html?algo=${encodeURIComponent(currentDrawerFinding.title.split(' ')[0])}`;
+  } else {
+    window.location.href = 'risk-migration.html';
+  }
+}
 
 function getUrlParam(param) {
   const urlParams = new URLSearchParams(window.location.search);
@@ -820,6 +831,7 @@ function changePage(dir) {
 
 function openDrawer(fEncoded) {
   const f = JSON.parse(decodeURIComponent(fEncoded));
+  currentDrawerFinding = f;
   const sev = getSeverity(f);
   
   document.getElementById('drw-algo').textContent = f.algorithm || f.title.split(' ')[0] || 'Unknown';
