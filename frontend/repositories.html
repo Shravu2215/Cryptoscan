@@ -182,7 +182,7 @@ tr:hover td { background: var(--bg-card-hover); }
 .hide { display: none !important; }
 
 /* Profile Avatar */
-.profile-avatar-wrap { position: relative; }
+.profile-avatar-wrap { position: relative; display: flex; align-items: center; }
 .profile-avatar {
   width: 36px; height: 36px; border-radius: 50%;
   background: linear-gradient(135deg, #15803d, #22c55e);
@@ -306,8 +306,6 @@ tr:hover td { background: var(--bg-card-hover); }
     <div class="tb-right">
       <input type="text" class="inp-filter" id="global-search" placeholder="Search repositories..." oninput="renderTable()">
       <button class="btn-p" onclick="window.location.href='scan.html'">+ Add Repository</button>
-    </div>
-  
     <!-- Profile Avatar -->
     <div class="profile-avatar-wrap">
       
@@ -337,7 +335,7 @@ tr:hover td { background: var(--bg-card-hover); }
         </a>
       </div>
     </div>
-  </header>
+      </div></header>
 
   <div class="content">
     
