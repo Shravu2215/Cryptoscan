@@ -336,8 +336,8 @@ body::after {
 
 <script src="auth.js"></script>
 <script>
-// Redirect if already logged in
-if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
+// Do not auto-redirect so user can view signup page directly
+// if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
 
 const form = document.getElementById('signup-form');
 const submitBtn = document.getElementById('submit-btn');
