@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBOM — CryptoScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Light theme variables */
+  --bg-main: #f4f5f7;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f9fafb;
+  --border-color: #eef0f3;
+  --border-light: #f4f5f7;
+  
+  --text-h: #111827; /* Headers text */
+  --text-b: #374151; /* Body text */
+  --text-m: #6b7280; /* Muted text */
+  --text-s: #9ca3af; /* Subtle text */
+  
+  /* State Colors */
+  --green: #15803d; /* Secure/Verified */
+  --green-bg: #dcfce7;
+  --red: #b91c1c; /* Critical */
+  --red-bg: #fee2e2;
+  --amber: #b45309; /* High */
+  --amber-bg: #fef3c7;
+  --yellow: #a16207; /* Medium */
+  --yellow-bg: #fef08a;
+  --gray: #4b5563; /* Low */
+  --gray-bg: #f3f4f6;
+  
+  --purple: #6d28d9; /* Quantum */
+  --purple-bg: #ede9fe;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 16px;
+  --sb-w: 240px;
+  --t: .2s ease;
+}
+
+html { font-size: 14px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-b);
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sb {
+  width: var(--sb-w);
+  flex-shrink: 0;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  padding: 24px 16px;
+}
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 24px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 24px;
+}
+.sb-logo {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-logo svg { width: 24px; height: 24px; color: var(--text-h); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-name span { color: var(--text-m); font-weight: 400; }
+
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sb-nav-divider { height: 1px; background: var(--border-light); margin: 16px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  color: var(--text-m); font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid rgba(21, 128, 61, 0.2);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.nav-badge {
+  margin-left: auto; background: var(--border-color);
+  color: var(--text-h); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+}
+
+/* Main Content Area */
+.main {
+  margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+}
+
+/* Header */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px; background: var(--bg-main);
+  position: sticky; top: 0; z-index: 50;
+  border-bottom: 1px solid var(--border-color);
+}
+.tb-left { display: flex; flex-direction: column; gap: 4px; }
+.tb-title { font-size: 20px; font-weight: 600; color: var(--text-h); letter-spacing: -0.02em; line-height: 1; }
+.tb-sub { font-size: 13px; color: var(--text-m); }
+.tb-right { display: flex; align-items: center; gap: 16px; }
+
+/* Buttons */
+.btn-p {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: var(--green); border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: #ffffff; cursor: pointer;
+  transition: opacity var(--t); text-decoration: none;
+}
+.btn-p:hover { opacity: 0.9; }
+
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-b);
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.btn-sec:hover { background: var(--bg-card); border-color: var(--text-s); }
+
+/* Dashboard Grid */
+.content { padding: 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.row { display: flex; gap: 24px; }
+.col { display: flex; flex-direction: column; gap: 24px; }
+.col-2 { flex: 2; } .col-1 { flex: 1; }
+
+/* Cards */
+.gcard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-lg); padding: 24px; position: relative;
+}
+.gc-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.gc-ttl { font-size: 14px; font-weight: 600; color: var(--text-h); }
+.gc-sub { font-size: 12px; color: var(--text-m); margin-top: 4px; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.scard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-md); padding: 16px;
+}
+.scard-primary {
+  background: linear-gradient(135deg, #166534, #15803d);
+  color: #ffffff;
+  border: none;
+}
+.scard-primary .sc-lbl, .scard-primary .empty-sub { color: rgba(255,255,255,0.8); }
+.scard-primary .sc-val, .scard-primary .empty-val { color: #ffffff; }
+
+.sc-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; }
+.sc-val { font-size: 24px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.empty-val { font-size: 24px; font-weight: 600; color: var(--text-s); }
+.empty-sub { font-size: 11px; color: var(--text-s); margin-top: 4px; }
+
+/* Risk Distribution */
+.risk-dist { display: flex; flex-direction: column; gap: 12px; }
+.risk-bar-container { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; display: flex; overflow: hidden; }
+.risk-bar { height: 100%; }
+.risk-legend { display: flex; justify-content: space-between; font-size: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-b); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 12px 16px; font-size: 11px; font-weight: 500;
+  color: var(--text-m); text-align: left; border-bottom: 1px solid var(--border-color);
+}
+tbody td {
+  padding: 16px; font-size: 13px; color: var(--text-b);
+  border-bottom: 1px solid var(--border-color);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg-card-hover); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
+.badge-crit { background: var(--red-bg); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
+.badge-high { background: var(--amber-bg); color: var(--amber); border-color: rgba(245, 158, 11, 0.2); }
+.badge-med { background: var(--yellow-bg); color: var(--yellow); border-color: rgba(234, 179, 8, 0.2); }
+.badge-low { background: var(--gray-bg); color: var(--gray); border-color: rgba(113, 113, 122, 0.2); }
+.badge-quant { background: var(--purple-bg); color: var(--purple); border-color: rgba(139, 92, 246, 0.2); }
+
+/* Empty States */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
+.empty-msg { font-size: 13px; color: var(--text-m); }
+
+/* Top Risks List */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); }
+.risk-algo { font-size: 13px; font-weight: 500; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+.risk-count { font-size: 12px; color: var(--text-s); }
+
+/* Quick Actions */
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.qa-btn { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); text-align: left; cursor: pointer; transition: all var(--t); text-decoration: none; }
+.qa-btn:hover { border-color: var(--text-m); }
+.qa-btn svg { width: 20px; height: 20px; color: var(--text-h); }
+.qa-ttl { font-size: 13px; font-weight: 500; color: var(--text-h); }
+</style>
+<style>
+  /* CBOM Layout Additions */
+  .filter-bar {
+    display: flex; gap: 12px; align-items: center;
+    padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card); flex-wrap: wrap;
+  }
+  .inp-search, .filter-sel {
+    background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm);
+    padding: 8px 12px; color: var(--text-h); font-size: 13px; font-family: inherit; transition: all var(--t);
+  }
+  .inp-search { flex: 1; min-width: 200px; max-width: 300px; }
+  .inp-search:focus, .filter-sel:focus { outline: none; border-color: var(--green); }
+  
+  .tbl-wrapper { overflow-x: auto; }
+  #cbom-table tbody tr { cursor: pointer; }
+  .code-font { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-top: 1px solid var(--border-color); }
+  .page-info { font-size: 13px; color: var(--text-s); }
+  .page-controls { display: flex; gap: 8px; }
+  .btn-page {
+    background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-h); border-radius: var(--r-sm);
+    padding: 6px 12px; font-size: 13px; cursor: pointer; transition: 0.2s;
+  }
+  .btn-page:hover:not(:disabled) { border-color: var(--text-m); }
+  .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  /* Drawers */
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(12, 26, 46, 0.6); backdrop-filter: blur(4px);
+    z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease;
+  }
+  .drawer-overlay.active { opacity: 1; visibility: visible; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 480px; background: var(--bg-main);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.2); z-index: 1001; transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;
+    border-left: 1px solid var(--border-color);
+  }
+  .drawer.active { transform: translateX(0); }
+  .drawer.wide { width: 600px; }
+  .drawer-hd { display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
+  .drawer-title { font-size: 16px; font-weight: 600; color: var(--text-h); }
+  .drawer-close { background: none; border: none; color: var(--text-m); cursor: pointer; padding: 4px; }
+  .drawer-close:hover { color: var(--text-h); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .drawer-ft { padding: 24px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; background: var(--bg-card); justify-content: flex-end; }
+  
+  .prop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .prop-item { display: flex; flex-direction: column; gap: 4px; }
+  .prop-lbl { font-size: 11px; color: var(--text-s); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+  .prop-val { font-size: 14px; color: var(--text-h); font-weight: 500; }
+  
+  .json-view {
+    background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: var(--r-sm);
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; white-space: pre-wrap;
+    overflow-y: auto; flex: 1; border: 1px solid var(--border-color);
+  }
+  
+  /* Mini bar charts */
+  .mini-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .mini-bar-lbl { width: 100px; font-size: 12px; color: var(--text-h); font-weight: 500; }
+  .mini-bar-track { flex: 1; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 4px; }
+  .mini-bar-val { width: 30px; text-align: right; font-size: 12px; color: var(--text-m); }
+  
+  .lib-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color); }
+  .lib-item:last-child { border-bottom: none; }
+  .lib-name { font-size: 13px; font-weight: 500; color: var(--text-h); }
+  .lib-count { font-size: 12px; color: var(--text-s); }
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div class="sb-name">CRYPTO<span>SCAN</span></div>
+  </div>
+  
+  <nav class="sb-nav">
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="repositories.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Repositories
+    </a>
+    <a class="nav-item" href="scan.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Scan Repository
+    </a>
+    <a class="nav-item" href="findings.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Findings
+    </a>
+    <a class="nav-item active" href="cbom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      CBOM
+    </a>
+    <a class="nav-item" href="risk-migration.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      Risk & Migration
+    </a>
+    <a class="nav-item" href="verification.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Verify
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <h1 class="tb-title">Cryptographic Bill of Materials</h1>
+      <p class="tb-sub">Complete inventory of cryptographic components detected in your repository.</p>
+    </div>
+    <div class="tb-right" id="header-actions" style="display:none;">
+      <button class="btn-sec" onclick="openJsonDrawer()">View JSON</button>
+      <button class="btn-p" onclick="downloadCBOM()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Download CBOM
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+    
+    <!-- Empty State -->
+    <div id="view-no-data" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--text-s);margin-bottom:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No CBOM available</div>
+        <div class="empty-msg">Run a repository scan to generate your cryptographic inventory.</div>
+        <button class="btn-p" style="margin-top:16px;" onclick="window.location.href='scan.html'">Scan Repository</button>
+      </div>
+    </div>
+
+    <!-- Active CBOM View -->
+    <div id="view-active" style="display:none; display:flex; flex-direction:column; gap:24px;">
+      
+      <!-- Summary Cards -->
+      <div class="stats-grid">
+        <div class="scard scard-primary">
+          <div class="sc-lbl">Cryptographic Components</div>
+          <div class="sc-val" id="stat-components">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Algorithms</div>
+          <div class="sc-val" id="stat-algorithms">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Libraries</div>
+          <div class="sc-val" id="stat-libraries">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Quantum Vulnerable</div>
+          <div class="sc-val" id="stat-quantum" style="color:var(--purple)">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Critical Risk</div>
+          <div class="sc-val" id="stat-critical" style="color:var(--red)">0</div>
+        </div>
+      </div>
+
+      <!-- Overview Charts -->
+      <div class="row">
+        <div class="col col-1">
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Algorithm Types</div>
+            </div>
+            <div id="chart-types"></div>
+          </div>
+        </div>
+        <div class="col col-1">
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Component Risk</div>
+            </div>
+            <div id="chart-risk">
+              <div class="risk-dist" style="margin-top:16px;">
+                <div class="risk-bar-container" style="height:12px;">
+                  <div class="risk-bar" id="rb-crit" style="width:0%; background:var(--red);"></div>
+                  <div class="risk-bar" id="rb-high" style="width:0%; background:var(--amber);"></div>
+                  <div class="risk-bar" id="rb-med" style="width:0%; background:var(--yellow);"></div>
+                  <div class="risk-bar" id="rb-low" style="width:0%; background:var(--gray);"></div>
+                  <div class="risk-bar" id="rb-safe" style="width:0%; background:var(--green);"></div>
+                </div>
+                <div class="risk-legend" style="margin-top:12px;">
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Critical</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>High</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Medium</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>Low</div>
+                  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Safe</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Main CBOM Inventory Table -->
+        <div class="col col-2">
+          <div class="gcard" style="padding:0; overflow:hidden;">
+            <div class="gc-hd" style="padding: 24px 24px 0 24px; margin-bottom: 16px;">
+              <div>
+                <div class="gc-ttl">Cryptographic Inventory</div>
+                <div class="gc-sub" id="lbl-showing-count">Showing 0 components</div>
+              </div>
+            </div>
+            
+            <div class="filter-bar">
+              <input type="text" id="filter-search" class="inp-search" placeholder="Search algorithms, libraries, or files..." oninput="handleFilterChange()">
+              <select id="filter-type" class="filter-sel" onchange="handleFilterChange()">
+                <option value="ALL">All Types</option>
+                <option value="Asymmetric">Asymmetric</option>
+                <option value="Symmetric">Symmetric</option>
+                <option value="Hash">Hash</option>
+                <option value="Key Exchange">Key Exchange</option>
+                <option value="Digital Signature">Digital Signature</option>
+              </select>
+              <select id="filter-risk" class="filter-sel" onchange="handleFilterChange()">
+                <option value="ALL">All Risks</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+                <option value="SAFE">No Risk</option>
+              </select>
+              <select id="filter-lib" class="filter-sel" onchange="handleFilterChange()">
+                <option value="ALL">All Libraries</option>
+              </select>
+              <select id="filter-quant" class="filter-sel" onchange="handleFilterChange()">
+                <option value="ALL">Quantum Status: All</option>
+                <option value="Vulnerable">Vulnerable</option>
+                <option value="Not Vulnerable">Not Vulnerable</option>
+              </select>
+            </div>
+
+            <div class="tbl-wrapper">
+              <table id="cbom-table">
+                <thead>
+                  <tr>
+                    <th>Algorithm</th>
+                    <th>Type</th>
+                    <th>Purpose</th>
+                    <th>File</th>
+                    <th>Library</th>
+                    <th>Key Size</th>
+                    <th>Risk</th>
+                  </tr>
+                </thead>
+                <tbody id="cbom-tbody"></tbody>
+              </table>
+              
+              <div id="empty-search" class="empty-state" style="display:none;">
+                <div style="font-size:16px; font-weight:600; color:var(--text-h);">No components match your search</div>
+                <div class="empty-msg">Try another search term or clear your filters.</div>
+                <button class="btn-sec" style="margin-top:12px;" onclick="clearFilters()">Clear Filters</button>
+              </div>
+            </div>
+            
+            <div class="pagination" id="pagination-ctrl" style="display:none;">
+              <div class="page-info" id="page-info">Showing 1-20 of 0</div>
+              <div class="page-controls">
+                <button class="btn-page" id="btn-prev" onclick="changePage(-1)">Previous</button>
+                <button class="btn-page" id="btn-next" onclick="changePage(1)">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Sidebar Analytics -->
+        <div class="col col-1">
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Cryptographic Usage</div>
+            </div>
+            <div id="usage-list"></div>
+          </div>
+          
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Cryptographic Libraries</div>
+            </div>
+            <div id="lib-list" style="display:flex; flex-direction:column;"></div>
+          </div>
+          
+          <div class="gcard">
+            <div class="gc-hd" style="margin-bottom:12px;">
+              <div class="gc-ttl">Quantum Readiness</div>
+            </div>
+            <div id="quantum-readiness" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Component Detail Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <div class="drawer-title">Cryptographic Component</div>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:20px; font-weight:700; color:var(--text-h);" id="drw-algo">Algorithm</div>
+        <div style="font-size:13px; color:var(--text-s); margin-top:4px;" class="code-font" id="drw-fileline">file:line</div>
+      </div>
+      <span class="badge" id="drw-risk-badge">Risk</span>
+    </div>
+    
+    <div class="prop-grid">
+      <div class="prop-item">
+        <div class="prop-lbl">Type</div>
+        <div class="prop-val" id="drw-type">-</div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Purpose</div>
+        <div class="prop-val" id="drw-purpose">-</div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Library</div>
+        <div class="prop-val" id="drw-lib">-</div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Key Size</div>
+        <div class="prop-val code-font" id="drw-keysize" style="font-size:13px;">-</div>
+      </div>
+    </div>
+    
+    <div style="margin-top:8px;">
+      <div class="prop-lbl" style="margin-bottom:8px;">Quantum Status</div>
+      <div id="drw-quantum" style="font-size:14px; font-weight:500;">-</div>
+    </div>
+    
+    <div style="margin-top:8px;">
+      <div class="prop-lbl" style="margin-bottom:8px;">Usage Context</div>
+      <div style="font-size:13px; color:var(--text-m); line-height:1.5;" id="drw-usage">
+        Usage information extracted from repository scan.
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- JSON View Modal -->
+<div class="drawer wide" id="json-drawer">
+  <div class="drawer-hd">
+    <div class="drawer-title">CBOM JSON</div>
+    <button class="drawer-close" onclick="closeJsonDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+    <div class="json-view" id="json-content"></div>
+  </div>
+  <div class="drawer-ft">
+    <button class="btn-sec" onclick="closeJsonDrawer()">Close</button>
+    <button class="btn-p" onclick="copyJSON()">Copy JSON</button>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+let inventory = [];
+let filteredInventory = [];
+let currentPage = 1;
+const itemsPerPage = 15;
+
+// Helper to determine algorithm type based on name
+function getAlgoType(algo) {
+  const a = algo.toLowerCase();
+  if (a.includes('rsa') || a.includes('ecc') || a.includes('curve') || a.includes('dh')) {
+    if (a.includes('dh')) return 'Key Exchange';
+    return 'Asymmetric';
+  }
+  if (a.includes('aes') || a.includes('des') || a.includes('chacha') || a.includes('rc4') || a.includes('blowfish')) return 'Symmetric';
+  if (a.includes('sha') || a.includes('md5') || a.includes('blake')) return 'Hash';
+  if (a.includes('sign') || a.includes('dsa')) return 'Digital Signature';
+  return 'Unknown';
+}
+
+function init() {
+  const data = CryptoEngine.getData();
+  
+  if (!data.scans || data.scans.length === 0) {
+    document.getElementById('view-no-data').style.display = 'block';
+    return;
+  }
+  
+  document.getElementById('view-active').style.display = 'flex';
+  document.getElementById('header-actions').style.display = 'flex';
+  
+  // Transform findings into an inventory representation (CBOM elements)
+  inventory = data.scans.flatMap(s => {
+    return s.findings.map(f => {
+      const algo = f.algorithm || f.title.split(' ')[0] || 'Unknown';
+      return {
+        id: f.id || Math.random().toString(36).substr(2, 9),
+        algorithm: algo,
+        type: getAlgoType(algo),
+        purpose: f.usage || f.category || 'Data Protection',
+        file: f.file || 'unknown',
+        line: f.line || '',
+        library: f.library || 'Standard/Unknown',
+        keySize: f.keySize || '—',
+        risk: (f.severity || 'SAFE').toUpperCase(),
+        quantumVulnerable: f.quantum === 'yes' || (f.quantumStatus || '').toLowerCase().includes('vulnerable'),
+        usageContext: f.snippet || f.remediation || 'Standard implementation detected.'
+      };
+    });
+  });
+  
+  // Remove strict duplicates if any
+  const seen = new Set();
+  inventory = inventory.filter(c => {
+    const key = `${c.algorithm}-${c.file}-${c.line}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  
+  populateLibraryFilter();
+  updateSummaryStats();
+  updateCharts();
+  handleFilterChange();
+}
+
+function populateLibraryFilter() {
+  const libSet = new Set();
+  inventory.forEach(c => { if (c.library) libSet.add(c.library); });
+  
+  const sel = document.getElementById('filter-lib');
+  Array.from(libSet).sort().forEach(lib => {
+    const opt = document.createElement('option');
+    opt.value = lib;
+    opt.textContent = lib;
+    sel.appendChild(opt);
+  });
+}
+
+function updateSummaryStats() {
+  document.getElementById('stat-components').textContent = inventory.length;
+  
+  const algos = new Set(inventory.map(c => c.algorithm));
+  document.getElementById('stat-algorithms').textContent = algos.size;
+  
+  const libs = new Set(inventory.map(c => c.library));
+  document.getElementById('stat-libraries').textContent = libs.size;
+  
+  document.getElementById('stat-quantum').textContent = inventory.filter(c => c.quantumVulnerable).length;
+  document.getElementById('stat-critical').textContent = inventory.filter(c => c.risk === 'CRITICAL').length;
+}
+
+function updateCharts() {
+  const types = {};
+  const risks = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0, SAFE: 0 };
+  const libs = {};
+  let qVuln = 0; let qSafe = 0;
+  
+  inventory.forEach(c => {
+    types[c.type] = (types[c.type] || 0) + 1;
+    risks[c.risk] = (risks[c.risk] || 0) + 1;
+    libs[c.library] = (libs[c.library] || 0) + 1;
+    if (c.quantumVulnerable) qVuln++; else qSafe++;
+  });
+  
+  // Types Chart (Usage)
+  const maxType = Math.max(...Object.values(types), 1);
+  document.getElementById('chart-types').innerHTML = Object.keys(types).sort((a,b)=>types[b]-types[a]).map(t => `
+    <div class="mini-bar-row">
+      <div class="mini-bar-lbl">${t}</div>
+      <div class="mini-bar-track">
+        <div class="mini-bar-fill" style="width:${(types[t]/maxType)*100}%; background:var(--green)"></div>
+      </div>
+      <div class="mini-bar-val">${types[t]}</div>
+    </div>
+  `).join('');
+  
+  // Also replicate to Cryptographic Usage list on sidebar
+  document.getElementById('usage-list').innerHTML = document.getElementById('chart-types').innerHTML;
+  
+  // Risks
+  const tot = inventory.length || 1;
+  document.getElementById('rb-crit').style.width = (risks['CRITICAL']/tot)*100 + '%';
+  document.getElementById('rb-high').style.width = (risks['HIGH']/tot)*100 + '%';
+  document.getElementById('rb-med').style.width = (risks['MEDIUM']/tot)*100 + '%';
+  document.getElementById('rb-low').style.width = (risks['LOW']/tot)*100 + '%';
+  document.getElementById('rb-safe').style.width = (risks['SAFE']/tot)*100 + '%';
+  
+  // Libraries
+  const sortedLibs = Object.keys(libs).sort((a,b)=>libs[b]-libs[a]).slice(0, 5);
+  document.getElementById('lib-list').innerHTML = sortedLibs.map(l => `
+    <div class="lib-item">
+      <div class="lib-name">${l}</div>
+      <div class="lib-count">${libs[l]} components</div>
+    </div>
+  `).join('') || '<div class="empty-msg" style="padding:16px;">No libraries detected</div>';
+  
+  // Quantum Readiness
+  document.getElementById('quantum-readiness').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm);">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width:12px; height:12px; border-radius:50%; background:var(--green);"></div>
+        <div style="font-size:13px; font-weight:500;">Quantum Safe</div>
+      </div>
+      <div style="font-size:14px; font-weight:600;">${qSafe}</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm);">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width:12px; height:12px; border-radius:50%; background:var(--purple);"></div>
+        <div style="font-size:13px; font-weight:500;">Vulnerable</div>
+      </div>
+      <div style="font-size:14px; font-weight:600;">${qVuln}</div>
+    </div>
+  `;
+}
+
+function handleFilterChange() {
+  const search = document.getElementById('filter-search').value.toLowerCase();
+  const type = document.getElementById('filter-type').value;
+  const risk = document.getElementById('filter-risk').value;
+  const lib = document.getElementById('filter-lib').value;
+  const quant = document.getElementById('filter-quant').value;
+  
+  filteredInventory = inventory.filter(c => {
+    const matchSearch = search === '' || 
+      c.algorithm.toLowerCase().includes(search) || 
+      c.library.toLowerCase().includes(search) ||
+      c.file.toLowerCase().includes(search);
+    const matchType = type === 'ALL' || c.type === type;
+    const matchRisk = risk === 'ALL' || c.risk === risk;
+    const matchLib = lib === 'ALL' || c.library === lib;
+    
+    let matchQuant = true;
+    if (quant === 'Vulnerable') matchQuant = c.quantumVulnerable;
+    else if (quant === 'Not Vulnerable') matchQuant = !c.quantumVulnerable;
+    
+    return matchSearch && matchType && matchRisk && matchLib && matchQuant;
+  });
+  
+  currentPage = 1;
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById('filter-search').value = '';
+  document.getElementById('filter-type').value = 'ALL';
+  document.getElementById('filter-risk').value = 'ALL';
+  document.getElementById('filter-lib').value = 'ALL';
+  document.getElementById('filter-quant').value = 'ALL';
+  handleFilterChange();
+}
+
+function getBadgeClass(sev) {
+  if(sev === 'CRITICAL') return 'badge-crit';
+  if(sev === 'HIGH') return 'badge-high';
+  if(sev === 'MEDIUM') return 'badge-med';
+  if(sev === 'SAFE') return 'badge' /* neutral */;
+  return 'badge-low';
+}
+
+function renderTable() {
+  document.getElementById('lbl-showing-count').textContent = `Showing ${filteredInventory.length} components`;
+  
+  const tbody = document.getElementById('cbom-tbody');
+  const emptySearch = document.getElementById('empty-search');
+  const pag = document.getElementById('pagination-ctrl');
+  
+  if (filteredInventory.length === 0) {
+    tbody.innerHTML = '';
+    emptySearch.style.display = 'flex';
+    pag.style.display = 'none';
+    return;
+  }
+  
+  emptySearch.style.display = 'none';
+  
+  const totalPages = Math.ceil(filteredInventory.length / itemsPerPage);
+  const start = (currentPage - 1) * itemsPerPage;
+  const pageData = filteredInventory.slice(start, start + itemsPerPage);
+  
+  tbody.innerHTML = pageData.map((c) => {
+    const cStr = encodeURIComponent(JSON.stringify(c));
+    return `
+      <tr onclick="openDrawer('${cStr}')">
+        <td><span style="font-weight:600;color:var(--text-h)">${c.algorithm}</span></td>
+        <td>${c.type}</td>
+        <td>${c.purpose}</td>
+        <td><span class="code-font" style="color:var(--text-m);">${c.file}</span></td>
+        <td>${c.library}</td>
+        <td><span class="code-font">${c.keySize}</span></td>
+        <td><span class="badge ${getBadgeClass(c.risk)}">${c.risk}</span></td>
+      </tr>
+    `;
+  }).join('');
+  
+  if (totalPages > 1) {
+    pag.style.display = 'flex';
+    document.getElementById('page-info').textContent = `Showing ${start + 1}-${Math.min(start + itemsPerPage, filteredInventory.length)} of ${filteredInventory.length}`;
+    document.getElementById('btn-prev').disabled = currentPage === 1;
+    document.getElementById('btn-next').disabled = currentPage === totalPages;
+  } else {
+    pag.style.display = 'none';
+  }
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+function openDrawer(cEncoded) {
+  const c = JSON.parse(decodeURIComponent(cEncoded));
+  
+  document.getElementById('drw-algo').textContent = c.algorithm;
+  document.getElementById('drw-fileline').textContent = `${c.file}${c.line ? ':'+c.line : ''}`;
+  
+  const b = document.getElementById('drw-risk-badge');
+  b.className = 'badge ' + getBadgeClass(c.risk);
+  b.textContent = c.risk;
+  
+  document.getElementById('drw-type').textContent = c.type;
+  document.getElementById('drw-purpose').textContent = c.purpose;
+  document.getElementById('drw-lib').textContent = c.library;
+  document.getElementById('drw-keysize').textContent = c.keySize;
+  
+  const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Not Identified as Vulnerable';
+  document.getElementById('drw-quantum').innerHTML = `<span style="color:${c.quantumVulnerable?'var(--red)':'var(--green)'};">${qStr}</span>`;
+  
+  document.getElementById('drw-usage').textContent = c.usageContext;
+  
+  document.getElementById('drawer-overlay').classList.add('active');
+  document.getElementById('drawer').classList.add('active');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('active');
+  document.getElementById('drawer').classList.remove('active');
+}
+
+// JSON generation (CycloneDX like)
+function generateCycloneDX() {
+  return JSON.stringify({
+    bomFormat: "CycloneDX",
+    specVersion: "1.5",
+    version: 1,
+    metadata: {
+      timestamp: new Date().toISOString(),
+      tools: [{ vendor: "CryptoScan", name: "CryptoScanner API" }]
+    },
+    components: inventory.map(c => ({
+      type: "cryptographic-asset",
+      name: c.algorithm,
+      group: c.library,
+      properties: [
+        { name: "crypto:type", value: c.type },
+        { name: "crypto:purpose", value: c.purpose },
+        { name: "crypto:keySize", value: c.keySize },
+        { name: "crypto:quantumVulnerable", value: c.quantumVulnerable.toString() },
+        { name: "crypto:risk", value: c.risk },
+        { name: "crypto:location", value: `${c.file}:${c.line}` }
+      ]
+    }))
+  }, null, 2);
+}
+
+function openJsonDrawer() {
+  document.getElementById('json-content').textContent = generateCycloneDX();
+  document.getElementById('drawer-overlay').classList.add('active');
+  document.getElementById('json-drawer').classList.add('active');
+}
+
+function closeJsonDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('active');
+  document.getElementById('json-drawer').classList.remove('active');
+}
+
+function copyJSON() {
+  navigator.clipboard.writeText(generateCycloneDX()).then(() => {
+    alert('JSON copied to clipboard!');
+  });
+}
+
+function downloadCBOM() {
+  const json = generateCycloneDX();
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cbom_${new Date().getTime()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+window.addEventListener('load', init);
+window.addEventListener('cryptoscan_data_updated', init);
+</script>
+</body>
+</html>

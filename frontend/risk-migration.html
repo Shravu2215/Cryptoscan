@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk & Migration — CryptoScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Light theme variables */
+  --bg-main: #f4f5f7;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f9fafb;
+  --border-color: #eef0f3;
+  --border-light: #f4f5f7;
+  
+  --text-h: #111827; /* Headers text */
+  --text-b: #374151; /* Body text */
+  --text-m: #6b7280; /* Muted text */
+  --text-s: #9ca3af; /* Subtle text */
+  
+  /* State Colors */
+  --green: #15803d; /* Secure/Verified */
+  --green-bg: #dcfce7;
+  --red: #b91c1c; /* Critical */
+  --red-bg: #fee2e2;
+  --amber: #b45309; /* High */
+  --amber-bg: #fef3c7;
+  --yellow: #a16207; /* Medium */
+  --yellow-bg: #fef08a;
+  --gray: #4b5563; /* Low */
+  --gray-bg: #f3f4f6;
+  
+  --purple: #6d28d9; /* Quantum */
+  --purple-bg: #ede9fe;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 16px;
+  --sb-w: 240px;
+  --t: .2s ease;
+}
+
+html { font-size: 14px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-b);
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sb {
+  width: var(--sb-w);
+  flex-shrink: 0;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  padding: 24px 16px;
+}
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 24px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 24px;
+}
+.sb-logo {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-logo svg { width: 24px; height: 24px; color: var(--text-h); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-name span { color: var(--text-m); font-weight: 400; }
+
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sb-nav-divider { height: 1px; background: var(--border-light); margin: 16px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  color: var(--text-m); font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid rgba(21, 128, 61, 0.2);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.nav-badge {
+  margin-left: auto; background: var(--border-color);
+  color: var(--text-h); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+}
+
+/* Main Content Area */
+.main {
+  margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+}
+
+/* Header */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px; background: var(--bg-main);
+  position: sticky; top: 0; z-index: 50;
+  border-bottom: 1px solid var(--border-color);
+}
+.tb-left { display: flex; flex-direction: column; gap: 4px; }
+.tb-title { font-size: 20px; font-weight: 600; color: var(--text-h); letter-spacing: -0.02em; line-height: 1; }
+.tb-sub { font-size: 13px; color: var(--text-m); }
+.tb-right { display: flex; align-items: center; gap: 16px; }
+
+/* Buttons */
+.btn-p {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: var(--green); border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: #ffffff; cursor: pointer;
+  transition: opacity var(--t); text-decoration: none;
+}
+.btn-p:hover { opacity: 0.9; }
+
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-b);
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.btn-sec:hover { background: var(--bg-card); border-color: var(--text-s); }
+
+/* Dashboard Grid */
+.content { padding: 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.row { display: flex; gap: 24px; }
+.col { display: flex; flex-direction: column; gap: 24px; }
+.col-2 { flex: 2; } .col-1 { flex: 1; }
+
+/* Cards */
+.gcard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-lg); padding: 24px; position: relative;
+}
+.gc-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.gc-ttl { font-size: 14px; font-weight: 600; color: var(--text-h); }
+.gc-sub { font-size: 12px; color: var(--text-m); margin-top: 4px; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.scard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-md); padding: 16px;
+}
+.scard-primary {
+  background: linear-gradient(135deg, #166534, #15803d);
+  color: #ffffff;
+  border: none;
+}
+.scard-primary .sc-lbl, .scard-primary .empty-sub { color: rgba(255,255,255,0.8); }
+.scard-primary .sc-val, .scard-primary .empty-val { color: #ffffff; }
+
+.sc-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; }
+.sc-val { font-size: 24px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.empty-val { font-size: 24px; font-weight: 600; color: var(--text-s); }
+.empty-sub { font-size: 11px; color: var(--text-s); margin-top: 4px; }
+
+/* Risk Distribution */
+.risk-dist { display: flex; flex-direction: column; gap: 12px; }
+.risk-bar-container { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; display: flex; overflow: hidden; }
+.risk-bar { height: 100%; }
+.risk-legend { display: flex; justify-content: space-between; font-size: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-b); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 12px 16px; font-size: 11px; font-weight: 500;
+  color: var(--text-m); text-align: left; border-bottom: 1px solid var(--border-color);
+}
+tbody td {
+  padding: 16px; font-size: 13px; color: var(--text-b);
+  border-bottom: 1px solid var(--border-color);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg-card-hover); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
+.badge-crit { background: var(--red-bg); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
+.badge-high { background: var(--amber-bg); color: var(--amber); border-color: rgba(245, 158, 11, 0.2); }
+.badge-med { background: var(--yellow-bg); color: var(--yellow); border-color: rgba(234, 179, 8, 0.2); }
+.badge-low { background: var(--gray-bg); color: var(--gray); border-color: rgba(113, 113, 122, 0.2); }
+.badge-quant { background: var(--purple-bg); color: var(--purple); border-color: rgba(139, 92, 246, 0.2); }
+
+/* Empty States */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
+.empty-msg { font-size: 13px; color: var(--text-m); }
+
+/* Top Risks List */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); }
+.risk-algo { font-size: 13px; font-weight: 500; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+.risk-count { font-size: 12px; color: var(--text-s); }
+
+/* Quick Actions */
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.qa-btn { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); text-align: left; cursor: pointer; transition: all var(--t); text-decoration: none; }
+.qa-btn:hover { border-color: var(--text-m); }
+.qa-btn svg { width: 20px; height: 20px; color: var(--text-h); }
+.qa-ttl { font-size: 13px; font-weight: 500; color: var(--text-h); }
+</style>
+<style>
+  /* Risk & Migration Specific Layout */
+  
+  .risk-hero {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px; text-align: center; border-radius: var(--r-lg);
+    background: linear-gradient(180deg, rgba(220,252,231,0.5) 0%, var(--bg-card) 100%);
+    border: 1px solid var(--border-color);
+  }
+  .risk-hero.risk-crit { background: linear-gradient(180deg, rgba(254,226,226,0.6) 0%, var(--bg-card) 100%); }
+  .risk-hero.risk-high { background: linear-gradient(180deg, rgba(254,243,199,0.6) 0%, var(--bg-card) 100%); }
+  
+  .risk-hero-title { font-size: 14px; font-weight: 600; color: var(--text-m); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .risk-hero-val { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; margin-bottom: 16px; }
+  .risk-hero-val.safe { color: var(--green); }
+  .risk-hero-val.crit { color: var(--red); }
+  .risk-hero-val.high { color: var(--amber); }
+  
+  .risk-hero-sub { font-size: 15px; font-weight: 500; color: var(--text-h); margin-bottom: 4px; }
+  .risk-hero-desc { font-size: 13px; color: var(--text-m); max-width: 400px; margin: 0 auto; line-height: 1.5; }
+  
+  /* Recommendation Cards */
+  .rec-list { display: flex; flex-direction: column; gap: 16px; }
+  .rec-card {
+    background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md);
+    padding: 24px; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .rec-card:hover { border-color: var(--text-m); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  .rec-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border-color);
+  }
+  .rec-card.p1::before { background: var(--red); }
+  .rec-card.p2::before { background: var(--amber); }
+  .rec-card.p3::before { background: var(--yellow); }
+  
+  .rec-hd { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .rec-algo { font-size: 18px; font-weight: 700; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+  .rec-purpose { font-size: 13px; color: var(--text-m); margin-top: 4px; }
+  .rec-priority { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .rec-priority.p1 { background: var(--red-bg); color: var(--red); }
+  .rec-priority.p2 { background: var(--amber-bg); color: var(--amber); }
+  .rec-priority.p3 { background: var(--yellow-bg); color: var(--yellow); }
+  
+  .rec-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .rg-lbl { font-size: 11px; color: var(--text-s); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+  .rg-val { font-size: 13px; font-weight: 500; color: var(--text-h); }
+  
+  .rec-replace { display: flex; align-items: center; gap: 12px; background: var(--bg-main); padding: 12px 16px; border-radius: var(--r-sm); border: 1px solid var(--border-color); }
+  .replace-arrow { color: var(--text-s); }
+  .replace-val { font-size: 14px; font-weight: 600; color: var(--green); font-family: 'JetBrains Mono', monospace; }
+  
+  .rec-ft { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+  /* Migration Order Timeline */
+  .timeline { display: flex; flex-direction: column; padding: 16px 0; }
+  .tl-item { display: flex; gap: 16px; position: relative; padding-bottom: 24px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: ''; position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: var(--border-color);
+  }
+  .tl-item:last-child::before { display: none; }
+  
+  .tl-num {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--bg-main); border: 2px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-m); z-index: 1; flex-shrink: 0;
+  }
+  .tl-item.p1 .tl-num { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+  
+  .tl-content { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); padding: 16px; flex: 1; }
+  .tl-hd { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .tl-algo { font-size: 14px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+  .tl-dep { font-size: 11px; color: var(--text-s); margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; background: var(--bg-card); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); }
+  
+  /* Drawers */
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(12, 26, 46, 0.6); backdrop-filter: blur(4px);
+    z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease;
+  }
+  .drawer-overlay.active { opacity: 1; visibility: visible; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 500px; background: var(--bg-main);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.2); z-index: 1001; transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;
+    border-left: 1px solid var(--border-color);
+  }
+  .drawer.active { transform: translateX(0); }
+  .drawer-hd { display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
+  .drawer-title { font-size: 16px; font-weight: 600; color: var(--text-h); }
+  .drawer-close { background: none; border: none; color: var(--text-m); cursor: pointer; padding: 4px; }
+  .drawer-close:hover { color: var(--text-h); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  
+  .impact-graph { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-sm); padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ig-node { background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; color: var(--text-h); text-align: center; min-width: 150px; }
+  .ig-node.vuln { border-color: rgba(239, 68, 68, 0.5); background: var(--red-bg); color: var(--red); }
+  .ig-arrow { color: var(--text-s); font-size: 16px; line-height: 1; }
+  
+  .explanation-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-sm); padding: 16px; }
+  .explanation-box h4 { margin: 0 0 8px 0; font-size: 13px; color: var(--text-h); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .explanation-box p { margin: 0; font-size: 13px; color: var(--text-m); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div class="sb-name">CRYPTO<span>SCAN</span></div>
+  </div>
+  
+  <nav class="sb-nav">
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="repositories.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Repositories
+    </a>
+    <a class="nav-item" href="scan.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Scan Repository
+    </a>
+    <a class="nav-item" href="findings.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Findings
+    </a>
+    <a class="nav-item" href="cbom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      CBOM
+    </a>
+    <a class="nav-item active" href="risk-migration.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      Risk & Migration
+    </a>
+    <a class="nav-item" href="verification.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Verify
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <h1 class="tb-title">Risk & Migration</h1>
+      <p class="tb-sub">Understand cryptographic exposure and prioritize your migration path.</p>
+    </div>
+    <div class="tb-right" id="header-actions" style="display:none;">
+      <button class="btn-sec" onclick="window.location.href='findings.html'">View Findings</button>
+    </div>
+  </header>
+
+  <div class="content">
+    
+    <!-- Empty State -->
+    <div id="view-no-data" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--text-s);margin-bottom:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No Risk Assessment Available</div>
+        <div class="empty-msg">Run a repository scan to calculate cryptographic and quantum risk.</div>
+        <button class="btn-p" style="margin-top:16px;" onclick="window.location.href='scan.html'">Scan Repository</button>
+      </div>
+    </div>
+
+    <!-- No Migration Required State -->
+    <div id="view-safe" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--green);margin-bottom:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No Migration Required</div>
+        <div class="empty-msg">The latest scan did not identify any cryptographic components requiring migration.</div>
+        <button class="btn-sec" style="margin-top:16px;" onclick="window.location.href='cbom.html'">View CBOM</button>
+      </div>
+    </div>
+
+    <!-- Active Migration View -->
+    <div id="view-active" style="display:none; flex-direction:column; gap:24px;">
+      
+      <div class="risk-hero" id="hero-card">
+        <div class="risk-hero-title">Overall Quantum Risk</div>
+        <div class="risk-hero-val" id="hero-risk">LOW</div>
+        <div class="risk-hero-sub"><span id="hero-count">0</span> components require attention</div>
+        <div class="risk-hero-desc">Based on the cryptographic components identified in the latest scan. Immediate action recommended for Critical and Quantum Vulnerable components.</div>
+      </div>
+      
+      <!-- Summary Cards -->
+      <div class="stats-grid">
+        <div class="scard">
+          <div class="sc-lbl">Components at Risk</div>
+          <div class="sc-val" id="stat-risk">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Quantum Vulnerable</div>
+          <div class="sc-val" id="stat-quant" style="color:var(--purple)">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Critical</div>
+          <div class="sc-val" id="stat-crit" style="color:var(--red)">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">High</div>
+          <div class="sc-val" id="stat-high" style="color:var(--amber)">0</div>
+        </div>
+        <div class="scard scard-primary" style="background:linear-gradient(135deg, var(--text-h), var(--bg-sidebar));">
+          <div class="sc-lbl" style="color:rgba(255,255,255,0.7)">Migration Candidates</div>
+          <div class="sc-val" id="stat-candidates" style="color:#fff">0</div>
+        </div>
+      </div>
+
+      <!-- Overview Charts -->
+      <div class="row">
+        <div class="col col-2">
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Risk Distribution</div>
+            </div>
+            <div class="risk-dist" style="margin-top:16px;">
+              <div class="risk-bar-container" style="height:24px; border-radius:12px;">
+                <div class="risk-bar" id="rb-crit" style="width:0%; background:var(--red);"></div>
+                <div class="risk-bar" id="rb-high" style="width:0%; background:var(--amber);"></div>
+                <div class="risk-bar" id="rb-med" style="width:0%; background:var(--yellow);"></div>
+                <div class="risk-bar" id="rb-low" style="width:0%; background:var(--gray);"></div>
+              </div>
+              <div class="risk-legend" style="margin-top:16px;">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Critical</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>High</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Medium</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>Low</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col col-1">
+          <div class="gcard" style="height:100%;">
+            <div class="gc-hd">
+              <div class="gc-ttl">Quantum Exposure</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm); margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:12px; height:12px; border-radius:50%; background:var(--purple);"></div>
+                <div style="font-size:13px; font-weight:500;">Quantum Vulnerable</div>
+              </div>
+              <div style="font-size:18px; font-weight:700; color:var(--purple);" id="qe-vuln">0</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:12px; height:12px; border-radius:50%; background:var(--green);"></div>
+                <div style="font-size:13px; font-weight:500;">Not Identified as Vulnerable</div>
+              </div>
+              <div style="font-size:18px; font-weight:700; color:var(--text-m);" id="qe-safe">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Migration Recommendations List -->
+        <div class="col col-2">
+          <div class="gc-hd" style="margin-bottom:8px;">
+            <div class="gc-ttl" style="font-size:18px;">Migration Recommendations</div>
+            <div class="gc-sub">Cryptographic components requiring replacement</div>
+          </div>
+          <div class="rec-list" id="recommendations-list">
+            <!-- Dynamic Content -->
+          </div>
+        </div>
+        
+        <!-- Sidebar Order -->
+        <div class="col col-1">
+          <div class="gcard">
+            <div class="gc-hd" style="margin-bottom:8px;">
+              <div class="gc-ttl">Recommended Migration Order</div>
+            </div>
+            <div class="timeline" id="migration-timeline">
+              <!-- Dynamic Content -->
+            </div>
+          </div>
+          
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Migration Priority</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
+                <span style="font-weight:600; color:var(--red);">Priority 1 — Immediate</span>
+                <span id="p1-count">0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
+                <span style="font-weight:600; color:var(--amber);">Priority 2 — High</span>
+                <span id="p2-count">0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px;">
+                <span style="font-weight:600; color:var(--yellow);">Priority 3 — Planned</span>
+                <span id="p3-count">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Detail Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <div class="drawer-title">Migration Recommendation</div>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:20px; font-weight:700; color:var(--text-h); font-family: 'JetBrains Mono', monospace;" id="drw-algo">Algorithm</div>
+        <div style="font-size:13px; color:var(--text-s); margin-top:4px;" id="drw-purpose">Purpose</div>
+      </div>
+      <span class="rec-priority p1" id="drw-priority">Priority 1</span>
+    </div>
+    
+    <div class="rec-replace" style="margin-top:16px;">
+      <div style="font-size:13px; color:var(--text-m); font-weight:500;">Replacement:</div>
+      <div class="replace-val" id="drw-replacement">ML-DSA</div>
+    </div>
+    
+    <div class="prop-grid" style="margin-top:16px;">
+      <div class="prop-item">
+        <div class="prop-lbl">Current Risk</div>
+        <div class="prop-val"><span class="badge" id="drw-risk-badge">Risk</span></div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Quantum Status</div>
+        <div class="prop-val" id="drw-quantum">-</div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Affected Files</div>
+        <div class="prop-val" id="drw-files-count">0</div>
+      </div>
+    </div>
+    
+    <div class="explanation-box" style="margin-top:16px;">
+      <h4>Why Replace It?</h4>
+      <p id="drw-rationale">Explanation goes here.</p>
+    </div>
+    
+    <div style="margin-top:16px;">
+      <div class="rg-lbl">Migration Impact</div>
+      <div class="impact-graph">
+        <div class="ig-node vuln" id="ig-algo">Current Algorithm</div>
+        <div class="ig-arrow">↓</div>
+        <div class="ig-node" id="ig-files">X Affected Files</div>
+        <div class="ig-arrow">↓</div>
+        <div class="ig-node">Direct Dependencies</div>
+        <div class="ig-arrow">↓</div>
+        <div class="ig-node" style="border-color:var(--green); color:var(--green);">Application Module</div>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+let allFindings = [];
+let migrationCandidates = [];
+
+function getSeverity(f) { return (f.severity || 'SAFE').toUpperCase(); }
+function isQuantum(f) { return f.quantum === 'yes' || (f.quantumStatus || '').toLowerCase().includes('vulnerable'); }
+
+function getBadgeClass(sev) {
+  if(sev === 'CRITICAL') return 'badge-crit';
+  if(sev === 'HIGH') return 'badge-high';
+  if(sev === 'MEDIUM') return 'badge-med';
+  if(sev === 'SAFE') return 'badge';
+  return 'badge-low';
+}
+
+function determineReplacement(algo) {
+  const a = algo.toLowerCase();
+  if (a.includes('rsa') || a.includes('ecc') || a.includes('curve') || a.includes('dsa') || a.includes('dh')) {
+    if (a.includes('sign') || a.includes('dsa')) return 'ML-DSA / CRYSTALS-Dilithium';
+    return 'ML-KEM / CRYSTALS-Kyber';
+  }
+  if (a.includes('sha-1') || a.includes('md5')) return 'SHA-256 or SHA-3';
+  if (a.includes('des') || a.includes('rc4') || a.includes('blowfish')) return 'AES-GCM (256-bit)';
+  return 'Modern NIST standard';
+}
+
+function init() {
+  const data = CryptoEngine.getData();
+  
+  if (!data.scans || data.scans.length === 0) {
+    document.getElementById('view-no-data').style.display = 'block';
+    return;
+  }
+  
+  allFindings = data.scans.flatMap(s => s.findings);
+  
+  // Identify at-risk components
+  const atRisk = allFindings.filter(f => getSeverity(f) !== 'SAFE' || isQuantum(f));
+  
+  if (atRisk.length === 0) {
+    document.getElementById('view-safe').style.display = 'block';
+    return;
+  }
+  
+  document.getElementById('view-active').style.display = 'flex';
+  document.getElementById('header-actions').style.display = 'flex';
+  
+  // Group by algorithm to form discrete migration candidates
+  const candidateMap = {};
+  atRisk.forEach(f => {
+    const algo = f.algorithm || f.title.split(' ')[0] || 'Unknown';
+    if (!candidateMap[algo]) {
+      candidateMap[algo] = {
+        algorithm: algo,
+        purpose: f.usage || f.category || 'Data Protection',
+        severity: getSeverity(f),
+        quantumVulnerable: isQuantum(f),
+        affectedFiles: new Set(),
+        rationale: f.remediation || f.snippet || 'Component is considered insecure or vulnerable to quantum attacks.',
+        replacement: determineReplacement(algo)
+      };
+    }
+    candidateMap[algo].affectedFiles.add(f.file || 'unknown');
+    
+    // Escalate severity if multiple findings have different severities
+    const s1 = candidateMap[algo].severity;
+    const s2 = getSeverity(f);
+    if (s2 === 'CRITICAL' || (s2 === 'HIGH' && s1 !== 'CRITICAL')) {
+      candidateMap[algo].severity = s2;
+    }
+    if (isQuantum(f)) candidateMap[algo].quantumVulnerable = true;
+  });
+  
+  migrationCandidates = Object.values(candidateMap).map(c => {
+    // Calculate Priority
+    // P1: Critical or Quantum Vulnerable Asymmetric
+    // P2: High
+    // P3: Medium/Low
+    let priority = 3;
+    if (c.severity === 'CRITICAL' || c.quantumVulnerable) priority = 1;
+    else if (c.severity === 'HIGH') priority = 2;
+    
+    return {
+      ...c,
+      fileCount: c.affectedFiles.size,
+      priority: priority
+    };
+  });
+  
+  // Sort by priority (1 first), then file count
+  migrationCandidates.sort((a,b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return b.fileCount - a.fileCount;
+  });
+  
+  updateDashboard(atRisk);
+  renderRecommendations();
+  renderTimeline();
+}
+
+function updateDashboard(atRisk) {
+  // Overall Risk Hero
+  const hasCrit = migrationCandidates.some(c => c.severity === 'CRITICAL');
+  const hasHigh = migrationCandidates.some(c => c.severity === 'HIGH');
+  const hasQuant = migrationCandidates.some(c => c.quantumVulnerable);
+  
+  const hero = document.getElementById('hero-card');
+  const heroRisk = document.getElementById('hero-risk');
+  let overall = 'LOW';
+  
+  if (hasCrit || hasQuant) { overall = 'CRITICAL'; hero.className = 'risk-hero risk-crit'; heroRisk.className = 'risk-hero-val crit'; }
+  else if (hasHigh) { overall = 'HIGH'; hero.className = 'risk-hero risk-high'; heroRisk.className = 'risk-hero-val high'; }
+  else { overall = 'MEDIUM'; heroRisk.className = 'risk-hero-val high'; } // fallback styling
+  
+  heroRisk.textContent = overall;
+  document.getElementById('hero-count').textContent = atRisk.length;
+  
+  // Summary Stats
+  document.getElementById('stat-risk').textContent = atRisk.length;
+  document.getElementById('stat-quant').textContent = atRisk.filter(f => isQuantum(f)).length;
+  document.getElementById('stat-crit').textContent = atRisk.filter(f => getSeverity(f) === 'CRITICAL').length;
+  document.getElementById('stat-high').textContent = atRisk.filter(f => getSeverity(f) === 'HIGH').length;
+  document.getElementById('stat-candidates').textContent = migrationCandidates.length;
+  
+  // Distribution Chart
+  const tot = atRisk.length || 1;
+  document.getElementById('rb-crit').style.width = (atRisk.filter(f=>getSeverity(f)==='CRITICAL').length/tot)*100 + '%';
+  document.getElementById('rb-high').style.width = (atRisk.filter(f=>getSeverity(f)==='HIGH').length/tot)*100 + '%';
+  document.getElementById('rb-med').style.width = (atRisk.filter(f=>getSeverity(f)==='MEDIUM').length/tot)*100 + '%';
+  document.getElementById('rb-low').style.width = (atRisk.filter(f=>getSeverity(f)==='LOW').length/tot)*100 + '%';
+  
+  // Quantum Exposure
+  const qVuln = allFindings.filter(f => isQuantum(f)).length;
+  const qSafe = allFindings.length - qVuln;
+  document.getElementById('qe-vuln').textContent = qVuln;
+  document.getElementById('qe-safe').textContent = qSafe;
+  
+  // Priority Counts
+  document.getElementById('p1-count').textContent = migrationCandidates.filter(c => c.priority === 1).length;
+  document.getElementById('p2-count').textContent = migrationCandidates.filter(c => c.priority === 2).length;
+  document.getElementById('p3-count').textContent = migrationCandidates.filter(c => c.priority === 3).length;
+}
+
+function renderRecommendations() {
+  const container = document.getElementById('recommendations-list');
+  container.innerHTML = migrationCandidates.map(c => {
+    const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Safe';
+    const cStr = encodeURIComponent(JSON.stringify({...c, affectedFiles:Array.from(c.affectedFiles)}));
+    
+    return `
+      <div class="rec-card p${c.priority}">
+        <div class="rec-hd">
+          <div>
+            <div class="rec-algo">${c.algorithm}</div>
+            <div class="rec-purpose">${c.purpose}</div>
+          </div>
+          <div class="rec-priority p${c.priority}">Priority ${c.priority}</div>
+        </div>
+        
+        <div class="rec-grid">
+          <div>
+            <div class="rg-lbl">Current Risk</div>
+            <div class="rg-val"><span class="badge ${getBadgeClass(c.severity)}" style="padding:2px 6px;">${c.severity}</span></div>
+          </div>
+          <div>
+            <div class="rg-lbl">Quantum Risk</div>
+            <div class="rg-val" style="color:${c.quantumVulnerable?'var(--red)':'var(--green)'}; font-weight:600;">${qStr}</div>
+          </div>
+          <div>
+            <div class="rg-lbl">Affected Files</div>
+            <div class="rg-val">${c.fileCount}</div>
+          </div>
+        </div>
+        
+        <div class="rec-replace">
+          <div style="font-size:12px; color:var(--text-m); font-weight:600; text-transform:uppercase;">Recommend Replacement</div>
+          <div class="replace-arrow">→</div>
+          <div class="replace-val">${c.replacement}</div>
+        </div>
+        
+        <div class="rec-ft">
+          <button class="btn-sec" onclick="openDrawer('${cStr}')">View Details</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTimeline() {
+  const container = document.getElementById('migration-timeline');
+  container.innerHTML = migrationCandidates.map((c, i) => {
+    let depStr = '';
+    if (i > 0 && c.priority > migrationCandidates[i-1].priority) {
+      depStr = `<div class="tl-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Depends on prior step</div>`;
+    }
+    
+    return `
+      <div class="tl-item p${c.priority}">
+        <div class="tl-num">0${i+1}</div>
+        <div class="tl-content">
+          <div class="tl-hd">
+            <span class="tl-algo">${c.algorithm}</span>
+            <span class="badge ${getBadgeClass(c.severity)}">${c.severity}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-m); margin-bottom:4px;">→ Replace with <span style="color:var(--text-h); font-weight:600;">${c.replacement}</span></div>
+          <div style="font-size:11px; color:var(--text-s);">${c.fileCount} affected files</div>
+          ${depStr}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openDrawer(cEncoded) {
+  const c = JSON.parse(decodeURIComponent(cEncoded));
+  
+  document.getElementById('drw-algo').textContent = c.algorithm;
+  document.getElementById('drw-purpose').textContent = c.purpose;
+  
+  const pBadge = document.getElementById('drw-priority');
+  pBadge.className = `rec-priority p${c.priority}`;
+  pBadge.textContent = `Priority ${c.priority}`;
+  
+  document.getElementById('drw-replacement').textContent = c.replacement;
+  
+  const rBadge = document.getElementById('drw-risk-badge');
+  rBadge.className = `badge ${getBadgeClass(c.severity)}`;
+  rBadge.textContent = c.severity;
+  
+  const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Not Identified as Vulnerable';
+  document.getElementById('drw-quantum').innerHTML = `<span style="color:${c.quantumVulnerable?'var(--red)':'var(--green)'}; font-weight:600;">${qStr}</span>`;
+  
+  document.getElementById('drw-files-count').textContent = c.fileCount;
+  document.getElementById('drw-rationale').textContent = c.rationale;
+  
+  document.getElementById('ig-algo').textContent = c.algorithm;
+  document.getElementById('ig-files').textContent = `${c.fileCount} Affected Files`;
+  
+  document.getElementById('drawer-overlay').classList.add('active');
+  document.getElementById('drawer').classList.add('active');
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('active');
+  document.getElementById('drawer').classList.remove('active');
+}
+
+window.addEventListener('load', init);
+window.addEventListener('cryptoscan_data_updated', init);
+</script>
+</body>
+</html>

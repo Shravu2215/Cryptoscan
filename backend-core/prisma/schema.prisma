@@ -1,0 +1,90 @@
+// CryptoScan / ECDAT - Prisma Schema
+// Owned by: Backend Core
+// Note: findings/cbom/anchor tables are here so Scanner, CBOM, and Blockchain
+// modules all write against the SAME schema from hour 1. Don't fork this file
+// — if you need a field added, ask Backend Core to add it centrally.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?   // hashed with bcrypt, optional for oauth
+  name      String?
+  provider  String   @default("local")
+  providerId String?
+  avatar    String?
+  createdAt DateTime @default(now())
+
+  repos     Repo[]
+}
+
+model Repo {
+  id         String   @id @default(uuid())
+  name       String
+  filePath   String   // path on disk where uploaded repo/zip is stored
+  uploadedBy String
+  user       User     @relation(fields: [uploadedBy], references: [id])
+  createdAt  DateTime @default(now())
+
+  scans      Scan[]
+}
+
+model Scan {
+  id          String   @id @default(uuid())
+  repoId      String
+  repo        Repo     @relation(fields: [repoId], references: [id])
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  findings    Finding[]
+  cbom        Cbom?
+  anchor      Anchor?
+}
+
+
+model Finding {
+  id             String   @id @default(uuid())
+  scanId         String
+  scan           Scan     @relation(fields: [scanId], references: [id])
+  filePath       String   
+  lineNumber     Int?
+  algorithm      String   
+  library        String?  
+  usage          String?  
+  keySize        Int?
+  quantumStatus  String?  
+  severity       String   
+  description    String   
+  recommendation String?
+  createdAt      DateTime @default(now())
+}
+
+model Cbom {
+  id         String   @id @default(uuid())
+  scanId     String   @unique
+  scan       Scan     @relation(fields: [scanId], references: [id])
+  format     String   @default("CycloneDX-lite")
+  content    String   // full CBOM document (CycloneDX-lite JSON)
+  quantumRisk String? // overall quantum risk rating
+  createdAt  DateTime @default(now())
+}
+
+model Anchor {
+  id          String   @id @default(uuid())
+  scanId      String   @unique
+  scan        Scan     @relation(fields: [scanId], references: [id])
+  contentHash String   // hash of findings+cbom that was anchored
+  txHash      String   // REAL blockchain transaction hash — never fake this
+  signature   String   // real digital signature
+  network     String   // e.g. sepolia
+  createdAt   DateTime @default(now())
+}

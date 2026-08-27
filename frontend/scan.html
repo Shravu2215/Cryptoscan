@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scan Repository - CryptoScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Light theme variables */
+  --bg-main: #f4f5f7;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f9fafb;
+  --border-color: #eef0f3;
+  --border-light: #f4f5f7;
+  
+  --text-h: #111827;
+  --text-b: #374151;
+  --text-m: #6b7280;
+  --text-s: #9ca3af;
+  
+  /* State Colors */
+  --green: #15803d;
+  --green-bg: #dcfce7;
+  --red: #b91c1c;
+  --red-bg: #fee2e2;
+  --amber: #b45309;
+  --amber-bg: #fef3c7;
+  --yellow: #a16207;
+  --yellow-bg: #fef08a;
+  --gray: #4b5563;
+  --gray-bg: #f3f4f6;
+  
+  --purple: #6d28d9;
+  --purple-bg: #ede9fe;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --sb-w: 240px;
+  --t: .2s ease;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-main);
+  color: var(--text-b);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sb-w); background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+  display: flex; flex-direction: column; padding: 24px 16px; position: fixed; top: 0; bottom: 0; left: 0;
+  z-index: 100;
+}
+.sb-header {
+  display: flex; align-items: center; gap: 12px; padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-light); margin-bottom: 24px;
+}
+.sb-logo {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+}
+.sb-logo svg { width: 24px; height: 24px; color: var(--green); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-name span { color: var(--green); font-weight: 400; }
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--r-sm);
+  color: var(--text-m); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active {
+  background: var(--green-bg); color: var(--green); border: 1px solid rgba(21, 128, 61, 0.2);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+
+/* Main */
+.main {
+  margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+}
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px; background: var(--bg-main);
+  position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border-color);
+}
+.tb-left { display: flex; flex-direction: column; gap: 4px; }
+.tb-title { font-size: 20px; font-weight: 600; color: var(--text-h); letter-spacing: -0.02em; line-height: 1; }
+.tb-sub { font-size: 13px; color: var(--text-m); }
+.tb-right { display: flex; align-items: center; gap: 16px; }
+
+.btn-p {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: var(--green); border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: #ffffff; cursor: pointer; transition: opacity var(--t); text-decoration: none;
+}
+.btn-p:hover { opacity: 0.9; }
+.btn-p:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-b);
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.btn-sec:hover { background: var(--bg-card); border-color: var(--text-s); }
+
+.content { padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+.card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 24px; }
+.card-hd { font-size: 16px; font-weight: 600; color: var(--text-h); margin-bottom: 16px; }
+
+/* Grid specific to states */
+.selection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.select-box {
+  border: 1px dashed var(--border-color); border-radius: var(--r-sm); padding: 32px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  text-align: center; cursor: pointer; transition: all var(--t); background: var(--bg-main);
+}
+.select-box:hover { border-color: var(--green); background: var(--green-bg); }
+.select-box svg { width: 32px; height: 32px; color: var(--text-m); }
+.select-box:hover svg { color: var(--green); }
+.select-title { font-weight: 600; color: var(--text-h); font-size: 14px; }
+.select-desc { font-size: 12px; color: var(--text-m); margin-bottom: 8px; }
+
+.empty-state { text-align: center; padding: 32px; border: 1px solid var(--border-color); border-radius: var(--r-sm); background: var(--bg-main); }
+.empty-msg { font-weight: 500; color: var(--text-h); font-size: 14px; }
+.empty-sub { font-size: 13px; color: var(--text-m); margin-top: 4px; }
+
+/* State 2 & 3 styles */
+.info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.info-item { background: var(--bg-main); padding: 12px; border-radius: var(--r-sm); border: 1px solid var(--border-color); }
+.info-lbl { font-size: 11px; font-weight: 600; color: var(--text-m); text-transform: uppercase; margin-bottom: 4px; }
+.info-val { font-size: 14px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+
+.config-options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.config-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--r-sm); }
+.cr-left { display: flex; flex-direction: column; gap: 2px; }
+.cr-title { font-size: 13px; font-weight: 600; color: var(--text-h); }
+.cr-sub { font-size: 11px; color: var(--text-m); }
+.toggle { width: 36px; height: 20px; background: var(--green); border-radius: 20px; position: relative; }
+.toggle::after { content: ''; position: absolute; width: 16px; height: 16px; background: white; border-radius: 50%; top: 2px; left: 18px; }
+
+.pipeline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; position: relative; }
+.pipeline::before { content: ''; position: absolute; top: 12px; left: 0; right: 0; height: 2px; background: var(--border-color); z-index: 1; }
+.pipe-step { display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 2; width: 100px; text-align: center; }
+.pipe-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--bg-main); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; }
+.pipe-step.active .pipe-icon { border-color: var(--green); background: var(--green-bg); }
+.pipe-step.done .pipe-icon { border-color: var(--green); background: var(--green); color: white; }
+.pipe-step.active .pipe-icon::after { content:''; width:8px; height:8px; background:var(--green); border-radius:50%; animation: pulse 1s infinite; }
+@keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
+.pipe-label { font-size: 11px; font-weight: 600; color: var(--text-m); }
+.pipe-step.active .pipe-label, .pipe-step.done .pipe-label { color: var(--text-h); }
+
+.log-box { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--text-h); color: var(--text-m); padding: 16px; border-radius: var(--r-sm); height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.log-row { display: flex; gap: 8px; }
+.log-time { color: var(--text-s); }
+.log-msg { color: #f4f4f5; }
+
+/* State 4 styles */
+.summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.sum-card { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 16px; }
+.sum-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; }
+.sum-val { font-size: 24px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+.sum-card.sc-critical { border-left: 4px solid var(--red); }
+.sum-card.sc-high { border-left: 4px solid var(--amber); }
+
+.hide { display: none !important; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2L3 7v9c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V7l-9-5z"/></svg>
+    </div>
+    <div class="sb-name">Crypto<span>Scan</span></div>
+  </div>
+  <nav class="sb-nav">
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="repositories.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Repositories
+    </a>
+    <a class="nav-item active" href="scan.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Scan Repository
+    </a>
+    <a class="nav-item" href="findings.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Findings
+    </a>
+    <a class="nav-item" href="cbom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      CBOM
+    </a>
+    <a class="nav-item" href="risk-migration.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      Risk & Migration
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="tb-title">Scan Repository</div>
+      <div class="tb-sub">Analyze your repository for cryptographic risks, vulnerable algorithms, and quantum readiness.</div>
+    </div>
+    <div class="tb-right">
+      <button class="btn-sec" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+    </div>
+  </header>
+
+  <div class="content">
+    
+    <!-- STATE 1: IDLE -->
+    <div id="state-idle">
+      <div class="card">
+        <div class="card-hd">Select Repository</div>
+        <div class="selection-grid">
+          <div class="select-box" style="opacity: 0.5; cursor: not-allowed;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg>
+            <div>
+              <div class="select-title">Connect GitHub</div>
+              <div class="select-desc">Scan a repository directly from GitHub</div>
+            </div>
+            <button class="btn-sec" disabled>Coming Soon</button>
+          </div>
+          <div class="select-box" id="drop-zone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <div>
+              <div class="select-title">Upload ZIP</div>
+              <div class="select-desc">Drop your ZIP file here or browse files</div>
+            </div>
+            <button type="button" class="btn-p" onclick="document.getElementById('repo-upload').click(); event.stopPropagation();">Browse files</button>
+            <input type="file" id="repo-upload" accept=".zip" style="display:none;">
+          </div>
+        </div>
+      </div>
+      <div class="empty-state">
+        <div class="empty-msg">Ready to scan</div>
+        <div class="empty-sub">Connect a GitHub repository or upload a ZIP archive to begin cryptographic analysis.</div>
+      </div>
+    </div>
+
+    <!-- STATE 2: REPOSITORY SELECTED -->
+    <div id="state-selected" class="hide">
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-hd">Repository Overview</div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-lbl">Repository Name</div>
+            <div class="info-val" id="sel-name">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Repository Size</div>
+            <div class="info-val" id="sel-size">—</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Files</div>
+            <div class="info-val">Analyzing...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Languages</div>
+            <div class="info-val">Analyzing...</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-hd">Scan Configuration</div>
+        <div class="config-options">
+          <div class="config-row">
+            <div class="cr-left">
+              <div class="cr-title">Cryptographic Analysis</div>
+              <div class="cr-sub">Detect vulnerable algorithms, hardcoded keys, and outdated protocols.</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="config-row">
+            <div class="cr-left">
+              <div class="cr-title">Quantum Risk Analysis</div>
+              <div class="cr-sub">Identify algorithms vulnerable to future quantum computing attacks.</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="config-row">
+            <div class="cr-left">
+              <div class="cr-title">CBOM Generation</div>
+              <div class="cr-sub">Generate a Cryptography Bill of Materials.</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <button class="btn-sec" onclick="resetScan()" style="margin-right: 8px;">Cancel</button>
+          <button class="btn-p" onclick="startRealScan()">Start Scan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 3: SCANNING -->
+    <div id="state-scanning" class="hide">
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-hd" id="scan-hdr">Analyzing Repository...</div>
+        
+        <div class="pipeline">
+          <div class="pipe-step active" id="pipe-1">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">Repository Analysis</div>
+          </div>
+          <div class="pipe-step" id="pipe-2">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">Cryptographic Detection</div>
+          </div>
+          <div class="pipe-step" id="pipe-3">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">Risk Assessment</div>
+          </div>
+          <div class="pipe-step" id="pipe-4">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">CBOM Generation</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <div class="card">
+          <div class="card-hd">Scan Activity</div>
+          <div class="log-box" id="scan-log">
+            <div class="log-row"><span class="log-time">[00:00:00]</span><span class="log-msg">Scan initiated...</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Live Statistics</div>
+          <div class="info-item" style="margin-bottom: 12px;">
+            <div class="info-lbl">Files Analyzed</div>
+            <div class="info-val" id="live-files">0</div>
+          </div>
+          <div class="info-item" style="margin-bottom: 12px;">
+            <div class="info-lbl">Cryptographic Components</div>
+            <div class="info-val" id="live-components">Analyzing...</div>
+          </div>
+          <div class="info-item">
+            <div class="info-lbl">Issues Detected</div>
+            <div class="info-val" id="live-issues">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATE 4: COMPLETED -->
+    <div id="state-completed" class="hide">
+      <div class="card" style="margin-bottom: 24px; border-top: 4px solid var(--green);">
+        <div class="card-hd" style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:24px;height:24px;color:var(--green);"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Scan Complete
+        </div>
+        
+        <div class="summary-grid">
+          <div class="sum-card">
+            <div class="sum-lbl">Total Findings</div>
+            <div class="sum-val" id="res-total">0</div>
+          </div>
+          <div class="sum-card sc-critical">
+            <div class="sum-lbl">Critical Risk</div>
+            <div class="sum-val" id="res-crit">0</div>
+          </div>
+          <div class="sum-card sc-high">
+            <div class="sum-lbl">High Risk</div>
+            <div class="sum-val" id="res-high">0</div>
+          </div>
+          <div class="sum-card" style="border-left: 4px solid var(--purple);">
+            <div class="sum-lbl">Quantum Vulnerable</div>
+            <div class="sum-val" id="res-quantum">0</div>
+          </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 24px;">
+          <button class="btn-sec" onclick="resetScan()" style="margin-right: 8px;">Run Another Scan</button>
+          <button class="btn-p" onclick="viewFindings()" style="margin-right: 8px;">View Findings</button>
+          <button class="btn-p" onclick="viewCBOM()" style="background:var(--text-h);">View CBOM</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">Risk Summary</div>
+        <div class="empty-state hide" id="risk-empty">
+          <div class="empty-msg">No cryptographic risks detected</div>
+        </div>
+        <div id="risk-chart" style="display: flex; gap: 4px; height: 32px; border-radius: 4px; overflow: hidden; margin-top: 16px;">
+          <!-- Inline flex chart populated by JS -->
+        </div>
+        <div id="risk-legend" style="display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-m); font-weight: 500;"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="engine.js"></script>
+<script>
+let selectedFile = null;
+let currentRepoName = '';
+let scanStart = 0;
+let logInterval;
+let logCount = 0;
+
+// State management
+function showState(id) {
+  document.getElementById('state-idle').classList.add('hide');
+  document.getElementById('state-selected').classList.add('hide');
+  document.getElementById('state-scanning').classList.add('hide');
+  document.getElementById('state-completed').classList.add('hide');
+  document.getElementById(id).classList.remove('hide');
+}
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('repo-upload');
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, preventDefaults, false);
+});
+function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+});
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+});
+
+dropZone.addEventListener('drop', (e) => {
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+
+fileInput.addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    handleFile(this.files[0]);
+  }
+});
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.zip')) {
+    alert("Please upload a ZIP archive.");
+    return;
+  }
+  selectedFile = file;
+  currentRepoName = selectedFile.name;
+  document.getElementById('sel-name').textContent = currentRepoName;
+  document.getElementById('sel-size').textContent = (selectedFile.size / 1024).toFixed(1) + ' KB';
+  showState('state-selected');
+}
+
+function resetScan() {
+  selectedFile = null;
+  document.getElementById('repo-upload').value = '';
+  showState('state-idle');
+  clearInterval(logInterval);
+}
+
+function addLog(msg) {
+  const box = document.getElementById('scan-log');
+  const now = new Date();
+  const time = `[00:00:0${++logCount}]`;
+  box.innerHTML += `<div class="log-row"><span class="log-time">${time}</span><span class="log-msg">${msg}</span></div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function setPipe(step) {
+  for(let i=1; i<=4; i++) {
+    const el = document.getElementById('pipe-'+i);
+    if (i < step) {
+      el.className = 'pipe-step done';
+      el.querySelector('.pipe-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:12px;height:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+    } else if (i === step) {
+      el.className = 'pipe-step active';
+      el.querySelector('.pipe-icon').innerHTML = '';
+    } else {
+      el.className = 'pipe-step';
+      el.querySelector('.pipe-icon').innerHTML = '';
+    }
+  }
+}
+
+async function startRealScan() {
+  if (!selectedFile) return;
+  showState('state-scanning');
+  document.getElementById('scan-hdr').textContent = `Analyzing ${currentRepoName}...`;
+  document.getElementById('scan-log').innerHTML = '';
+  logCount = 0;
+  addLog('Initializing upload pipeline...');
+  setPipe(1);
+
+  const token = localStorage.getItem('token') || 'dummy-token';
+
+  try {
+    const formData = new FormData();
+    formData.append('repo', selectedFile);
+    formData.append('name', currentRepoName);
+
+    addLog(`Uploading archive: ${currentRepoName} ...`);
+    const uploadRes = await fetch('http://localhost:3000/repos/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    
+    if (!uploadRes.ok) throw new Error('Upload failed');
+    const repo = await uploadRes.json();
+    addLog('Upload complete. Repository registered.');
+    setPipe(2);
+
+    addLog('Triggering remote scan analysis...');
+    const scanRes = await fetch(`http://localhost:3000/scan/${repo.id}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!scanRes.ok) throw new Error('Scan trigger failed');
+    const scanData = await scanRes.json();
+
+    addLog('Cryptographic engine started. Polling backend for status...');
+
+    let scanStatus = scanData.status;
+    let finalData = null;
+
+    while (scanStatus === 'PENDING' || scanStatus === 'RUNNING') {
+      await new Promise(r => setTimeout(r, 2000));
+
+      const res = await fetch(`http://localhost:3000/scan/${scanData.scanId}/findings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      finalData = await res.json();
+      scanStatus = finalData.status;
+      
+      // Update UI with real data if available from the backend payload
+      // The backend may or may not return intermediate progress. We strictly use what it provides.
+      if (finalData.progress) {
+         if (finalData.progress.stage === 'RISK_ASSESSMENT') { setPipe(3); addLog('Risk assessment running...'); }
+         if (finalData.progress.stage === 'CBOM_GENERATION') { setPipe(4); addLog('Generating CBOM representation...'); }
+      }
+      
+      if (finalData.findings && finalData.findings.length > 0) {
+        document.getElementById('live-issues').textContent = finalData.findings.length;
+      }
+    }
+
+    if (scanStatus === 'FAILED') {
+      addLog('<span style="color:var(--red)">Scan failed! Check backend logs.</span>');
+      return;
+    }
+
+    setPipe(5); // All complete
+    addLog('Scan completed successfully.');
+    document.getElementById('live-files').textContent = 'Analyzing...'; // No backend metric available
+    document.getElementById('live-components').textContent = 'Analyzing...';
+    
+    // Save to global storage
+    CryptoEngine.processRealBackendFindings(repo, scanData.scanId, finalData.findings);
+    
+    // Populate State 4
+    populateCompletionState(finalData.findings);
+    setTimeout(() => { showState('state-completed'); }, 1000);
+
+  } catch (err) {
+    console.error(err);
+    addLog(`<span style="color:var(--red)">Error: ${err.message}</span>`);
+  }
+}
+
+function populateCompletionState(findings) {
+  document.getElementById('res-total').textContent = findings.length;
+  
+  let c = 0, h = 0, m = 0, l = 0, q = 0;
+  findings.forEach(f => {
+    if (f.severity === 'CRITICAL') c++;
+    if (f.severity === 'HIGH') h++;
+    if (f.severity === 'MEDIUM') m++;
+    if (f.severity === 'LOW') l++;
+    if (f.isQuantumVulnerable) q++;
+  });
+
+  document.getElementById('res-crit').textContent = c;
+  document.getElementById('res-high').textContent = h;
+  document.getElementById('res-quantum').textContent = q;
+
+  const chart = document.getElementById('risk-chart');
+  const leg = document.getElementById('risk-legend');
+  chart.innerHTML = ''; leg.innerHTML = '';
+
+  if (findings.length === 0) {
+    document.getElementById('risk-empty').classList.remove('hide');
+    chart.classList.add('hide');
+  } else {
+    document.getElementById('risk-empty').classList.add('hide');
+    chart.classList.remove('hide');
+    
+    const tot = findings.length;
+    const cPct = (c/tot)*100;
+    const hPct = (h/tot)*100;
+    const mPct = (m/tot)*100;
+    const lPct = (l/tot)*100;
+
+    if (c>0) { chart.innerHTML += `<div style="width:${cPct}%; background:var(--red);" title="Critical: ${c}"></div>`; leg.innerHTML += `<div style="display:flex;align-items:center;gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div> Critical (${c})</div>`; }
+    if (h>0) { chart.innerHTML += `<div style="width:${hPct}%; background:var(--amber);" title="High: ${h}"></div>`; leg.innerHTML += `<div style="display:flex;align-items:center;gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--amber)"></div> High (${h})</div>`; }
+    if (m>0) { chart.innerHTML += `<div style="width:${mPct}%; background:var(--yellow);" title="Medium: ${m}"></div>`; leg.innerHTML += `<div style="display:flex;align-items:center;gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div> Medium (${m})</div>`; }
+    if (l>0) { chart.innerHTML += `<div style="width:${lPct}%; background:var(--gray);" title="Low: ${l}"></div>`; leg.innerHTML += `<div style="display:flex;align-items:center;gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--gray)"></div> Low (${l})</div>`; }
+  }
+}
+
+function viewFindings() {
+  window.location.href = `findings.html?repo=${encodeURIComponent(currentRepoName)}`;
+}
+function viewCBOM() {
+  window.location.href = `cbom.html?repo=${encodeURIComponent(currentRepoName)}`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Repositories - CryptoScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Light theme variables */
+  --bg-main: #f4f5f7;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f9fafb;
+  --border-color: #eef0f3;
+  --border-light: #f4f5f7;
+  
+  --text-h: #111827;
+  --text-b: #374151;
+  --text-m: #6b7280;
+  --text-s: #9ca3af;
+  
+  /* State Colors */
+  --green: #15803d;
+  --green-bg: #dcfce7;
+  --red: #b91c1c;
+  --red-bg: #fee2e2;
+  --amber: #b45309;
+  --amber-bg: #fef3c7;
+  --yellow: #a16207;
+  --yellow-bg: #fef08a;
+  --gray: #4b5563;
+  --gray-bg: #f3f4f6;
+  
+  --purple: #6d28d9;
+  --purple-bg: #ede9fe;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --sb-w: 240px;
+  --t: .2s ease;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-main);
+  color: var(--text-b);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sb-w); background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+  display: flex; flex-direction: column; padding: 24px 16px; position: fixed; top: 0; bottom: 0; left: 0;
+  z-index: 100;
+}
+.sb-header {
+  display: flex; align-items: center; gap: 12px; padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-light); margin-bottom: 24px;
+}
+.sb-logo {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+}
+.sb-logo svg { width: 24px; height: 24px; color: var(--green); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-name span { color: var(--green); font-weight: 400; }
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--r-sm);
+  color: var(--text-m); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active {
+  background: var(--green-bg); color: var(--green); border: 1px solid rgba(21, 128, 61, 0.2);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+
+/* Main */
+.main {
+  margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+}
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px; background: var(--bg-main);
+  position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border-color);
+}
+.tb-left { display: flex; flex-direction: column; gap: 4px; }
+.tb-title { font-size: 20px; font-weight: 600; color: var(--text-h); letter-spacing: -0.02em; line-height: 1; }
+.tb-sub { font-size: 13px; color: var(--text-m); }
+.tb-right { display: flex; align-items: center; gap: 16px; }
+
+.btn-p {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: var(--green); border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: #ffffff; cursor: pointer; transition: opacity var(--t); text-decoration: none;
+}
+.btn-p:hover { opacity: 0.9; }
+
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-b);
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.btn-sec:hover { background: var(--bg-card); border-color: var(--text-s); }
+
+.content { padding: 32px; max-width: 1200px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+
+/* Cards */
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 16px; }
+.card-hd { font-size: 16px; font-weight: 600; color: var(--text-h); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+
+/* Metric Cards */
+.sc-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; text-transform: uppercase; }
+.sc-val { font-size: 24px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.empty-val { font-size: 24px; font-weight: 600; color: var(--text-s); }
+.empty-sub { font-size: 12px; color: var(--text-m); margin-top: 8px; }
+
+/* Table */
+.filters { display: flex; gap: 12px; margin-bottom: 16px; }
+.inp-filter { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--r-sm); font-size: 13px; color: var(--text-b); outline: none; }
+.inp-filter:focus { border-color: var(--green); }
+.tbl-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--r-md); }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th { padding: 12px 16px; font-size: 12px; font-weight: 600; color: var(--text-m); border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
+td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border-color); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-card-hover); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge.crit { background: var(--red-bg); color: var(--red); }
+.badge.high { background: var(--amber-bg); color: var(--amber); }
+.badge.med { background: var(--yellow-bg); color: var(--yellow); }
+.badge.low { background: var(--gray-bg); color: var(--gray); }
+.badge.safe { background: var(--green-bg); color: var(--green); }
+
+.badge.done { background: var(--green-bg); color: var(--green); }
+.badge.pend { background: var(--gray-bg); color: var(--gray); }
+
+/* Empty States */
+.empty-state { padding: 48px 24px; text-align: center; }
+.empty-state svg { width: 48px; height: 48px; color: var(--text-s); margin-bottom: 16px; }
+.empty-msg { font-size: 16px; font-weight: 600; color: var(--text-h); }
+.empty-sub-msg { font-size: 13px; color: var(--text-m); max-width: 400px; margin: 8px auto 24px; line-height: 1.5; }
+
+/* Activity */
+.act-feed { display: flex; flex-direction: column; gap: 12px; }
+.act-item { display: flex; gap: 12px; align-items: flex-start; }
+.act-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--green-bg); color: var(--green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.act-details { flex: 1; }
+.act-title { font-size: 13px; font-weight: 500; color: var(--text-h); }
+.act-time { font-size: 11px; color: var(--text-m); margin-top: 2px; }
+.act-icon.bad { background: var(--red-bg); color: var(--red); }
+
+.hide { display: none !important; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2L3 7v9c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V7l-9-5z"/></svg>
+    </div>
+    <div class="sb-name">Crypto<span>Scan</span></div>
+  </div>
+  <nav class="sb-nav">
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item active" href="repositories.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Repositories
+    </a>
+    <a class="nav-item" href="scan.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Scan Repository
+    </a>
+    <a class="nav-item" href="findings.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Findings
+    </a>
+    <a class="nav-item" href="cbom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      CBOM
+    </a>
+    <a class="nav-item" href="risk-migration.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      Risk & Migration
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="tb-title">Repositories</div>
+      <div class="tb-sub">Manage and monitor your connected repositories</div>
+    </div>
+    <div class="tb-right">
+      <input type="text" class="inp-filter" id="global-search" placeholder="Search repositories..." oninput="renderTable()">
+      <button class="btn-p" onclick="window.location.href='scan.html'">+ Add Repository</button>
+    </div>
+  </header>
+
+  <div class="content">
+    
+    <!-- Metrics -->
+    <div class="stats-grid">
+      <div class="card">
+        <div class="sc-lbl">Total Repositories</div>
+        <div class="sc-val" id="m-total"><span class="empty-val">—</span></div>
+        <div class="empty-sub" id="m-total-sub">No data available</div>
+      </div>
+      <div class="card">
+        <div class="sc-lbl">Recently Scanned</div>
+        <div class="sc-val" id="m-recent"><span class="empty-val">—</span></div>
+        <div class="empty-sub" id="m-recent-sub">No data available</div>
+      </div>
+      <div class="card">
+        <div class="sc-lbl">Active Scans</div>
+        <div class="sc-val" id="m-active"><span class="empty-val">—</span></div>
+        <div class="empty-sub" id="m-active-sub">No data available</div>
+      </div>
+      <div class="card">
+        <div class="sc-lbl">At Risk</div>
+        <div class="sc-val" id="m-risk"><span class="empty-val">—</span></div>
+        <div class="empty-sub" id="m-risk-sub">No data available</div>
+      </div>
+      <div class="card">
+        <div class="sc-lbl">Quantum Risk</div>
+        <div class="sc-val" id="m-quantum"><span class="empty-val">—</span></div>
+        <div class="empty-sub" id="m-quantum-sub">No data available</div>
+      </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+        <div class="card-hd" style="margin:0;">All Repositories</div>
+        <div class="filters">
+          <select class="inp-filter" id="filter-risk" onchange="renderTable()">
+            <option value="ALL">All Risk Levels</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+            <option value="SAFE">No Risk</option>
+          </select>
+          <select class="inp-filter" id="filter-status" onchange="renderTable()">
+            <option value="ALL">All Statuses</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="SCANNING">Scanning</option>
+            <option value="FAILED">Failed</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="tbl-wrap" style="border:none; border-radius:0;">
+        <table id="repo-table">
+          <thead>
+            <tr>
+              <th>Repository</th>
+              <th>Language</th>
+              <th>Last Scan</th>
+              <th>Findings</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="repo-body">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Empty State -->
+      <div id="repo-empty" class="empty-state hide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <div class="empty-msg">No repositories yet</div>
+        <div class="empty-sub-msg">Connect a GitHub repository or upload a ZIP file to start analyzing your cryptographic security posture.</div>
+        <div style="display:flex; justify-content:center; gap:12px;">
+          <button class="btn-p" onclick="window.location.href='scan.html'">+ Add Repository</button>
+          <button class="btn-sec" disabled>Connect GitHub</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom row -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+      <div class="card">
+        <div class="card-hd">Repository Risk Overview</div>
+        <div id="risk-chart-empty" class="empty-state" style="padding:24px;">
+          <div class="empty-msg" style="font-size:14px;">No repository risk data available</div>
+        </div>
+        <div id="risk-chart-cont" class="hide">
+          <div id="risk-chart" style="display: flex; gap: 4px; height: 32px; border-radius: 4px; overflow: hidden; margin-top: 8px;"></div>
+          <div id="risk-legend" style="display: flex; gap: 16px; margin-top: 16px; font-size: 12px; color: var(--text-m); font-weight: 500;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">Recent Activity</div>
+        <div id="act-empty" class="empty-state hide" style="padding:24px;">
+          <div class="empty-msg" style="font-size:14px;">No recent activity</div>
+        </div>
+        <div id="act-feed" class="act-feed">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="engine.js"></script>
+<script>
+let scans = [];
+
+function init() {
+  scans = CryptoEngine.getData().scans || [];
+  updateMetrics();
+  renderTable();
+  renderChart();
+  renderActivity();
+}
+
+function setMetric(id, val, hasData) {
+  const el = document.getElementById(id);
+  const sub = document.getElementById(id + '-sub');
+  if (hasData) {
+    el.innerHTML = val;
+    sub.innerHTML = 'From scanned data';
+    sub.style.color = 'var(--text-s)';
+  } else {
+    el.innerHTML = '<span class="empty-val">—</span>';
+    sub.innerHTML = 'No data available';
+  }
+}
+
+function updateMetrics() {
+  if (scans.length === 0) return;
+  
+  const total = scans.length;
+  let active = 0; // Assume 0 since we save them only when complete in engine
+  let atRisk = 0;
+  let quantum = 0;
+
+  scans.forEach(s => {
+    let hasRisk = false;
+    let hasQuantum = false;
+    s.findings.forEach(f => {
+      if (['CRITICAL', 'HIGH'].includes(f.severity)) hasRisk = true;
+      if (f.isQuantumVulnerable) hasQuantum = true;
+    });
+    if (hasRisk) atRisk++;
+    if (hasQuantum) quantum++;
+  });
+
+  setMetric('m-total', total, true);
+  setMetric('m-recent', total, true);
+  setMetric('m-active', active, true);
+  setMetric('m-risk', atRisk, true);
+  setMetric('m-quantum', quantum, true);
+}
+
+function getHighestRisk(findings) {
+  if (!findings || findings.length === 0) return { label: 'No Risk', class: 'safe' };
+  let sevMap = { 'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+  let highest = 0;
+  let highestStr = 'LOW';
+  
+  findings.forEach(f => {
+    if (sevMap[f.severity] > highest) {
+      highest = sevMap[f.severity];
+      highestStr = f.severity;
+    }
+  });
+
+  if (highestStr === 'CRITICAL') return { label: 'Critical', class: 'crit' };
+  if (highestStr === 'HIGH') return { label: 'High', class: 'high' };
+  if (highestStr === 'MEDIUM') return { label: 'Medium', class: 'med' };
+  return { label: 'Low', class: 'low' };
+}
+
+function renderTable() {
+  const tbody = document.getElementById('repo-body');
+  const empty = document.getElementById('repo-empty');
+  const table = document.getElementById('repo-table');
+  const searchQ = document.getElementById('global-search').value.toLowerCase();
+  const riskF = document.getElementById('filter-risk').value;
+  const statusF = document.getElementById('filter-status').value;
+
+  tbody.innerHTML = '';
+  
+  let filtered = scans.filter(s => {
+    const risk = getHighestRisk(s.findings).label.toUpperCase().replace(' ', ''); // NORISK vs CRITICAL
+    const matchSearch = s.repoName.toLowerCase().includes(searchQ);
+    
+    let riskMatch = true;
+    if (riskF !== 'ALL') {
+      if (riskF === 'SAFE' && risk !== 'NORISK') riskMatch = false;
+      else if (riskF !== 'SAFE' && !risk.includes(riskF)) riskMatch = false;
+    }
+    
+    let statusMatch = true;
+    if (statusF !== 'ALL' && statusF !== 'COMPLETED') statusMatch = false; // We only store completed
+
+    return matchSearch && riskMatch && statusMatch;
+  });
+
+  if (filtered.length === 0) {
+    table.classList.add('hide');
+    empty.classList.remove('hide');
+  } else {
+    table.classList.remove('hide');
+    empty.classList.add('hide');
+
+    filtered.forEach(s => {
+      const risk = getHighestRisk(s.findings);
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px;color:var(--text-m);"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span style="font-weight:500;color:var(--text-h);">${s.repoName}</span>
+          </div>
+        </td>
+        <td><span style="color:var(--text-m);">JavaScript/Python</span></td>
+        <td><span style="color:var(--text-m);">${new Date(s.timestamp).toLocaleDateString()}</span></td>
+        <td style="font-weight:600;">${s.findings.length}</td>
+        <td><span class="badge ${risk.class}">${risk.label}</span></td>
+        <td><span class="badge done">Completed</span></td>
+        <td>
+          <button class="btn-sec" style="padding:4px 8px;font-size:12px;" onclick="window.location.href='findings.html?repo=${encodeURIComponent(s.repoName)}'">View</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+}
+
+function renderChart() {
+  const cont = document.getElementById('risk-chart-cont');
+  const empty = document.getElementById('risk-chart-empty');
+  const chart = document.getElementById('risk-chart');
+  const leg = document.getElementById('risk-legend');
+  
+  if (scans.length === 0) return;
+
+  cont.classList.remove('hide');
+  empty.classList.add('hide');
+
+  let c=0, h=0, m=0, l=0, safe=0;
+  scans.forEach(s => {
+    let r = getHighestRisk(s.findings).class;
+    if (r==='crit') c++;
+    else if (r==='high') h++;
+    else if (r==='med') m++;
+    else if (r==='low') l++;
+    else safe++;
+  });
+
+  const tot = scans.length;
+  chart.innerHTML = ''; leg.innerHTML = '';
+  
+  function addSeg(val, color, lbl) {
+    if(val===0) return;
+    const pct = (val/tot)*100;
+    chart.innerHTML += `<div style="width:${pct}%; background:var(--${color});" title="${lbl}: ${val}"></div>`;
+    leg.innerHTML += `<div style="display:flex;align-items:center;gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--${color})"></div> ${lbl} (${val})</div>`;
+  }
+  
+  addSeg(c, 'red', 'Critical');
+  addSeg(h, 'amber', 'High');
+  addSeg(m, 'yellow', 'Medium');
+  addSeg(l, 'gray', 'Low');
+  addSeg(safe, 'green', 'No Risk');
+}
+
+function renderActivity() {
+  const feed = document.getElementById('act-feed');
+  const empty = document.getElementById('act-empty');
+  
+  if (scans.length === 0) {
+    empty.classList.remove('hide');
+    return;
+  }
+
+  // Reverse so newest is first
+  const rev = [...scans].reverse().slice(0, 5);
+  feed.innerHTML = '';
+
+  rev.forEach(s => {
+    feed.innerHTML += `
+      <div class="act-item">
+        <div class="act-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <div class="act-details">
+          <div class="act-title">Scan completed for <span style="font-weight:600;">${s.repoName}</span></div>
+          <div class="act-time">${new Date(s.timestamp).toLocaleString()}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+window.onload = init;
+</script>
+</body>
+</html>

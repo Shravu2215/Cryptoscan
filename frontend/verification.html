@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify — CryptoScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Light theme variables */
+  --bg-main: #f4f5f7;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f9fafb;
+  --border-color: #eef0f3;
+  --border-light: #f4f5f7;
+  
+  --text-h: #111827; /* Headers text */
+  --text-b: #374151; /* Body text */
+  --text-m: #6b7280; /* Muted text */
+  --text-s: #9ca3af; /* Subtle text */
+  
+  /* State Colors */
+  --green: #15803d; /* Secure/Verified */
+  --green-bg: #dcfce7;
+  --red: #b91c1c; /* Critical */
+  --red-bg: #fee2e2;
+  --amber: #b45309; /* High */
+  --amber-bg: #fef3c7;
+  --yellow: #a16207; /* Medium */
+  --yellow-bg: #fef08a;
+  --gray: #4b5563; /* Low */
+  --gray-bg: #f3f4f6;
+  
+  --purple: #6d28d9; /* Quantum */
+  --purple-bg: #ede9fe;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 16px;
+  --sb-w: 240px;
+  --t: .2s ease;
+}
+
+html { font-size: 14px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-b);
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sb {
+  width: var(--sb-w);
+  flex-shrink: 0;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  padding: 24px 16px;
+}
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 24px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 24px;
+}
+.sb-logo {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-logo svg { width: 24px; height: 24px; color: var(--text-h); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-name span { color: var(--text-m); font-weight: 400; }
+
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sb-nav-divider { height: 1px; background: var(--border-light); margin: 16px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  color: var(--text-m); font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid rgba(21, 128, 61, 0.2);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.nav-badge {
+  margin-left: auto; background: var(--border-color);
+  color: var(--text-h); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+}
+
+/* Main Content Area */
+.main {
+  margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+}
+
+/* Header */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px; background: var(--bg-main);
+  position: sticky; top: 0; z-index: 50;
+  border-bottom: 1px solid var(--border-color);
+}
+.tb-left { display: flex; flex-direction: column; gap: 4px; }
+.tb-title { font-size: 20px; font-weight: 600; color: var(--text-h); letter-spacing: -0.02em; line-height: 1; }
+.tb-sub { font-size: 13px; color: var(--text-m); }
+.tb-right { display: flex; align-items: center; gap: 16px; }
+
+/* Buttons */
+.btn-p {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: var(--green); border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: #ffffff; cursor: pointer;
+  transition: opacity var(--t); text-decoration: none;
+}
+.btn-p:hover { opacity: 0.9; }
+
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-b);
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.btn-sec:hover { background: var(--bg-card); border-color: var(--text-s); }
+
+/* Dashboard Grid */
+.content { padding: 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.row { display: flex; gap: 24px; }
+.col { display: flex; flex-direction: column; gap: 24px; }
+.col-2 { flex: 2; } .col-1 { flex: 1; }
+
+/* Cards */
+.gcard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-lg); padding: 24px; position: relative;
+}
+.gc-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.gc-ttl { font-size: 14px; font-weight: 600; color: var(--text-h); }
+.gc-sub { font-size: 12px; color: var(--text-m); margin-top: 4px; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.scard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-md); padding: 16px;
+}
+.scard-primary {
+  background: linear-gradient(135deg, #166534, #15803d);
+  color: #ffffff;
+  border: none;
+}
+.scard-primary .sc-lbl, .scard-primary .empty-sub { color: rgba(255,255,255,0.8); }
+.scard-primary .sc-val, .scard-primary .empty-val { color: #ffffff; }
+
+.sc-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; }
+.sc-val { font-size: 24px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.empty-val { font-size: 24px; font-weight: 600; color: var(--text-s); }
+.empty-sub { font-size: 11px; color: var(--text-s); margin-top: 4px; }
+
+/* Risk Distribution */
+.risk-dist { display: flex; flex-direction: column; gap: 12px; }
+.risk-bar-container { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; display: flex; overflow: hidden; }
+.risk-bar { height: 100%; }
+.risk-legend { display: flex; justify-content: space-between; font-size: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-b); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 12px 16px; font-size: 11px; font-weight: 500;
+  color: var(--text-m); text-align: left; border-bottom: 1px solid var(--border-color);
+}
+tbody td {
+  padding: 16px; font-size: 13px; color: var(--text-b);
+  border-bottom: 1px solid var(--border-color);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg-card-hover); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
+.badge-crit { background: var(--red-bg); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
+.badge-high { background: var(--amber-bg); color: var(--amber); border-color: rgba(245, 158, 11, 0.2); }
+.badge-med { background: var(--yellow-bg); color: var(--yellow); border-color: rgba(234, 179, 8, 0.2); }
+.badge-low { background: var(--gray-bg); color: var(--gray); border-color: rgba(113, 113, 122, 0.2); }
+.badge-quant { background: var(--purple-bg); color: var(--purple); border-color: rgba(139, 92, 246, 0.2); }
+
+/* Empty States */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
+.empty-msg { font-size: 13px; color: var(--text-m); }
+
+/* Top Risks List */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); }
+.risk-algo { font-size: 13px; font-weight: 500; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+.risk-count { font-size: 12px; color: var(--text-s); }
+
+/* Quick Actions */
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.qa-btn { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); text-align: left; cursor: pointer; transition: all var(--t); text-decoration: none; }
+.qa-btn:hover { border-color: var(--text-m); }
+.qa-btn svg { width: 20px; height: 20px; color: var(--text-h); }
+.qa-ttl { font-size: 13px; font-weight: 500; color: var(--text-h); }
+</style>
+<style>
+  /* Verify Specific Layout */
+  .verify-hero {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 24px; text-align: center; border-radius: var(--r-lg);
+    background: var(--bg-card); border: 1px solid var(--border-color); margin-bottom: 24px;
+    transition: all 0.3s ease;
+  }
+  .verify-hero.status-unverified { border-top: 4px solid var(--amber); }
+  .verify-hero.status-verified { border-top: 4px solid var(--green); background: linear-gradient(180deg, rgba(220,252,231,0.3) 0%, var(--bg-card) 100%); }
+  .verify-hero.status-failed { border-top: 4px solid var(--red); background: linear-gradient(180deg, rgba(254,226,226,0.3) 0%, var(--bg-card) 100%); }
+  .verify-hero.status-incomplete { border-top: 4px solid var(--amber); background: linear-gradient(180deg, rgba(254,243,199,0.3) 0%, var(--bg-card) 100%); }
+  
+  .vh-icon { width: 48px; height: 48px; margin-bottom: 12px; }
+  .vh-icon.unverified { color: var(--text-m); }
+  .vh-icon.verified { color: var(--green); }
+  .vh-icon.failed { color: var(--red); }
+  .vh-icon.incomplete { color: var(--amber); }
+  
+  .vh-title { font-size: 24px; font-weight: 700; color: var(--text-h); margin-bottom: 8px; }
+  .vh-desc { font-size: 14px; color: var(--text-m); }
+  
+  /* Pipeline */
+  .pipeline {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 24px; background: var(--bg-main); border-radius: var(--r-md); border: 1px solid var(--border-color);
+    position: relative; margin-bottom: 24px; overflow: hidden;
+  }
+  .pl-line {
+    position: absolute; top: 40px; left: 40px; right: 40px; height: 2px; background: var(--border-color); z-index: 1;
+  }
+  .pl-progress {
+    position: absolute; top: 40px; left: 40px; height: 2px; background: var(--green); z-index: 2; width: 0%;
+    transition: width 0.5s ease;
+  }
+  
+  .pl-step {
+    display: flex; flex-direction: column; align-items: center; z-index: 3; position: relative; width: 80px; text-align: center;
+  }
+  .pl-icon {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--bg-main); border: 2px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--text-m);
+    margin-bottom: 8px; transition: all 0.3s;
+  }
+  .pl-step.active .pl-icon { border-color: var(--green); color: var(--green); box-shadow: 0 0 0 4px rgba(34,197,94,0.1); }
+  .pl-step.done .pl-icon { background: var(--green); border-color: var(--green); color: white; }
+  .pl-step.fail .pl-icon { background: var(--red); border-color: var(--red); color: white; }
+  .pl-step.warn .pl-icon { background: var(--amber); border-color: var(--amber); color: white; }
+  
+  .pl-lbl { font-size: 11px; font-weight: 600; color: var(--text-s); text-transform: uppercase; }
+  .pl-step.active .pl-lbl, .pl-step.done .pl-lbl { color: var(--text-h); }
+  
+  /* Details List */
+  .dl-list { display: flex; flex-direction: column; }
+  .dl-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+  .dl-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .dl-lbl { font-size: 13px; color: var(--text-s); font-weight: 500; }
+  .dl-val { font-size: 13px; color: var(--text-h); font-weight: 600; text-align: right; }
+  
+  /* Hash Box */
+  .hash-box {
+    background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm);
+    padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-h);
+    word-break: break-all; margin-bottom: 12px; position: relative; line-height: 1.5;
+  }
+  .hash-box.match { border-color: var(--green); background: rgba(34,197,94,0.05); }
+  .hash-box.mismatch { border-color: var(--red); background: rgba(239,68,68,0.05); }
+  
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px; background: var(--bg-card); border: 1px solid var(--border-color);
+    padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; color: var(--text-m);
+  }
+  .copy-btn:hover { background: var(--bg-main); color: var(--text-h); }
+  
+  /* Comparison */
+  .comp-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .comp-lbl { font-size: 12px; font-weight: 600; color: var(--text-s); text-transform: uppercase; }
+  .comp-res { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+  .comp-res.match { color: var(--green); }
+  .comp-res.mismatch { color: var(--red); }
+  .comp-res.warn { color: var(--amber); }
+  
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .sb-valid { background: var(--green-bg); color: var(--green); }
+  .sb-invalid { background: var(--red-bg); color: var(--red); }
+  .sb-none { background: var(--bg-main); color: var(--text-m); border: 1px solid var(--border-color); }
+  .sb-warn { background: var(--amber-bg); color: var(--amber); }
+  
+  .loader-spinner {
+    border: 2px solid rgba(0,0,0,0.1); border-left-color: var(--green); border-radius: 50%;
+    width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div class="sb-name">CRYPTO<span>SCAN</span></div>
+  </div>
+  
+  <nav class="sb-nav">
+    <a class="nav-item" href="dashboard.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" href="repositories.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      Repositories
+    </a>
+    <a class="nav-item" href="scan.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      Scan Repository
+    </a>
+    <a class="nav-item" href="findings.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      Findings
+    </a>
+    <a class="nav-item" href="cbom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      CBOM
+    </a>
+    <a class="nav-item" href="risk-migration.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      Risk & Migration
+    </a>
+    <a class="nav-item active" href="verification.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Verify
+    </a>
+  </nav>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <h1 class="tb-title">Verify</h1>
+      <p class="tb-sub">Verify the integrity and authenticity of your cryptographic inventory.</p>
+    </div>
+    <div class="tb-right" id="header-actions" style="display:none;">
+      <button class="btn-sec" onclick="window.location.href='cbom.html'" style="margin-right:8px;">View CBOM</button>
+      <button class="btn-p" id="btn-verify" onclick="startVerification()">Verify CBOM</button>
+    </div>
+  </header>
+
+  <div class="content">
+    
+    <!-- Empty State -->
+    <div id="view-no-data" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--text-s);margin-bottom:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No CBOM Available</div>
+        <div class="empty-msg">Generate a CBOM by scanning a repository before verifying its integrity.</div>
+        <div style="margin-top:16px;">
+          <button class="btn-p" onclick="window.location.href='scan.html'">Scan Repository</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active View -->
+    <div id="view-active" style="display:none; flex-direction:column; gap:24px;">
+      
+      <!-- Primary Status -->
+      <div class="verify-hero status-unverified" id="hero-card">
+        <svg id="hero-icon" class="vh-icon unverified" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01"/></svg>
+        <div class="vh-title" id="hero-title">NOT VERIFIED</div>
+        <div class="vh-desc" id="hero-desc">Verification required</div>
+      </div>
+
+      <!-- Pipeline -->
+      <div class="gc-hd"><div class="gc-ttl">Verification Process</div></div>
+      <div class="pipeline">
+        <div class="pl-line"></div>
+        <div class="pl-progress" id="pl-progress"></div>
+        
+        <div class="pl-step done" id="step-0">
+          <div class="pl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="pl-lbl">CBOM Loaded</div>
+        </div>
+        <div class="pl-step" id="step-1">
+          <div class="pl-icon">02</div>
+          <div class="pl-lbl">SHA-256 Hash</div>
+        </div>
+        <div class="pl-step" id="step-2">
+          <div class="pl-icon">03</div>
+          <div class="pl-lbl">Digital Signature</div>
+        </div>
+        <div class="pl-step" id="step-3">
+          <div class="pl-icon">04</div>
+          <div class="pl-lbl">Blockchain Anchor</div>
+        </div>
+        <div class="pl-step" id="step-4">
+          <div class="pl-icon">05</div>
+          <div class="pl-lbl">Integrity</div>
+        </div>
+      </div>
+      
+      <!-- Details Grid -->
+      <div class="row">
+        
+        <div class="col col-1">
+          <div class="gcard" style="height:100%;">
+            <div class="gc-hd"><div class="gc-ttl">CBOM Details</div></div>
+            <div class="dl-list" style="margin-top:16px;">
+              <div class="dl-item"><span class="dl-lbl">Repository</span><span class="dl-val" id="det-repo">—</span></div>
+              <div class="dl-item"><span class="dl-lbl">Scan ID</span><span class="dl-val" id="det-scan">—</span></div>
+              <div class="dl-item"><span class="dl-lbl">CBOM Version</span><span class="dl-val">v1.4 (CycloneDX)</span></div>
+              <div class="dl-item"><span class="dl-lbl">Generated</span><span class="dl-val" id="det-time">—</span></div>
+              <div class="dl-item"><span class="dl-lbl">Components</span><span class="dl-val" id="det-count">0</span></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col col-2">
+          <div class="gcard" style="height:100%;">
+            <div class="gc-hd"><div class="gc-ttl">SHA-256 Integrity Hash</div></div>
+            <div style="margin-top:16px;">
+              <div class="hash-box" id="hash-box">
+                <span id="hash-text" style="color:var(--text-m)">Hash will be generated during verification.</span>
+                <button class="copy-btn" id="hash-copy" style="display:none;" onclick="copyHash()">Copy</button>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:13px; color:var(--text-m); font-weight:500;">Hash Status</span>
+                <span class="status-badge sb-none" id="hash-status">Not Verified</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      <div class="row">
+        
+        <div class="col col-1">
+          <div class="gcard" style="height:100%;">
+            <div class="gc-hd"><div class="gc-ttl">Hash Comparison</div></div>
+            <div style="margin-top:16px;">
+              <div class="comp-row">
+                <span class="comp-lbl">Current CBOM Hash</span>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-h); margin-bottom:12px; overflow:hidden; text-overflow:ellipsis;" id="comp-current">—</div>
+              
+              <div style="display:flex; justify-content:center; color:var(--text-s); margin-bottom:12px;">=</div>
+              
+              <div class="comp-row">
+                <span class="comp-lbl">Blockchain Anchored Hash</span>
+              </div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-m); margin-bottom:12px; overflow:hidden; text-overflow:ellipsis;" id="comp-chain">—</div>
+              
+              <div class="comp-row" style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:16px;">
+                <span class="comp-lbl" style="color:var(--text-h)">Match Result</span>
+                <span class="comp-res" id="comp-result">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col col-1">
+          <div class="gcard" style="height:100%;">
+            <div class="gc-hd"><div class="gc-ttl">Digital Signature</div></div>
+            <div style="margin-top:16px; margin-bottom:24px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <span style="font-size:13px; font-weight:500; color:var(--text-m);">Signature Status</span>
+                <span class="status-badge sb-none" id="sig-status">— Not Available</span>
+              </div>
+              <div class="dl-list">
+                <div class="dl-item"><span class="dl-lbl">Algorithm</span><span class="dl-val">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Signer ID</span><span class="dl-val">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Signed At</span><span class="dl-val">—</span></div>
+              </div>
+            </div>
+            
+            <div class="gc-hd"><div class="gc-ttl">Blockchain Anchor</div></div>
+            <div style="margin-top:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <span style="font-size:13px; font-weight:500; color:var(--text-m);">Anchor Status</span>
+                <span class="status-badge sb-none" id="anch-status">— Not Anchored</span>
+              </div>
+              <div class="dl-list">
+                <div class="dl-item"><span class="dl-lbl">Network</span><span class="dl-val">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Transaction</span><span class="dl-val">—</span></div>
+                <div class="dl-item"><span class="dl-lbl">Block</span><span class="dl-val">—</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="engine.js"></script>
+<script>
+let activeScan = null;
+let currentHashHex = '';
+
+function init() {
+  const data = CryptoEngine.getData();
+  
+  if (!data.activeScan) {
+    document.getElementById('view-no-data').style.display = 'block';
+    return;
+  }
+  
+  activeScan = data.activeScan;
+  document.getElementById('view-active').style.display = 'flex';
+  document.getElementById('header-actions').style.display = 'flex';
+  
+  // Populate CBOM Details
+  document.getElementById('det-repo').textContent = activeScan.repoName;
+  document.getElementById('det-scan').textContent = activeScan.scanId.substring(0,8);
+  document.getElementById('det-time').textContent = activeScan.timestamp;
+  document.getElementById('det-count').textContent = activeScan.assetsFound;
+}
+
+// Convert string to ArrayBuffer for hashing
+function str2ab(str) {
+  const buf = new ArrayBuffer(str.length);
+  const bufView = new Uint8Array(buf);
+  for (let i = 0; i < str.length; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
+
+async function generateHash(dataObj) {
+  const str = JSON.stringify(dataObj);
+  const buffer = new TextEncoder().encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function updateStep(stepId, state) {
+  const el = document.getElementById('step-' + stepId);
+  el.className = 'pl-step ' + state;
+  if(state === 'done') {
+    el.querySelector('.pl-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function startVerification() {
+  const btn = document.getElementById('btn-verify');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader-spinner"></span> Verifying...';
+  
+  document.getElementById('pl-progress').style.width = '0%';
+  
+  // Reset UI
+  document.getElementById('hash-text').textContent = 'Generating hash...';
+  document.getElementById('hash-copy').style.display = 'none';
+  document.getElementById('hash-status').className = 'status-badge sb-none';
+  document.getElementById('hash-status').textContent = 'Generating...';
+  document.getElementById('hash-box').className = 'hash-box';
+  
+  // Step 1: Hash Generation
+  updateStep(1, 'active');
+  document.getElementById('pl-progress').style.width = '25%';
+  await delay(800);
+  
+  try {
+    // Generate real hash from actual cbom data
+    currentHashHex = await generateHash(activeScan.cbom);
+    
+    document.getElementById('hash-text').textContent = currentHashHex;
+    document.getElementById('hash-text').style.color = 'var(--text-h)';
+    document.getElementById('hash-copy').style.display = 'block';
+    
+    document.getElementById('hash-status').className = 'status-badge sb-valid';
+    document.getElementById('hash-status').textContent = 'Hash Generated';
+    
+    document.getElementById('comp-current').textContent = currentHashHex;
+    
+    updateStep(1, 'done');
+    
+    // Step 2: Digital Signature (Not Available logically as backend lacks it)
+    updateStep(2, 'active');
+    document.getElementById('pl-progress').style.width = '50%';
+    await delay(600);
+    
+    updateStep(2, 'warn');
+    
+    // Step 3: Blockchain Anchor (Not Anchored logically)
+    updateStep(3, 'active');
+    document.getElementById('pl-progress').style.width = '75%';
+    await delay(600);
+    
+    updateStep(3, 'warn');
+    
+    // Step 4: Final Result
+    updateStep(4, 'active');
+    document.getElementById('pl-progress').style.width = '100%';
+    await delay(400);
+    
+    // Set Final Result - Incomplete because signature/anchor missing
+    updateStep(4, 'warn');
+    
+    document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> VERIFICATION INCOMPLETE';
+    document.getElementById('comp-result').className = 'comp-res warn';
+    
+    const hero = document.getElementById('hero-card');
+    hero.className = 'verify-hero status-incomplete';
+    document.getElementById('hero-icon').className = 'vh-icon incomplete';
+    document.getElementById('hero-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>';
+    document.getElementById('hero-title').textContent = 'VERIFICATION INCOMPLETE';
+    document.getElementById('hero-desc').textContent = 'CBOM is not anchored to a blockchain network and lacks a digital signature.';
+    
+  } catch(e) {
+    console.error(e);
+    // Error state
+    updateStep(1, 'fail');
+    const hero = document.getElementById('hero-card');
+    hero.className = 'verify-hero status-failed';
+    document.getElementById('hero-icon').className = 'vh-icon failed';
+    document.getElementById('hero-icon').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>';
+    document.getElementById('hero-title').textContent = 'VERIFICATION FAILED';
+    document.getElementById('hero-desc').textContent = 'An error occurred while generating the cryptographic hash.';
+  }
+  
+  btn.textContent = 'Verify Again';
+  btn.disabled = false;
+}
+
+function copyHash() {
+  if (currentHashHex) {
+    navigator.clipboard.writeText(currentHashHex);
+    const btn = document.getElementById('hash-copy');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  }
+}
+
+window.addEventListener('load', init);
+window.addEventListener('cryptoscan_data_updated', init);
+</script>
+</body>
+</html>
