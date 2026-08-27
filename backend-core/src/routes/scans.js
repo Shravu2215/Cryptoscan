@@ -139,13 +139,11 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
       id: f.id,
       file: f.filePath,
       line: f.lineNumber,
-      primitive: f.algorithm,
-      keySize: f.keySize,
-      mode: null,
-      context: {
-        usageType: f.usage,
-        functionName: f.description
-      }
+      algorithm: f.algorithm,
+      severity: f.severity,
+      quantumStatus: f.quantumStatus,
+      usage: f.usage,
+      recommendation: f.recommendation
     }));
 
     const cbom = buildCbom({
@@ -175,13 +173,11 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
       id: f.id,
       file: f.filePath,
       line: f.lineNumber,
-      primitive: f.algorithm,
-      keySize: f.keySize,
-      mode: null,
-      context: {
-        usageType: f.usage,
-        functionName: f.description
-      }
+      algorithm: f.algorithm,
+      severity: f.severity,
+      quantumStatus: f.quantumStatus,
+      usage: f.usage,
+      recommendation: f.recommendation
     }));
     const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
     const contentBuffer = Buffer.from(JSON.stringify(cbom));
@@ -239,13 +235,11 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
       id: f.id,
       file: f.filePath,
       line: f.lineNumber,
-      primitive: f.algorithm,
-      keySize: f.keySize,
-      mode: null,
-      context: {
-        usageType: f.usage,
-        functionName: f.description
-      }
+      algorithm: f.algorithm,
+      severity: f.severity,
+      quantumStatus: f.quantumStatus,
+      usage: f.usage,
+      recommendation: f.recommendation
     }));
     const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
     const contentBuffer = Buffer.from(JSON.stringify(cbom));

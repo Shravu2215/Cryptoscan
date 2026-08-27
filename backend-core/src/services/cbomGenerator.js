@@ -41,38 +41,42 @@ function buildFindingsResponse(scan) {
   };
 }
 
+// Rough ordinal weight per severity label, used only to pick the "worst"
+// occurrence for a component's maxSeverity/maxVulnerabilityScore - not a
+// re-derivation of risk, severity itself always comes from the scanner.
+const SEVERITY_WEIGHT = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25, INFORMATIONAL: 0, INFO: 0 };
+
 /**
  * CycloneDX 1.6-shaped Cryptographic Bill of Materials.
- * Each unique (primitive, keySize, mode) observed becomes one
- * "cryptographic-asset" component; every file/line it was found at is
- * listed under `occurrences`, and per-occurrence purpose/score/migration
- * data is kept in `properties` so nothing from the enrichment is lost.
+ * Each unique algorithm label observed (as reported by the scanner - e.g.
+ * "RSA-1024", "AES-256-CBC") becomes one "cryptographic-asset" component;
+ * every file/line it was found at is listed under `occurrences`.
+ *
+ * `scan.rawFindings` here are DB Finding rows (or the equivalent shape),
+ * already carrying the scanner's own severity/quantumStatus/recommendation -
+ * this function does not recompute risk, it only groups and summarizes it.
  *
  * Spec reference: CycloneDX Cryptography (BOM) — cryptographic-asset
  * component type, assetType "algorithm".
  */
 function buildCbom(scan) {
-  const enriched = scan.rawFindings.map(enrichFinding);
+  const findings = scan.rawFindings;
 
   const componentsByKey = new Map();
-  for (const f of enriched) {
-    const key = `${f.primitiveFamily}|${f.keySize}|${f.mode}`;
+  for (const f of findings) {
+    const key = f.algorithm || 'UNKNOWN';
     if (!componentsByKey.has(key)) {
       componentsByKey.set(key, {
         type: 'cryptographic-asset',
-        name: f.primitive,
-        'bom-ref': `crypto-asset/${key.replace(/\|/g, '-').toLowerCase()}`,
+        name: key,
+        'bom-ref': `crypto-asset/${key.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`,
         cryptoProperties: {
           assetType: 'algorithm',
-          algorithmProperties: {
-            primitive: f.primitiveFamily,
-            parameterSetIdentifier: f.keySize ? String(f.keySize) : 'unspecified',
-            mode: f.mode || undefined,
-          },
+          algorithmProperties: { primitive: key },
         },
         occurrences: [],
         maxVulnerabilityScore: 0,
-        maxSeverity: 'info',
+        maxSeverity: 'INFO',
       });
     }
     const component = componentsByKey.get(key);
@@ -80,20 +84,26 @@ function buildCbom(scan) {
       file: f.file,
       line: f.line,
       findingId: f.id,
-      purpose: f.purpose,
-      vulnerability: f.vulnerability,
-      pqcMigration: f.pqcMigration,
+      usage: f.usage,
+      severity: f.severity,
+      quantumStatus: f.quantumStatus,
+      recommendation: f.recommendation,
     });
-    if (f.vulnerability.score > component.maxVulnerabilityScore) {
-      component.maxVulnerabilityScore = f.vulnerability.score;
-      component.maxSeverity = f.vulnerability.severity;
+    const weight = SEVERITY_WEIGHT[(f.severity || 'INFO').toUpperCase()] ?? 0;
+    if (weight > component.maxVulnerabilityScore) {
+      component.maxVulnerabilityScore = weight;
+      component.maxSeverity = f.severity;
     }
   }
 
   const components = Array.from(componentsByKey.values());
 
   const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-  for (const f of enriched) severityCounts[f.vulnerability.severity]++;
+  for (const f of findings) {
+    const sev = (f.severity || 'INFO').toLowerCase();
+    const bucket = sev === 'informational' ? 'info' : sev;
+    if (severityCounts[bucket] !== undefined) severityCounts[bucket]++;
+  }
 
   return {
     bomFormat: 'CycloneDX',
@@ -108,13 +118,13 @@ function buildCbom(scan) {
       },
       properties: [
         { name: 'scanId', value: scan.scanId },
-        { name: 'findingCount', value: String(enriched.length) },
+        { name: 'findingCount', value: String(findings.length) },
       ],
     },
     components,
     summary: {
       totalCryptoAssets: components.length,
-      totalFindings: enriched.length,
+      totalFindings: findings.length,
       severityCounts,
     },
   };
