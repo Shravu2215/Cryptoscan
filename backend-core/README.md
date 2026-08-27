@@ -8,7 +8,7 @@ Owns: DB schema, Auth, Repo upload, Scan trigger stub.
 npm install
 cp .env.example .env       # fill in real DATABASE_URL and JWT_SECRET
 npm run prisma:migrate     # creates tables from prisma/schema.prisma
-npm run dev                # starts on http://localhost:5000
+npm run dev                # starts on http://localhost:3000
 ```
 
 Windows note: if `DATABASE_URL` parsing fails, wrap the whole string in quotes
