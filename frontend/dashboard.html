@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="auth.js"></script>
 <script src="engine.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -349,7 +350,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
       Profile
     </a>
-    <a class="nav-item" href="index.html" style="margin-top:auto">
+    <a class="nav-item" href="#" onclick="event.preventDefault(); Auth.logout();" style="margin-top:auto">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
       Logout
     </a>
@@ -666,6 +667,7 @@ function renderDashboardData() {
   }
 }
 
+Auth.requireAuth();
 window.addEventListener('load', renderDashboardData);
 window.addEventListener('cryptoscan_data_updated', renderDashboardData);
 

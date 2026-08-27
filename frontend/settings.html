@@ -393,6 +393,24 @@ tbody tr:hover td{background:rgba(14,165,233,.03)}
     <div class="gcard">
       <div class="gc-hd">
         <div>
+          <div class="gc-ttl">Account Profile</div>
+          <div class="gc-sub">Manage your personal information and session.</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.7);padding:18px;border-radius:12px;border:1px solid rgba(14,165,233,.2);display:flex;align-items:center;gap:16px;">
+        <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #15803d, #22c55e); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <span id="settings-avatar-initials" style="font-size: 18px; font-weight: 700; color: white; font-family: 'Inter', sans-serif;">U</span>
+        </div>
+        <div style="flex-grow: 1;">
+          <div id="settings-profile-name" style="font-size: 16px; font-weight: 600; color: var(--text-h);">User Name</div>
+          <div id="settings-profile-email" style="font-size: 13px; color: var(--text-m); margin-top: 2px;">user@example.com</div>
+        </div>
+        <button class="btn-sec" style="color: #b91c1c; border-color: #fca5a5;" onclick="Auth.logout()">Log Out</button>
+      </div>
+    </div>
+    <div class="gcard">
+      <div class="gc-hd">
+        <div>
           <div class="gc-ttl">Scanner API Credentials</div>
           <div class="gc-sub">Use your API key to trigger automated scans in CI/CD pipelines (GitHub Actions, GitLab CI).</div>
         </div>
@@ -445,6 +463,21 @@ function copyApiKey() {
 function saveSettings() {
   showToast('✓ Scanner preferences saved successfully!');
 }
+// --- AUTH GUARD ---
+Auth.requireAuth();
+
+(function initSettingsProfile() {
+  const user = Auth.getUser();
+  if (user) {
+    const name = user.name || 'User';
+    const email = user.email || '';
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
+    const el = id => document.getElementById(id);
+    if (el('settings-avatar-initials')) el('settings-avatar-initials').textContent = initials;
+    if (el('settings-profile-name')) el('settings-profile-name').textContent = name;
+    if (el('settings-profile-email')) el('settings-profile-email').textContent = email;
+  }
+})();
 </script>
 </body>
 </html>

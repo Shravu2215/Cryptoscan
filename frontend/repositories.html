@@ -419,6 +419,7 @@ tr:hover td { background: var(--bg-card-hover); }
   </div>
 </main>
 
+<script src="auth.js"></script>
 <script src="engine.js"></script>
 <script>
 let scans = [];
@@ -609,6 +610,9 @@ function renderActivity() {
     `;
   });
 }
+
+// --- AUTH GUARD ---
+Auth.requireAuth();
 
 window.onload = init;
 </script>

@@ -613,6 +613,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
   </div>
 </main>
 
+<script src="auth.js"></script>
 <script src="engine.js"></script>
 <script>
 const API_BASE = 'http://localhost:3000';
@@ -889,6 +890,9 @@ function copyHash() {
     setTimeout(() => btn.textContent = 'Copy', 2000);
   }
 }
+
+// --- AUTH GUARD ---
+Auth.requireAuth();
 
 window.addEventListener('load', init);
 window.addEventListener('cryptoscan_data_updated', init);

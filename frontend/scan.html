@@ -505,6 +505,7 @@ body {
   </div>
 </main>
 
+<script src="auth.js"></script>
 <script src="engine.js"></script>
 <script>
 let selectedFile = null;
@@ -725,6 +726,8 @@ function viewFindings() {
 function viewCBOM() {
   window.location.href = `cbom.html?repo=${encodeURIComponent(currentRepoName)}`;
 }
+// --- AUTH GUARD ---
+Auth.requireAuth();
 </script>
 </body>
 </html>
