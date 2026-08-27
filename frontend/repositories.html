@@ -614,6 +614,35 @@ function renderActivity() {
 // --- AUTH GUARD ---
 Auth.requireAuth();
 
+// --- Profile Avatar Init ---
+(function initProfileAvatar() {
+  const user = Auth.getUser();
+  const name = (user && user.name) ? user.name : 'User';
+  const email = (user && user.email) ? user.email : '';
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
+
+  const el = (id) => document.getElementById(id);
+  if (el('profile-initials')) el('profile-initials').textContent = initials;
+  if (el('pd-initials')) el('pd-initials').textContent = initials;
+  if (el('pd-name')) el('pd-name').textContent = name;
+  if (el('pd-email')) el('pd-email').textContent = email;
+
+  const btn = el('profile-btn');
+  const dropdown = el('profile-dropdown');
+  if (btn && dropdown) {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && e.target !== btn) {
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+})();
+
+
 window.onload = init;
 </script>
 </body>
