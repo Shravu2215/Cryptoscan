@@ -71,5 +71,40 @@ const Auth = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.getToken()}`
     };
+  },
+
+  /** Automatically update profile initials, name, and email on every page */
+  initProfile() {
+    const applyUser = () => {
+      const user = this.getUser();
+      if (!user) return;
+
+      const name = user.name || (user.email ? user.email.split('@')[0] : 'User');
+      const email = user.email || '';
+      const initial = name.charAt(0).toUpperCase();
+
+      const profileInitials = document.getElementById('profile-initials');
+      if (profileInitials) profileInitials.textContent = initial;
+
+      const pdInitials = document.getElementById('pd-initials');
+      if (pdInitials) pdInitials.textContent = initial;
+
+      const pdName = document.getElementById('pd-name');
+      if (pdName) pdName.textContent = name;
+
+      const pdEmail = document.getElementById('pd-email');
+      if (pdEmail) pdEmail.textContent = email;
+
+      document.querySelectorAll('.profile-initials').forEach(el => el.textContent = initial);
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', applyUser);
+    } else {
+      applyUser();
+    }
   }
 };
+
+// Initialize profile UI automatically
+Auth.initProfile();
