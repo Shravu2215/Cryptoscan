@@ -217,6 +217,80 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .qa-btn:hover { border-color: var(--text-m); }
 .qa-btn svg { width: 20px; height: 20px; color: var(--text-h); }
 .qa-ttl { font-size: 13px; font-weight: 500; color: var(--text-h); }
+
+/* Profile Avatar */
+.profile-avatar-wrap { position: relative; }
+.profile-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  border: 2px solid rgba(21,128,61,0.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s ease;
+  box-shadow: 0 2px 8px rgba(34,197,94,0.15);
+  padding: 0;
+}
+.profile-avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(34,197,94,0.25);
+  border-color: rgba(21,128,61,0.4);
+}
+.profile-initials {
+  font-size: 13px; font-weight: 700; color: white;
+  letter-spacing: 0.02em; line-height: 1;
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+}
+.profile-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 260px; background: #fff;
+  border: 1px solid #eef0f3; border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.8) inset;
+  opacity: 0; visibility: hidden;
+  transform: translateY(-6px) scale(0.97);
+  transition: all .2s ease;
+  z-index: 999;
+  overflow: hidden;
+}
+.profile-dropdown.open {
+  opacity: 1; visibility: visible;
+  transform: translateY(0) scale(1);
+}
+.pd-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px;
+}
+.pd-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pd-avatar span {
+  font-size: 15px; font-weight: 700; color: white;
+  font-family: 'Inter', sans-serif;
+}
+.pd-info { overflow: hidden; }
+.pd-name {
+  font-size: 14px; font-weight: 600; color: #111827;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pd-email {
+  font-size: 12px; color: #6b7280; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pd-divider { height: 1px; background: #f3f4f6; margin: 0; }
+.pd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 500; color: #374151;
+  text-decoration: none; transition: all .15s ease;
+  cursor: pointer;
+}
+.pd-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.pd-item:hover { background: #f9fafb; color: #15803d; }
+.pd-logout { color: #b91c1c; }
+.pd-logout:hover { background: #fef2f2; color: #dc2626; }
+
 </style>
 <style>
   /* CBOM Layout Additions */
@@ -344,6 +418,31 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         Download CBOM
       </button>
+    </div>
+  
+    <!-- Profile Avatar -->
+    <div class="profile-avatar-wrap">
+      <button class="profile-avatar" id="profile-btn" title="Account">
+        <span class="profile-initials" id="profile-initials">U</span>
+      </button>
+      <div class="profile-dropdown" id="profile-dropdown">
+        <div class="pd-header">
+          <div class="pd-avatar"><span id="pd-initials">U</span></div>
+          <div class="pd-info">
+            <div class="pd-name" id="pd-name">User</div>
+            <div class="pd-email" id="pd-email">user@email.com</div>
+          </div>
+        </div>
+        <div class="pd-divider"></div>
+        <a class="pd-item" href="settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+          Settings
+        </a>
+        <a class="pd-item pd-logout" href="#" onclick="event.preventDefault(); Auth.logout();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Logout
+        </a>
+      </div>
     </div>
   </header>
 
