@@ -166,17 +166,7 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
     const { scanId } = req.params;
     let scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) {
-      let defaultRepo = await prisma.repo.findFirst();
-      if (!defaultRepo) {
-        let dummyUser = await prisma.user.findFirst({ where: { email: 'trial@example.com' } });
-        if (!dummyUser) {
-          dummyUser = await prisma.user.create({ data: { email: 'trial@example.com', name: 'Trial User' } });
-        }
-        defaultRepo = await prisma.repo.create({ data: { name: 'demo-vulnerable-repo.zip', filePath: 'uploads/demo.zip', uploadedBy: dummyUser.id } });
-      }
-      scan = await prisma.scan.create({
-        data: { id: scanId, repoId: defaultRepo.id, status: 'COMPLETED' }
-      });
+      return res.status(404).json({ error: 'Scan not found' });
     }
 
     // Build CBOM to hash
@@ -237,17 +227,7 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
     const { scanId } = req.params;
     let scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) {
-      let defaultRepo = await prisma.repo.findFirst();
-      if (!defaultRepo) {
-        let dummyUser = await prisma.user.findFirst({ where: { email: 'trial@example.com' } });
-        if (!dummyUser) {
-          dummyUser = await prisma.user.create({ data: { email: 'trial@example.com', name: 'Trial User' } });
-        }
-        defaultRepo = await prisma.repo.create({ data: { name: 'demo-vulnerable-repo.zip', filePath: 'uploads/demo.zip', uploadedBy: dummyUser.id } });
-      }
-      scan = await prisma.scan.create({
-        data: { id: scanId, repoId: defaultRepo.id, status: 'COMPLETED' }
-      });
+      return res.status(404).json({ error: 'Scan not found' });
     }
 
     // Check if we use mock

@@ -727,8 +727,17 @@ function getBadgeClass(sev) {
   return 'badge-low';
 }
 
-function determineReplacement(algo) {
+function determineReplacement(algo, title = '') {
   const a = algo.toLowerCase();
+  const t = title.toLowerCase();
+  
+  // Check for classical hygiene issues first based on generic descriptions
+  if (a.includes('time') || t.includes('time') || a.includes('compare') || t.includes('compare') || 
+      a.includes('hardcod') || t.includes('hardcod') || a.includes('random') || t.includes('random') || 
+      a.includes('static') || t.includes('static')) {
+    return 'Code Hygiene Fix (e.g. secure comparison / CSPRNG)';
+  }
+  
   if (a.includes('rsa') || a.includes('ecc') || a.includes('curve') || a.includes('dsa') || a.includes('dh')) {
     if (a.includes('sign') || a.includes('dsa')) return 'ML-DSA / CRYSTALS-Dilithium';
     return 'ML-KEM / CRYSTALS-Kyber';
@@ -771,7 +780,7 @@ function init() {
         quantumVulnerable: isQuantum(f),
         affectedFiles: new Set(),
         rationale: f.remediation || f.snippet || 'Component is considered insecure or vulnerable to quantum attacks.',
-        replacement: determineReplacement(algo)
+        replacement: determineReplacement(algo, f.description || f.title || \'\')
       };
     }
     candidateMap[algo].affectedFiles.add(f.file || 'unknown');

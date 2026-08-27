@@ -35,10 +35,14 @@ def scan_repo(repo_path, scan_id=None):
     
     for root, dirs, files in os.walk(target_dir):
         # exclude common dirs
-        dirs[:] = [d for d in dirs if d not in {"node_modules", ".git", "venv", ".venv", "__pycache__"}]
+        dirs[:] = [d for d in dirs if d not in {"node_modules", ".git", "venv", ".venv", "__pycache__", "vendor", "vendors", "bower_components"}]
         for fn in files:
             path = os.path.join(root, fn)
             ext = os.path.splitext(fn)[1]
+            norm_path = path.replace("\\", "/")
+            if fn.endswith(".min.js") or "/static/js/" in norm_path or "/vendor/" in norm_path or "/vendors/" in norm_path:
+                continue
+
             try:
                 with open(path, "r", encoding="utf-8", errors="ignore") as fh:
                     source = fh.read()
