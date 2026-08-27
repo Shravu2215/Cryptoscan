@@ -3,510 +3,426 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Settings – CryptoScan</title>
+<title>Settings â€“ CryptoScan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="auth.js"></script>
+<script src="engine.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --sky-50:#f0f9ff;--sky-100:#e0f2fe;--sky-200:#bae6fd;--sky-300:#7dd3fc;
-  --sky-400:#38bdf8;--sky-500:#0ea5e9;--sky-600:#0284c7;--sky-700:#0369a1;
-  --sky-800:#075985;--sky-900:#0c4a6e;
-  --glass:#ffffff;
-  --accent:var(--sky-500);--accent2:var(--sky-600);--accent3:var(--sky-400);
-  --text-h:#0c2744;--text-b:#1e4060;--text-m:#4e7a9a;--text-s:#88b4cc;
-  --green:#10b981;--red:#f43f5e;--amber:#f59e0b;--purple:#8b5cf6;
-  --r-sm:12px;--r-md:18px;--r-lg:24px;--r-xl:32px;
-  --sb-w:226px;
-  --t:.18s ease;
+  /* Dark theme variables */
+  --bg-main: #0b0f19;
+  --bg-sidebar: #0b0f19;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --border-color: #1f2937;
+  --border-light: #1f2937;
+  
+  --text-h: #f8fafc; /* Headers text */
+  --text-b: #cbd5e1; /* Body text */
+  --text-m: #94a3b8; /* Muted text */
+  --text-s: #64748b; /* Subtle text */
+  
+  --green: #10b981;
+  --green-bg: rgba(16, 185, 129, 0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.1);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+  --sb-w: 240px; --t: .2s ease;
 }
 html{font-size:14px}
-body{
-  font-family:'Inter',system-ui,sans-serif;
-  min-height:100vh;
-  background:linear-gradient(135deg,#bae6fd 0%,#e0f2fe 35%,#f0f9ff 60%,#bfdbfe 100%);
-  display:flex;-webkit-font-smoothing:antialiased;overflow:hidden;
-  position:relative;
-}
-.bg-layer{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.55}
-.orb-1{width:520px;height:520px;background:radial-gradient(circle,#7dd3fc,#38bdf8);top:-120px;right:-80px;animation:float1 12s ease-in-out infinite}
-.orb-2{width:380px;height:380px;background:radial-gradient(circle,#bfdbfe,#93c5fd);bottom:-80px;left:60px;animation:float2 15s ease-in-out infinite}
-.orb-3{width:240px;height:240px;background:radial-gradient(circle,#e0f2fe,#bae6fd);top:40%;right:20%;animation:float3 10s ease-in-out infinite}
-.mesh{position:absolute;inset:0;background-image:radial-gradient(rgba(14,165,233,.1) 1.5px,transparent 1.5px);background-size:34px 34px}
-.shimmer-line{position:absolute;width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(14,165,233,.18),transparent);animation:shimmer 8s ease-in-out infinite}
-.shimmer-line:nth-child(2){top:28%;animation-delay:-3s}
-.shimmer-line:nth-child(3){top:62%;animation-delay:-6s}
-@keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,20px) scale(1.05)}}
-@keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-25px) scale(1.08)}}
-@keyframes float3{0%,100%{transform:translate(0,0)}50%{transform:translate(-15px,15px)}}
-@keyframes shimmer{0%,100%{opacity:0}50%{opacity:1}}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:rgba(14,165,233,.25);border-radius:20px}
+body{font-family:'Inter',sans-serif;min-height:100vh;background:var(--bg-main);color:var(--text-b);display:flex;-webkit-font-smoothing:antialiased;}
+.sb { width: var(--sb-w); flex-shrink: 0; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; padding: 24px 16px; }
+.sb-brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; }
+.sb-logo { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.sb-logo svg { width: 24px; height: 24px; color: var(--green); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--r-sm); color: var(--text-m); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all var(--t); }
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.2); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.main{margin-left:var(--sb-w);flex:1;display:flex;flex-direction:column;height:100vh;overflow-y:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;background:var(--bg-main);position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border-color);}
+.tb-title{font-size:20px;font-weight:600;color:var(--text-h);letter-spacing:-.02em;line-height:1;margin-bottom:4px;}
+.tb-sub{font-size:13px;color:var(--text-m);}
+.content{padding:32px;display:flex;flex-direction:column;gap:24px;max-width:800px;margin:0 auto;width:100%;}
 
-.sb{
-  width:var(--sb-w);flex-shrink:0;
-  background:rgba(255,255,255,.72);
-  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
-  border-right:1.5px solid rgba(255,255,255,.9);
-  display:flex;flex-direction:column;padding:24px 14px 20px;
-  position:fixed;top:0;left:0;bottom:0;z-index:100;
-  box-shadow:4px 0 40px rgba(14,165,233,.1);
-}
-.sb-brand{display:flex;align-items:center;gap:11px;padding:0 8px 24px;border-bottom:1px solid rgba(14,165,233,.12);margin-bottom:20px}
-.sb-logo{
-  width:40px;height:40px;
-  background:linear-gradient(135deg,var(--sky-400),var(--sky-600));
-  border-radius:12px;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 6px 20px rgba(14,165,233,.4),0 0 0 4px rgba(14,165,233,.12);
-  flex-shrink:0;position:relative;overflow:hidden;
-}
-.sb-logo svg{width:20px;height:20px;color:#fff;position:relative;z-index:1}
-.sb-wordmark{line-height:1}
-.sb-name{font-size:16px;font-weight:900;color:var(--text-h);letter-spacing:-.025em}
-.sb-name span{color:var(--sky-500)}
-.sb-tagline{font-size:9.5px;color:var(--text-s);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-top:1px}
-.sb-nav{display:flex;flex-direction:column;gap:3px;flex:1}
-.nav-item{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 12px;border-radius:var(--r-sm);
-  color:var(--text-m);font-size:13px;font-weight:500;
-  cursor:pointer;text-decoration:none;transition:all var(--t);
-  border:1px solid transparent;position:relative;
-}
-.nav-item:hover{background:rgba(14,165,233,.08);color:var(--text-b)}
-.nav-item.active{
-  background:linear-gradient(135deg,rgba(14,165,233,.15),rgba(2,132,199,.1));
-  color:var(--sky-600);border-color:rgba(14,165,233,.22);
-  box-shadow:0 2px 12px rgba(14,165,233,.12);font-weight:600;
-}
-.nav-item.active::before{
-  content:'';position:absolute;left:-14px;top:50%;transform:translateY(-50%);
-  width:3px;height:60%;background:linear-gradient(to bottom,var(--sky-400),var(--sky-600));
-  border-radius:0 3px 3px 0;
-}
-.nav-item svg{width:16px;height:16px;flex-shrink:0}
-.nav-badge{
-  margin-left:auto;background:linear-gradient(135deg,var(--sky-500),var(--sky-600));
-  color:#fff;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;
-  box-shadow:0 2px 6px rgba(14,165,233,.3);
-}
-.sb-foot{padding-top:14px;border-top:1px solid rgba(14,165,233,.1)}
-.sb-user{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:var(--r-sm);cursor:pointer;transition:background var(--t)}
-.sb-user:hover{background:rgba(14,165,233,.07)}
-.sb-av{
-  width:36px;height:36px;border-radius:50%;
-  background:linear-gradient(135deg,var(--sky-400),var(--sky-700));
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:800;color:#fff;flex-shrink:0;
-  border:2.5px solid rgba(255,255,255,.9);
-  box-shadow:0 3px 10px rgba(14,165,233,.3);
-}
-.sb-uname{font-size:12.5px;font-weight:700;color:var(--text-h)}
-.sb-status{display:flex;align-items:center;gap:5px;margin-top:3px}
-.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse-dot 2.5s ease-in-out infinite}
-.status-txt{font-size:10px;color:var(--green);font-weight:600}
-@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.4)}50%{box-shadow:0 0 0 5px rgba(16,185,129,0)}}
+.gcard{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;gap:16px;}
+.gc-hd{margin-bottom:8px;}
+.gc-ttl{font-size:16px;font-weight:600;color:var(--text-h);}
+.gc-sub{font-size:13px;color:var(--text-m);margin-top:4px;}
 
-.main{margin-left:var(--sb-w);flex:1;display:flex;flex-direction:column;height:100vh;overflow-y:auto;position:relative;z-index:1}
-.topbar{
-  display:flex;align-items:center;padding:20px 30px 14px;gap:14px;
-  position:sticky;top:0;
-  background:rgba(224,242,254,.55);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(255,255,255,.7);z-index:50;
+.form-group{display:flex;flex-direction:column;gap:6px;}
+label{font-size:13px;font-weight:500;color:var(--text-h);}
+input[type="text"], input[type="password"], input[type="email"], select{
+  background:var(--bg-main);border:1px solid var(--border-color);color:var(--text-b);
+  padding:10px 14px;border-radius:var(--r-sm);font-size:13px;font-family:inherit;width:100%;
 }
-.tb-left{flex:1}
-.tb-greeting{font-size:12px;color:var(--text-s);font-weight:500;margin-bottom:2px;display:flex;align-items:center;gap:6px}
-.tb-greeting-dot{width:5px;height:5px;border-radius:50%;background:var(--sky-500);animation:pulse-dot 2.5s infinite}
-.tb-title{font-size:21px;font-weight:900;color:var(--text-h);letter-spacing:-.03em;line-height:1}
-.tb-title span{background:linear-gradient(135deg,var(--sky-500),var(--sky-700));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.tb-right{display:flex;align-items:center;gap:10px}
-.tb-av{
-  width:38px;height:38px;border-radius:50%;
-  background:linear-gradient(135deg,var(--sky-400),var(--sky-700));
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:800;color:#fff;cursor:pointer;
-  border:2.5px solid rgba(255,255,255,.9);
-  box-shadow:0 4px 16px rgba(14,165,233,.35);
-}
-.content{padding:24px 30px 48px;display:flex;flex-direction:column;gap:18px}
+input:focus, select:focus{outline:none;border-color:var(--green);}
 
-/* Cards & Components */
-.gcard{
-  background:rgba(255,255,255,.68);
-  border:1.5px solid rgba(255,255,255,.92);
-  border-radius:var(--r-xl);
-  box-shadow:0 8px 32px rgba(14,165,233,.1),0 1px 4px rgba(14,165,233,.06);
-  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
-  padding:22px 24px;position:relative;overflow:hidden;
-}
-.gc-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
-.gc-ttl{font-size:15px;font-weight:800;color:var(--text-h);letter-spacing:-.01em}
-.gc-sub{font-size:12px;color:var(--text-s);margin-top:3px}
+.btn-p{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:var(--green);border:none;border-radius:var(--r-sm);font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:opacity var(--t);}
+.btn-p:hover{opacity:0.9;}
+.btn-sec{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:transparent;border:1px solid var(--border-color);border-radius:var(--r-sm);font-size:13px;font-weight:500;color:var(--text-b);cursor:pointer;transition:all var(--t);}
+.btn-sec:hover{background:var(--bg-card-hover);border-color:var(--text-s);}
+.btn-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:var(--red);border:none;border-radius:var(--r-sm);font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:opacity var(--t);}
+.btn-danger-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:transparent;border:1px solid var(--red);border-radius:var(--r-sm);font-size:13px;font-weight:600;color:var(--red);cursor:pointer;transition:background var(--t);}
+.btn-danger-outline:hover{background:var(--red-bg);}
 
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.scard{
-  background:rgba(255,255,255,.68);
-  border:1.5px solid rgba(255,255,255,.92);
-  border-radius:var(--r-lg);
-  box-shadow:0 8px 32px rgba(14,165,233,.12);
-  padding:18px 20px;position:relative;overflow:hidden;
-}
-.sc-val{font-size:32px;font-weight:900;color:var(--text-h);font-family:'JetBrains Mono',monospace;line-height:1}
-.sc-lbl{font-size:12px;color:var(--text-m);font-weight:500;margin-top:6px}
+.toggle-group{display:flex;align-items:center;justify-content:space-between;padding:12px 0;}
+.toggle-info{display:flex;flex-direction:column;}
+.toggle-ttl{font-size:13px;font-weight:500;color:var(--text-h);}
+.toggle-sub{font-size:12px;color:var(--text-m);}
+.toggle-switch{position:relative;width:40px;height:22px;background:var(--border-color);border-radius:11px;cursor:pointer;transition:background var(--t);}
+.toggle-switch.on{background:var(--green);}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform var(--t);}
+.toggle-switch.on::after{transform:translateX(18px);}
 
-.btn-p{
-  display:inline-flex;align-items:center;gap:7px;padding:10px 20px;
-  background:linear-gradient(135deg,var(--sky-500),var(--sky-700));
-  border:none;border-radius:10px;font-family:'Inter',sans-serif;
-  font-size:13px;font-weight:800;color:#fff;cursor:pointer;
-  box-shadow:0 4px 18px rgba(14,165,233,.38);text-decoration:none;
-  transition:all var(--t);
-}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(14,165,233,.45)}
+.profile-row{display:flex;align-items:center;gap:16px;}
+.avatar-large{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg, #047857, #10b981);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0;}
 
-.btn-sec{
-  display:inline-flex;align-items:center;gap:7px;padding:10px 18px;
-  background:rgba(255,255,255,.8);border:1.5px solid rgba(14,165,233,.25);
-  border-radius:10px;font-family:'Inter',sans-serif;
-  font-size:13px;font-weight:700;color:var(--sky-600);cursor:pointer;
-  text-decoration:none;transition:all var(--t);
-}
-.btn-sec:hover{background:rgba(14,165,233,.1);border-color:var(--sky-500)}
+.input-group{position:relative;display:flex;align-items:center;}
+.input-group input{padding-right:40px;}
+.input-icon-btn{position:absolute;right:8px;background:none;border:none;color:var(--text-m);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:4px;}
+.input-icon-btn:hover{color:var(--text-h);}
 
-/* Table styles */
-.tbl-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse}
-thead th{
-  padding:11px 14px;font-size:10.5px;font-weight:800;
-  text-transform:uppercase;letter-spacing:.07em;color:var(--text-s);
-  text-align:left;background:rgba(14,165,233,.04);
-}
-tbody td{
-  padding:13px 14px;font-size:12.5px;color:var(--text-b);
-  border-bottom:1px solid rgba(14,165,233,.06);vertical-align:middle;
-}
-tbody tr:hover td{background:rgba(14,165,233,.03)}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--border-color);color:var(--text-m);}
+.status-pill.success{background:var(--green-bg);color:var(--green);}
+.status-pill.error{background:var(--red-bg);color:var(--red);}
+.status-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
 
-/* Badges */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
-.badge-crit{background:rgba(244,63,94,.12);color:var(--red)}
-.badge-high{background:rgba(245,158,11,.13);color:var(--amber)}
-.badge-med{background:rgba(14,165,233,.12);color:var(--sky-600)}
-.badge-low{background:rgba(16,185,129,.12);color:var(--green)}
-.badge-quant{background:rgba(139,92,246,.12);color:var(--purple)}
+.session-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--border-color);border-radius:var(--r-sm);margin-bottom:8px;}
+.session-info{display:flex;flex-direction:column;gap:4px;}
+.session-ip{font-size:13px;font-weight:500;color:var(--text-h);}
+.session-time{font-size:12px;color:var(--text-m);}
 
-.filter-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  gap:12px;margin-bottom:16px;
-}
-.filter-tabs{display:flex;gap:6px}
-.ftab{
-  padding:7px 14px;border-radius:9px;background:rgba(255,255,255,.6);
-  border:1px solid rgba(14,165,233,.15);font-size:12px;font-weight:600;
-  color:var(--text-m);cursor:pointer;transition:all var(--t);
-}
-.ftab.active{background:var(--sky-500);color:#fff;border-color:var(--sky-500)}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--text-h);color:var(--bg-main);padding:12px 20px;border-radius:var(--r-sm);font-size:13px;font-weight:600;display:none;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:999;}
 
-/* Profile Avatar */
-.profile-avatar-wrap { position: relative; }
+/* Profile dropdown styling */
+.profile-avatar-wrap { position: relative; margin-left: auto; display: flex; align-items: center; padding-right: 32px;}
 .profile-avatar {
   width: 36px; height: 36px; border-radius: 50%;
-  background: linear-gradient(135deg, #15803d, #22c55e);
-  border: 2px solid rgba(21,128,61,0.2);
+  background: linear-gradient(135deg, #047857, #10b981);
+  border: 2px solid rgba(16, 185, 129, 0.2);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: all .2s ease;
-  box-shadow: 0 2px 8px rgba(34,197,94,0.15);
-  padding: 0;
+  padding: 0; margin: 0;
 }
-.profile-avatar:hover {
-  transform: scale(1.08);
-  box-shadow: 0 4px 14px rgba(34,197,94,0.25);
-  border-color: rgba(21,128,61,0.4);
-}
-.profile-initials {
-  font-size: 13px; font-weight: 700; color: white;
-  letter-spacing: 0.02em; line-height: 1;
-  font-family: 'Inter', sans-serif;
-  pointer-events: none;
-}
+.profile-initials { font-size: 13px; font-weight: 700; color: white; line-height: 1; pointer-events: none; }
 .profile-dropdown {
-  position: absolute; top: calc(100% + 8px); right: 0;
-  width: 260px; background: #fff;
-  border: 1px solid #eef0f3; border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.8) inset;
+  position: absolute; top: calc(100% + 8px); right: 32px;
+  width: 260px; background: var(--bg-card);
+  border: 1px solid var(--border-color); border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
   opacity: 0; visibility: hidden;
   transform: translateY(-6px) scale(0.97);
-  transition: all .2s ease;
-  z-index: 999;
-  overflow: hidden;
+  transition: all .2s ease; z-index: 999;
 }
-.profile-dropdown.open {
-  opacity: 1; visibility: visible;
-  transform: translateY(0) scale(1);
-}
-.pd-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px;
-}
-.pd-avatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg, #15803d, #22c55e);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.pd-avatar span {
-  font-size: 15px; font-weight: 700; color: white;
-  font-family: 'Inter', sans-serif;
-}
+.profile-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.pd-header { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.pd-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #047857, #10b981); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pd-avatar span { font-size: 15px; font-weight: 700; color: white; }
 .pd-info { overflow: hidden; }
-.pd-name {
-  font-size: 14px; font-weight: 600; color: #111827;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.pd-email {
-  font-size: 12px; color: #6b7280; margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.pd-divider { height: 1px; background: #f3f4f6; margin: 0; }
-.pd-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px;
-  font-size: 13px; font-weight: 500; color: #374151;
-  text-decoration: none; transition: all .15s ease;
-  cursor: pointer;
-}
+.pd-name { font-size: 14px; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-email { font-size: 12px; color: var(--text-m); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-divider { height: 1px; background: var(--border-color); margin: 0; }
+.pd-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--text-b); text-decoration: none; transition: all .15s ease; cursor: pointer; }
 .pd-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
-.pd-item:hover { background: #f9fafb; color: #15803d; }
-.pd-logout { color: #b91c1c; }
-.pd-logout:hover { background: #fef2f2; color: #dc2626; }
-
+.pd-item:hover { background: var(--bg-card-hover); color: var(--green); }
+.pd-logout { color: var(--red); }
+.pd-logout:hover { background: var(--red-bg); color: #f87171; }
 </style>
 </head>
 <body>
-<div class="bg-layer">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-  <div class="mesh"></div>
-  <div class="shimmer-line"></div>
-  <div class="shimmer-line"></div>
-</div>
+
 <aside class="sb">
   <div class="sb-brand">
     <div class="sb-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
     </div>
-    <div class="sb-wordmark">
-      <div class="sb-name">Crypto<span>Scan</span></div>
-      <div class="sb-tagline">Crypto Intelligence</div>
-    </div>
+    <div class="sb-name">CRYPTO<span>SCAN</span></div>
   </div>
-
   <nav class="sb-nav">
-    <a class="nav-item" href="dashboard.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
-      Dashboard
-      
-    </a>
-    <a class="nav-item" href="repositories.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-      Repositories
-    </a>
-    <a class="nav-item" href="findings.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Findings
-      <span class="nav-badge">4</span>
-    </a>
-    <a class="nav-item" href="cbom.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      CBOM
-      
-    </a>
-    <a class="nav-item" href="risk-migration.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-      Risk & Migration
-    </a>
-    <a class="nav-item" href="verification.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      Verification
-      
-    </a>
-    <a class="nav-item active" href="settings.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings
-      
+    <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>Dashboard</a>
+    <a class="nav-item" href="repositories.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>Repositories</a>
+    <a class="nav-item" href="scan.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Scan Repository</a>
+    <a class="nav-item" href="findings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Findings</a>
+    <a class="nav-item" href="cbom.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>CBOM</a>
+    <a class="nav-item" href="risk-migration.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>Risk & Migration</a>
+    <a class="nav-item" href="verification.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Verify</a>
+    <a class="nav-item active" href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>Settings</a>
+      <a class="nav-item" href="profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      Profile
     </a>
   </nav>
-
-  <div class="sb-foot">
-    <div class="sb-user" onclick="window.location.href='index.html'" title="Sign out">
-      <div class="sb-av">SE</div>
-      <div>
-        <div class="sb-uname">Security Engineer</div>
-        <div class="sb-status"><span class="status-dot"></span><span class="status-txt">Active</span></div>
-      </div>
-    </div>
-  </div>
 </aside>
+
 <main class="main">
   <header class="topbar">
-    <div class="tb-left">
-      <div class="tb-greeting"><span class="tb-greeting-dot"></span>Workspace &amp; API Configuration</div>
-      <div class="tb-title">Account <span>Settings</span></div>
+    <div style="display:flex;flex-direction:column;">
+      <h1 class="tb-title">Settings</h1>
+      <p class="tb-sub">Manage your account and platform preferences</p>
     </div>
-    <div class="tb-right">
-      <div class="tb-av" title="Security Engineer">SE</div>
-    </div>
-  
-    <!-- Profile Avatar -->
-    <div class="profile-avatar-wrap">
-      <button class="profile-avatar" id="profile-btn" title="Account">
-        <span class="profile-initials" id="profile-initials">U</span>
-      </button>
-      <div class="profile-dropdown" id="profile-dropdown">
-        <div class="pd-header">
-          <div class="pd-avatar"><span id="pd-initials">U</span></div>
-          <div class="pd-info">
-            <div class="pd-name" id="pd-name">User</div>
-            <div class="pd-email" id="pd-email">user@email.com</div>
+    
+    <div style="display:flex;align-items:center;gap:16px;">
+      <button class="btn-p" onclick="saveSettings()">Save Changes</button>
+      <div class="profile-avatar-wrap" style="padding-right:0;">
+        <button class="profile-avatar" id="profile-btn" title="Account">
+          <span class="profile-initials" id="profile-initials">U</span>
+        </button>
+        <div class="profile-dropdown" id="profile-dropdown" style="right:0;">
+          <div class="pd-header">
+            <div class="pd-avatar"><span id="pd-initials">U</span></div>
+            <div class="pd-info">
+              <div class="pd-name" id="pd-name">User</div>
+              <div class="pd-email" id="pd-email">user@email.com</div>
+            </div>
           </div>
+          <div class="pd-divider"></div>
+          <a class="pd-item" href="settings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            Settings
+          </a>
+          <a class="pd-item pd-logout" href="#" onclick="event.preventDefault(); Auth.logout();">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            Logout
+          </a>
         </div>
-        <div class="pd-divider"></div>
-        <a class="pd-item" href="settings.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-          Settings
-        </a>
-        <a class="pd-item pd-logout" href="#" onclick="event.preventDefault(); Auth.logout();">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          Logout
-        </a>
       </div>
     </div>
   </header>
 
   <div class="content">
+    
+    <!-- Account / Profile -->
     <div class="gcard">
       <div class="gc-hd">
-        <div>
-          <div class="gc-ttl">Account Profile</div>
-          <div class="gc-sub">Manage your personal information and session.</div>
+        <h2 class="gc-ttl">Account / Profile</h2>
+        <p class="gc-sub">Update your personal information and password.</p>
+      </div>
+      <div class="profile-row">
+        <div class="avatar-large" id="settings-avatar">U</div>
+        <div style="display:flex;flex-direction:column;gap:12px;flex:1;">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="settings-name-input" value="">
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="settings-email-input" value="">
+          </div>
         </div>
       </div>
-      <div style="background:rgba(255,255,255,.7);padding:18px;border-radius:12px;border:1px solid rgba(14,165,233,.2);display:flex;align-items:center;gap:16px;">
-        <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #15803d, #22c55e); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <span id="settings-avatar-initials" style="font-size: 18px; font-weight: 700; color: white; font-family: 'Inter', sans-serif;">U</span>
-        </div>
-        <div style="flex-grow: 1;">
-          <div id="settings-profile-name" style="font-size: 16px; font-weight: 600; color: var(--text-h);">User Name</div>
-          <div id="settings-profile-email" style="font-size: 13px; color: var(--text-m); margin-top: 2px;">user@example.com</div>
-        </div>
-        <button class="btn-sec" style="color: #b91c1c; border-color: #fca5a5;" onclick="Auth.logout()">Log Out</button>
-      </div>
-    </div>
-    <div class="gcard">
-      <div class="gc-hd">
-        <div>
-          <div class="gc-ttl">Scanner API Credentials</div>
-          <div class="gc-sub">Use your API key to trigger automated scans in CI/CD pipelines (GitHub Actions, GitLab CI).</div>
-        </div>
-      </div>
-      <div style="background:rgba(255,255,255,.7);padding:14px 18px;border-radius:12px;border:1px solid rgba(14,165,233,.2);display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--text-s);text-transform:uppercase">Production API Key</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-h);margin-top:3px">cs_live_9f823a7b640192e847c1</div>
-        </div>
-        <button class="btn-sec" onclick="copyApiKey()">Copy Key</button>
+      <div style="margin-top:8px;">
+        <button class="btn-sec">Change Password</button>
       </div>
     </div>
 
+    <!-- Blockchain Configuration -->
     <div class="gcard">
       <div class="gc-hd">
-        <div>
-          <div class="gc-ttl">Scanner Rule Profiles</div>
-          <div class="gc-sub">Configure which cryptographic standard violations generate high-priority security blockers.</div>
+        <h2 class="gc-ttl">Blockchain Configuration</h2>
+        <p class="gc-sub">Configure network settings for anchoring and verification.</p>
+      </div>
+      <div class="form-group">
+        <label>Network</label>
+        <select>
+          <option>Localhost/Hardhat</option>
+          <option>Ganache</option>
+          <option>Sepolia Testnet</option>
+          <option>Polygon</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>RPC URL</label>
+        <input type="text" placeholder="e.g. http://127.0.0.1:8545" value="">
+      </div>
+      <div class="form-group">
+        <label>Smart Contract Address</label>
+        <div class="input-group">
+          <input type="text" id="contractAddr" placeholder="0x..." value="">
+          <button class="input-icon-btn" onclick="copyValue('contractAddr')" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text-h);cursor:pointer">
-          <input type="checkbox" checked style="accent-color:var(--sky-500);width:16px;height:16px"> Strict Post-Quantum Vulnerability Detection (NIST PQC)
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text-h);cursor:pointer">
-          <input type="checkbox" checked style="accent-color:var(--sky-500);width:16px;height:16px"> FIPS 140-3 Compliance Enforcement
-        </label>
-        <label style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--text-h);cursor:pointer">
-          <input type="checkbox" checked style="accent-color:var(--sky-500);width:16px;height:16px"> Block deprecated cipher suites (DES, 3DES, RC4, MD5, SHA1)
-        </label>
+      <div class="form-group">
+        <label>Wallet / Private Key</label>
+        <div class="input-group">
+          <input type="password" id="walletKey" placeholder="Enter private key" value="">
+          <button class="input-icon-btn" onclick="toggleVisibility('walletKey')" title="Show/Hide"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
       </div>
-      <div style="margin-top:20px">
-        <button class="btn-p" onclick="saveSettings()">Save Preferences</button>
+      <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
+        <button class="btn-sec" onclick="testConnection()">Test Connection</button>
+        <div id="connStatus" class="status-pill" style="display:none;"><div class="status-dot"></div><span id="connText">Connected</span></div>
       </div>
     </div>
+
+    <!-- Scan Preferences -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Scan Preferences</h2>
+        <p class="gc-sub">Customize how repositories are analyzed and exported.</p>
+      </div>
+      <div class="form-group">
+        <label>Default CBOM Format</label>
+        <select>
+          <option>CycloneDX</option>
+          <option>SPDX</option>
+        </select>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Auto-verify after scan</div>
+          <div class="toggle-sub">Automatically verify CBOM against blockchain immediately after scanning.</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Include dev dependencies in scan</div>
+          <div class="toggle-sub">Analyze testing and development libraries for cryptographic risks.</div>
+        </div>
+        <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Notifications</h2>
+        <p class="gc-sub">Manage your email alerts and summaries.</p>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Email alerts on verification failure</div>
+          <div class="toggle-sub">Get notified immediately if a CBOM mismatch is detected.</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Weekly summary report</div>
+          <div class="toggle-sub">Receive a digest of scans and posture improvements.</div>
+        </div>
+        <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Critical risk findings alert</div>
+          <div class="toggle-sub">Immediate email when a critical vulnerability is found.</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+
+    <!-- Security -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Security</h2>
+        <p class="gc-sub">Enhance your account protection and manage sessions.</p>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Two-factor authentication (2FA)</div>
+          <div class="toggle-sub">Require an authentication code when logging in.</div>
+        </div>
+        <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div style="margin-top:16px;">
+        <label style="margin-bottom:8px;display:block;">Active Sessions</label>
+        <div class="session-item">
+          <div class="session-info">
+            <div class="session-ip" id="current-session-browser">Current Device</div>
+            <div class="session-time">Current Session</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="gcard" style="border-color:var(--red);">
+      <div class="gc-hd">
+        <h2 class="gc-ttl" style="color:var(--red);">Danger Zone</h2>
+        <p class="gc-sub">Irreversible actions for your account and data.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;">
+        <button class="btn-danger-outline" onclick="confirmReset()">Reset all scan history</button>
+        <button class="btn-danger">Delete account</button>
+      </div>
+    </div>
+
   </div>
 </main>
-<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--text-h);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;display:none;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:999"></div>
+
+<div id="toast"></div>
+
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof Auth !== 'undefined') {
+    const user = Auth.getUser();
+    if (user) {
+      document.getElementById('settings-name-input').value = user.name || '';
+      document.getElementById('settings-email-input').value = user.email || '';
+      document.getElementById('pd-name').textContent = user.name || 'User';
+      document.getElementById('pd-email').textContent = user.email || 'user@email.com';
+      if (user.name) {
+        const initial = user.name.charAt(0).toUpperCase();
+        document.getElementById('settings-avatar').textContent = initial;
+        document.getElementById('profile-initials').textContent = initial;
+        document.getElementById('pd-initials').textContent = initial;
+      }
+    }
+  }
+});
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.style.display = 'block';
   setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
-function copyApiKey() {
-  navigator.clipboard.writeText('cs_live_9f823a7b640192e847c1');
-  showToast('✓ Production API Key copied to clipboard!');
-}
+
 function saveSettings() {
-  showToast('✓ Scanner preferences saved successfully!');
+  showToast('âœ“ Settings saved successfully!');
 }
-// --- AUTH GUARD ---
-Auth.requireAuth();
 
-// --- Profile Avatar Init ---
-(function initProfileAvatar() {
-  const user = Auth.getUser();
-  const name = (user && user.name) ? user.name : 'User';
-  const email = (user && user.email) ? user.email : '';
-  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
+function copyValue(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value);
+  showToast('Copied to clipboard');
+}
 
-  const el = (id) => document.getElementById(id);
-  if (el('profile-initials')) el('profile-initials').textContent = initials;
-  if (el('pd-initials')) el('pd-initials').textContent = initials;
-  if (el('pd-name')) el('pd-name').textContent = name;
-  if (el('pd-email')) el('pd-email').textContent = email;
-
-  const btn = el('profile-btn');
-  const dropdown = el('profile-dropdown');
-  if (btn && dropdown) {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle('open');
-    });
-    document.addEventListener('click', (e) => {
-      if (!dropdown.contains(e.target) && e.target !== btn) {
-        dropdown.classList.remove('open');
-      }
-    });
+function toggleVisibility(id) {
+  const el = document.getElementById(id);
+  if (el.type === 'password') {
+    el.type = 'text';
+  } else {
+    el.type = 'password';
   }
-})();
+}
 
+function testConnection() {
+  const status = document.getElementById('connStatus');
+  const txt = document.getElementById('connText');
+  status.style.display = 'inline-flex';
+  status.className = 'status-pill';
+  txt.textContent = 'Testing...';
+  
+  setTimeout(() => {
+    status.className = 'status-pill success';
+    txt.textContent = 'Connected (Lat: 12ms)';
+  }, 1000);
+}
 
-(function initSettingsProfile() {
-  const user = Auth.getUser();
-  if (user) {
-    const name = user.name || 'User';
-    const email = user.email || '';
-    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
-    const el = id => document.getElementById(id);
-    if (el('settings-avatar-initials')) el('settings-avatar-initials').textContent = initials;
-    if (el('settings-profile-name')) el('settings-profile-name').textContent = name;
-    if (el('settings-profile-email')) el('settings-profile-email').textContent = email;
+function confirmReset() {
+  if (confirm('Are you absolutely sure? This will delete all your scans and CBOM history. This action cannot be undone.')) {
+    showToast('Scan history reset successfully.');
   }
-})();
+}
 </script>
 </body>
 </html>
+

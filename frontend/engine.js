@@ -269,3 +269,39 @@ const CryptoEngine = {
     return scanResult;
   }
 };
+
+// Attach Profile Dropdown Toggle
+window.addEventListener('DOMContentLoaded', () => {
+  const pBtn = document.getElementById('profile-btn');
+  const pDrop = document.getElementById('profile-dropdown');
+  if (pBtn && pDrop) {
+    pBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pDrop.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!pDrop.contains(e.target)) pDrop.classList.remove('open');
+    });
+  }
+
+  // Also sync user data if available in localStorage
+  try {
+    const user = JSON.parse(localStorage.getItem('cs_user'));
+    if (user) {
+      const name = user.name || (user.email ? user.email.split('@')[0] : 'User');
+      const email = user.email || '';
+      const initial = name.charAt(0).toUpperCase();
+
+      const pdInitials = document.getElementById('pd-initials');
+      if (pdInitials) pdInitials.textContent = initial;
+
+      const pdName = document.getElementById('pd-name');
+      if (pdName) pdName.textContent = name;
+
+      const pdEmail = document.getElementById('pd-email');
+      if (pdEmail) pdEmail.textContent = email;
+
+      document.querySelectorAll('.profile-initials').forEach(el => el.textContent = initial);
+    }
+  } catch(e) {}
+});
