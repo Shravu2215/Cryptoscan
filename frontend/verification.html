@@ -693,6 +693,13 @@ async function startVerification() {
     
     verifyResult = await verifyRes.json();
     
+    // Use backend's recomputed hash as "current" so serialization matches
+    if (verifyResult.offChainHash) {
+      currentHashHex = verifyResult.offChainHash;
+      document.getElementById('hash-text').textContent = currentHashHex;
+      document.getElementById('comp-current').textContent = currentHashHex;
+    }
+    
     // Fill comparison section
     document.getElementById('comp-chain').textContent = verifyResult.onChainHash || '—';
     
