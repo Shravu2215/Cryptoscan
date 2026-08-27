@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const prisma = require('../utils/prismaClient');
-const { enrichFinding, buildCbom } = require('../services/cbomGenerator');
+const { buildCbom } = require('../services/cbomGenerator');
 const { anchorScan } = require('../../../blockchain-module/scripts/anchor');
 const { verifyScan } = require('../../../blockchain-module/scripts/verify');
 
@@ -60,35 +60,27 @@ router.post('/:repoId', requireAuth, async (req, res) => {
             const result = JSON.parse(stdout);
             const findings = result.findings || [];
 
-            const dbFindings = findings.map(f => {
-              const raw = {
-                id: f.id,
-                file: f.file,
-                line: f.line,
-                primitive: f.primitive,
-                keySize: f.key_size,
-                mode: f.mode,
-                context: {
-                  usageType: f.purpose,
-                  functionName: f.raw_call
-                }
-              };
-              const enriched = enrichFinding(raw);
-
-              return {
-                scanId: scan.id,
-                filePath: enriched.file,
-                lineNumber: enriched.line || null,
-                algorithm: enriched.primitiveFamily || enriched.primitive || 'UNKNOWN',
-                library: f.library || null,
-                usage: enriched.purpose.value || null,
-                keySize: enriched.keySize || null,
-                quantumStatus: enriched.vulnerability.breakdown.quantumVulnerability > 50 ? 'Quantum Vulnerable' : 'Quantum Safe',
-                severity: enriched.vulnerability.severity.toUpperCase(),
-                description: f.raw_call || '',
-                recommendation: enriched.pqcMigration.recommendation || null
-              };
-            });
+            // Scanner (rules.py) is the single source of truth for severity/
+            // quantum_risk/recommendation - it already computed these correctly
+            // from the real bits/mode/curve it parsed out of the code. Trust
+            // them directly instead of re-deriving via enrichFinding, which was
+            // being fed a compound label ("RSA-1024") as if it were a bare
+            // primitive ("RSA") plus hardcoded-null keySize/mode - that mismatch
+            // is what caused wrong/crashing severity recomputation.
+            const dbFindings = findings.map(f => ({
+              scanId: scan.id,
+              filePath: f.file,
+              lineNumber: f.line || null,
+              algorithm: f.algorithm || 'UNKNOWN',
+              library: f.library || null,
+              usage: f.category || null,
+              keySize: null,
+              quantumStatus: ['Quantum-Broken', 'Quantum-Weakened'].includes(f.quantum_risk)
+                ? 'Quantum Vulnerable' : 'Quantum Safe',
+              severity: (f.severity || 'Informational').toUpperCase(),
+              description: f.message || f.raw_call || '',
+              recommendation: f.recommendation || null
+            }));
 
             if (dbFindings.length > 0) {
               await prisma.finding.createMany({ data: dbFindings });

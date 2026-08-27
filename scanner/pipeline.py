@@ -55,15 +55,17 @@ def scan_repo(repo_path, scan_id=None):
     out_findings = []
     for i, f in enumerate(findings):
         rel_path = os.path.relpath(f.file, target_dir)
-        
+
         out_findings.append({
             "id": f"f{i+1}",
             "file": rel_path,
             "line": f.line,
-            "primitive": f.algorithm,
-            "key_size": None, 
-            "mode": None,
-            "purpose": None,
+            "algorithm": f.algorithm,
+            "category": f.category,
+            "severity": f.severity.value,
+            "quantum_risk": f.quantum_risk.value,
+            "message": f.message,
+            "recommendation": f.recommendation,
             "raw_call": getattr(f, 'code_snippet', '')
         })
 
