@@ -802,7 +802,7 @@
             </svg>
             Settings
           </a>
-          <a class="pd-item pd-logout" href="#" onclick="event.preventDefault(); Auth.logout();">
+          <a class="pd-item pd-logout" href="javascript:void(0)" onclick="if(typeof Auth !== 'undefined'){Auth.logout();}else{localStorage.clear();window.location.href='login.html';}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -825,9 +825,9 @@
             </button>
             <div class="ph-avatar" id="main-avatar">U</div>
             <a href="#" class="ph-change">Change photo</a>
-            <div class="ph-name" id="main-name">User Name</div>
-            <div class="ph-badge" id="main-job">Security Analyst</div>
-            <div class="ph-email" id="main-email">user@example.com</div>
+            <div class="ph-name" id="main-name"><//div>
+            <div class="ph-badge" id="main-job"><//div>
+            <div class="ph-email" id="main-email"><//div>
             <div class="ph-since">Member since Aug 2026</div>
           </div>
 
@@ -902,12 +902,12 @@
             <div class="details-grid">
               <div class="form-group">
                 <label>Full Name</label>
-                <div class="input-view" id="view-name">User Name</div>
+                <div class="input-view" id="view-name"><//div>
                 <input type="text" class="input-edit" id="edit-name" value="">
               </div>
               <div class="form-group">
                 <label>Email Address</label>
-                <div class="input-view" id="view-email">user@example.com</div>
+                <div class="input-view" id="view-email"><//div>
                 <input type="email" class="input-edit" id="edit-email" value="">
               </div>
               <div class="form-group">
