@@ -307,3 +307,29 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+
+// Theme Toggle Logic
+window.addEventListener('DOMContentLoaded', () => {
+  const tBtn = document.getElementById('theme-btn');
+  const iconMoon = document.getElementById('theme-icon-moon');
+  const iconSun = document.getElementById('theme-icon-sun');
+  
+  function updateThemeUI() {
+    const isLight = document.documentElement.classList.contains('light-mode');
+    if (iconMoon && iconSun) {
+      iconMoon.style.display = isLight ? 'none' : 'block';
+      iconSun.style.display = isLight ? 'block' : 'none';
+    }
+  }
+
+  if (tBtn) {
+    updateThemeUI();
+    tBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('light-mode');
+      const isLight = document.documentElement.classList.contains('light-mode');
+      localStorage.setItem('cs_theme', isLight ? 'light' : 'dark');
+      updateThemeUI();
+    });
+  }
+});

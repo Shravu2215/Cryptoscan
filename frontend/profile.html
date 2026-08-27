@@ -5,6 +5,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Profile - CryptoScan</title>
+  <script>
+    function initTheme() {
+      if (localStorage.getItem('cs_theme') === 'light') {
+        document.documentElement.classList.add('light-mode');
+      }
+    }
+    initTheme();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -45,6 +53,20 @@
       --sb-w: 240px;
       --t: .2s ease;
     }
+    :root.light-mode {
+      --bg-main: #f8fafc;
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-light: #e2e8f0;
+
+      --text-h: #0f172a;
+      --text-b: #334155;
+      --text-m: #475569;
+      --text-s: #64748b;
+    }
+
 
     html {
       font-size: 14px
