@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -1035,7 +1035,7 @@
       }
 
       toggleEditMode(false);
-      showToast('âœ“ Profile updated successfully!');
+      showToast('Ã¢Å“â€œ Profile updated successfully!');
     }
 
     function showToast(msg) {
@@ -1045,6 +1045,24 @@
       setTimeout(() => { t.style.display = 'none'; }, 3000);
     }
   </script>
+
+<script>
+(function() {
+  const btn = document.getElementById('profile-btn');
+  const dropdown = document.getElementById('profile-dropdown');
+  if (btn && dropdown) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target) && e.target !== btn) {
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+})();
+</script>
 </body>
 
 </html>

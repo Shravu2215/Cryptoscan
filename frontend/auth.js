@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CryptoScan Auth Module
  * Handles JWT token storage, user session, and route protection.
  */
@@ -108,3 +108,6 @@ const Auth = {
 
 // Initialize profile UI automatically
 Auth.initProfile();
+
+window.Auth = Auth;
+

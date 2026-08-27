@@ -699,8 +699,27 @@ window.addEventListener('load', syncBadges);
 window.addEventListener('cryptoscan_data_updated', syncBadges);
 </script>
 <script src="auth.js"></script>
+
+<script>
+(function() {
+  const btn = document.getElementById('profile-btn');
+  const dropdown = document.getElementById('profile-dropdown');
+  if (btn && dropdown) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target) && e.target !== btn) {
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>
+
 
 
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CryptoScan Real-Time Scanner & IndexedDB Storage Engine
  */
 
@@ -305,3 +305,5 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   } catch(e) {}
 });
+
+

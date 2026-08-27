@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Settings â€“ CryptoScan</title>
+<title>Settings Ã¢â‚¬â€œ CryptoScan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -386,7 +386,7 @@ function showToast(msg) {
 }
 
 function saveSettings() {
-  showToast('âœ“ Settings saved successfully!');
+  showToast('Ã¢Å“â€œ Settings saved successfully!');
 }
 
 function copyValue(id) {
@@ -423,6 +423,25 @@ function confirmReset() {
   }
 }
 </script>
+
+<script>
+(function() {
+  const btn = document.getElementById('profile-btn');
+  const dropdown = document.getElementById('profile-dropdown');
+  if (btn && dropdown) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target) && e.target !== btn) {
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>
+
 
