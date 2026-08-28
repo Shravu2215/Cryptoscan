@@ -887,8 +887,7 @@ function init() {
       c.algorithm.toLowerCase().includes(urlAlgo.toLowerCase())
     );
     if (candidate) {
-      const cStr = encodeURIComponent(JSON.stringify({...candidate, affectedFiles:Array.from(candidate.affectedFiles)}));
-      openDrawer(cStr);
+      openDrawer(candidate);
     }
   }
 }
@@ -940,9 +939,8 @@ function updateDashboard(atRisk) {
   document.getElementById('qp3-count').textContent = migrationCandidates.filter(c => !c.quantumVulnerable).length;
 }
 
-function makeRecCard(c, priorityLabel, priorityClass, priorityNum) {
+function makeRecCard(c, priorityLabel, priorityClass, index, trackClass) {
   const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Not Identified';
-  const cStr = encodeURIComponent(JSON.stringify({...c, affectedFiles:Array.from(c.affectedFiles)}));
   return `
     <div class="rec-card ${priorityClass}">
       <div class="rec-hd">
@@ -972,7 +970,7 @@ function makeRecCard(c, priorityLabel, priorityClass, priorityNum) {
         <div class="replace-val">${c.replacement}</div>
       </div>
       <div class="rec-ft">
-        <button class="btn-sec" onclick="openDrawer('${cStr}')">View Details</button>
+        <button class="btn-sec ${trackClass}" data-index="${index}">View Details</button>
       </div>
     </div>
   `;
@@ -982,10 +980,16 @@ function renderRecommendations() {
   // ── Classical Risk Track: sorted by classicalPriority (CRITICAL first) ──
   const classicalContainer = document.getElementById('recommendations-list-classical');
   const classicalLabels = { 1: ['P1 — CRITICAL', 'p1'], 2: ['P2 — HIGH', 'p2'], 3: ['P3 — MEDIUM/LOW', 'p3'] };
-  classicalContainer.innerHTML = migrationCandidates.map(c => {
+  classicalContainer.innerHTML = migrationCandidates.map((c, i) => {
     const [lbl, cls] = classicalLabels[c.classicalPriority] || ['P3 — LOW', 'p3'];
-    return makeRecCard(c, lbl, cls, c.classicalPriority);
+    return makeRecCard(c, lbl, cls, i, 'rec-btn-classical');
   }).join('');
+
+  document.querySelectorAll('.rec-btn-classical').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openDrawer(migrationCandidates[btn.getAttribute('data-index')]);
+    });
+  });
 
   // ── Quantum Migration Track: sorted by quantumPriority, quantum-vulnerable only ──
   const quantumContainer = document.getElementById('recommendations-list-quantum');
@@ -993,10 +997,16 @@ function renderRecommendations() {
     quantumContainer.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-s); font-size:13px;">No quantum-vulnerable algorithms detected in this scan.</div>';
   } else {
     const quantumLabels = { 1: ['Q1 — Asymmetric (Shor-Broken)', 'p1'], 2: ['Q2 — Hash/Symmetric (Grover-Weakened)', 'p2'] };
-    quantumContainer.innerHTML = quantumCandidates.map(c => {
+    quantumContainer.innerHTML = quantumCandidates.map((c, i) => {
       const [lbl, cls] = quantumLabels[c.quantumPriority] || ['Q2 — Weakened', 'p2'];
-      return makeRecCard(c, lbl, cls, c.quantumPriority);
+      return makeRecCard(c, lbl, cls, i, 'rec-btn-quantum');
     }).join('');
+
+    document.querySelectorAll('.rec-btn-quantum').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openDrawer(quantumCandidates[btn.getAttribute('data-index')]);
+      });
+    });
   }
 }
 
@@ -1025,9 +1035,7 @@ function renderTimeline() {
   }).join('');
 }
 
-function openDrawer(cEncoded) {
-  const c = JSON.parse(decodeURIComponent(cEncoded));
-  
+function openDrawer(c) {
   document.getElementById('drw-algo').textContent = c.algorithm;
   document.getElementById('drw-purpose').textContent = c.purpose;
   
@@ -1057,7 +1065,7 @@ function openDrawer(cEncoded) {
   
   // Populate ig-filelist with real file names
   const filelist = document.getElementById('ig-filelist');
-  const files = c.affectedFiles || [];
+  const files = Array.from(c.affectedFiles || []);
   const maxShow = 4;
   if (files.length === 0) {
     filelist.textContent = 'No files identified';

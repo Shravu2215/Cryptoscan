@@ -921,17 +921,15 @@ function renderTable() {
   const start = (currentPage - 1) * itemsPerPage;
   const pageData = filteredFindings.slice(start, start + itemsPerPage);
   
-  tbody.innerHTML = pageData.map((f) => {
+  tbody.innerHTML = pageData.map((f, i) => {
     const sev = getSeverity(f);
     const algo = f.algorithm || f.title.split(' ')[0] || 'Unknown';
     const purpose = f.usage || f.category || '-';
     const quant = isQuantum(f) ? 'Vulnerable' : 'Safe';
     const qClass = isQuantum(f) ? 'badge-quant' : 'badge-safe';
     
-    const fStr = encodeURIComponent(JSON.stringify(f));
-    
     return `
-      <tr onclick="openDrawer('${fStr}')">
+      <tr class="finding-row" style="cursor:pointer;" data-index="${i}">
         <td><span class="badge ${getBadgeClass(sev)}">${sev}</span></td>
         <td><span style="font-weight:600;color:var(--text-h)">${algo}</span></td>
         <td>${purpose}</td>
@@ -941,6 +939,12 @@ function renderTable() {
       </tr>
     `;
   }).join('');
+  
+  document.querySelectorAll('.finding-row').forEach(row => {
+    row.addEventListener('click', () => {
+      openDrawer(pageData[row.getAttribute('data-index')]);
+    });
+  });
   
   if (totalPages > 1) {
     pag.style.display = 'flex';
@@ -957,8 +961,7 @@ function changePage(dir) {
   renderTable();
 }
 
-function openDrawer(fEncoded) {
-  const f = JSON.parse(decodeURIComponent(fEncoded));
+function openDrawer(f) {
   currentDrawerFinding = f;
   const sev = getSeverity(f);
   
