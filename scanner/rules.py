@@ -5,7 +5,7 @@ their own copies, so the two language scanners can't drift apart on risk tagging
 (this is the bug called out in the review: JS path wasn't using the Classical Risk
 tag at all and everything non-RSA showed a flat "Safe").
 """
-from .models import Severity, QuantumRisk
+from models import Severity, QuantumRisk
 
 # ---------------------------------------------------------------------------
 # Hash algorithms

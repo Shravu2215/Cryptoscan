@@ -8,8 +8,8 @@ tagging can't drift between the two language paths.
 """
 from typing import List, Optional, Dict, Any
 
-from .models import Finding, Severity, QuantumRisk
-from . import rules
+from models import Finding, Severity, QuantumRisk
+import rules
 
 try:
     import esprima

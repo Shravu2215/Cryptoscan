@@ -9,9 +9,9 @@ import shutil
 # Make sure we can import from scanner
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from scanner.python_analyzer import PythonAnalyzer
-from scanner.js_analyzer import JSAnalyzer
-from scanner.dedup import dedup
+from python_analyzer import PythonAnalyzer
+from js_analyzer import JSAnalyzer
+from dedup import dedup
 
 def scan_repo(repo_path, scan_id=None):
     scan_id = scan_id or str(uuid.uuid4())

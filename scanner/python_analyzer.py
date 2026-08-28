@@ -11,8 +11,8 @@ ec.generate_private_key), `random` used for security-sensitive values, and
 import ast
 from typing import List, Optional
 
-from .models import Finding, Severity, QuantumRisk
-from . import rules
+from models import Finding, Severity, QuantumRisk
+import rules
 
 
 def _name_of(node) -> str:

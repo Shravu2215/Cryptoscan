@@ -17,10 +17,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from scanner.python_analyzer import PythonAnalyzer
-from scanner.js_analyzer import JSAnalyzer
-from scanner.dedup import dedup
-from scanner import report
+from python_analyzer import PythonAnalyzer
+from js_analyzer import JSAnalyzer
+from dedup import dedup
+import report
 
 PY_EXT = {".py"}
 JS_EXT = {".js", ".mjs", ".cjs", ".jsx"}
