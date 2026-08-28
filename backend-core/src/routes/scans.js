@@ -35,23 +35,26 @@ router.post('/:repoId', requireAuth, async (req, res) => {
       try {
         await prisma.scan.update({ where: { id: scan.id }, data: { status: 'RUNNING' } });
 
-        let targetPath = repo.filePath;
+        const targetPath = repo.filePath;
         const scannerDir = path.resolve(__dirname, '../../../scanner');
         const absoluteRepoPath = path.resolve(__dirname, '../../../', targetPath);
 
-        // Use the scanner's own .venv interpreter directly instead of `uv run`.
-        // `uv run` needs a pyproject.toml/uv-managed env, which this .venv
-        // (built with plain `python -m venv` + pip) isn't, so it was
-        // failing to find the installed deps (tree-sitter-languages etc.)
-        // and the scan never produced valid JSON. Fall back to `python`/
-        // `python3` on PATH if the venv interpreter isn't present.
         const isWin = process.platform === 'win32';
         const venvPython = path.join(scannerDir, '.venv', isWin ? 'Scripts\\python.exe' : 'bin/python');
         const pythonCmd = fs.existsSync(venvPython) ? `"${venvPython}"` : (isWin ? 'python' : 'python3');
 
+        console.log(`[DEBUG] Executing scanner subprocess:`);
+        console.log(`  scannerDir: ${scannerDir}`);
+        console.log(`  absoluteRepoPath: ${absoluteRepoPath}`);
+        console.log(`  pythonCmd: ${pythonCmd}`);
+        console.log(`  Command: ${pythonCmd} pipeline.py "${absoluteRepoPath}"`);
+
         exec(`${pythonCmd} pipeline.py "${absoluteRepoPath}"`, { cwd: scannerDir }, async (error, stdout, stderr) => {
           if (error) {
-            console.error('Scanner error:', error);
+            console.error('Scanner execution failed.');
+            console.error('Error Object:', error);
+            console.error('Subprocess stderr:', stderr);
+            console.error('Subprocess stdout:', stdout);
             await prisma.scan.update({ where: { id: scan.id }, data: { status: 'FAILED' } });
             return;
           }
@@ -88,12 +91,14 @@ router.post('/:repoId', requireAuth, async (req, res) => {
 
             await prisma.scan.update({ where: { id: scan.id }, data: { status: 'COMPLETED', completedAt: new Date() } });
           } catch (parseError) {
-            console.error('Failed to parse scanner output:', parseError, stdout);
+            console.error('Failed to parse scanner output JSON:', parseError);
+            console.error('Raw subprocess stdout was:', stdout);
+            console.error('Subprocess stderr was:', stderr);
             await prisma.scan.update({ where: { id: scan.id }, data: { status: 'FAILED' } });
           }
         });
       } catch (err) {
-        console.error('Failed to start scan:', err);
+        console.error('Failed to start scan subprocess:', err);
         await prisma.scan.update({ where: { id: scan.id }, data: { status: 'FAILED' } });
       }
     })();
