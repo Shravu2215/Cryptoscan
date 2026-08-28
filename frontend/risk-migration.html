@@ -604,14 +604,32 @@ tbody tr:hover { background: var(--bg-card-hover); }
       </div>
 
       <div class="row">
-        <!-- Migration Recommendations List -->
+        <!-- Migration Recommendations - Two Tracks -->
         <div class="col col-2">
-          <div class="gc-hd" style="margin-bottom:8px;">
-            <div class="gc-ttl" style="font-size:18px;">Migration Recommendations</div>
-            <div class="gc-sub">Cryptographic components requiring replacement</div>
+          <!-- Classical Risk Track -->
+          <div style="margin-bottom:32px;">
+            <div class="gc-hd" style="margin-bottom:8px;">
+              <div>
+                <div class="gc-ttl" style="font-size:18px;">Classical Risk — Migration Recommendations</div>
+                <div class="gc-sub">Sorted by severity: CRITICAL → HIGH → MEDIUM/LOW. Quantum status does not affect this ranking.</div>
+              </div>
+            </div>
+            <div class="rec-list" id="recommendations-list-classical">
+              <!-- Dynamic Content -->
+            </div>
           </div>
-          <div class="rec-list" id="recommendations-list">
-            <!-- Dynamic Content -->
+
+          <!-- Quantum Migration Track -->
+          <div>
+            <div class="gc-hd" style="margin-bottom:8px;">
+              <div>
+                <div class="gc-ttl" style="font-size:18px; color:var(--purple);">Quantum Migration — Priority Queue</div>
+                <div class="gc-sub">Sorted by quantum threat urgency: Asymmetric algorithms (RSA/ECC/DSA) broken first → Hash/Symmetric weakened later. Severity does not affect this ranking.</div>
+              </div>
+            </div>
+            <div class="rec-list" id="recommendations-list-quantum">
+              <!-- Dynamic Content -->
+            </div>
           </div>
         </div>
         
@@ -627,21 +645,43 @@ tbody tr:hover { background: var(--bg-card-hover); }
           </div>
           
           <div class="gcard">
-            <div class="gc-hd">
-              <div class="gc-ttl">Migration Priority</div>
+            <div class="gc-hd" style="margin-bottom:4px;">
+              <div class="gc-ttl">Classical Risk Priority</div>
             </div>
+            <div style="font-size:11px; color:var(--text-s); padding:0 4px 12px;">Based on severity only — quantum status excluded</div>
             <div style="display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
-                <span style="font-weight:600; color:var(--red);">Priority 1 — Immediate</span>
+                <span style="font-weight:600; color:var(--red);">P1 — CRITICAL</span>
                 <span id="p1-count">0</span>
               </div>
               <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
-                <span style="font-weight:600; color:var(--amber);">Priority 2 — High</span>
+                <span style="font-weight:600; color:var(--amber);">P2 — HIGH</span>
                 <span id="p2-count">0</span>
               </div>
               <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px;">
-                <span style="font-weight:600; color:var(--yellow);">Priority 3 — Planned</span>
+                <span style="font-weight:600; color:var(--yellow);">P3 — MEDIUM / LOW</span>
                 <span id="p3-count">0</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="gcard" style="margin-top:16px;">
+            <div class="gc-hd" style="margin-bottom:4px;">
+              <div class="gc-ttl" style="color:var(--purple);">Quantum Migration Priority</div>
+            </div>
+            <div style="font-size:11px; color:var(--text-s); padding:0 4px 12px;">Based on quantum threat urgency only — severity excluded</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
+                <span style="font-weight:600; color:var(--red);">Q1 — Asymmetric Broken (RSA/ECC)</span>
+                <span id="qp1-count">0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
+                <span style="font-weight:600; color:var(--amber);">Q2 — Hash/Sym Weakened</span>
+                <span id="qp2-count">0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px;">
+                <span style="font-weight:600; color:var(--gray);">No Quantum Risk Found</span>
+                <span id="qp3-count">0</span>
               </div>
             </div>
           </div>
@@ -795,26 +835,45 @@ function init() {
   });
   
   migrationCandidates = Object.values(candidateMap).map(c => {
-    // Calculate Priority
-    // P1: Critical or Quantum Vulnerable Asymmetric
-    // P2: High
-    // P3: Medium/Low
-    let priority = 3;
-    if (c.severity === 'CRITICAL' || c.quantumVulnerable) priority = 1;
-    else if (c.severity === 'HIGH') priority = 2;
-    
+    // ── Classical Risk Priority (driven purely by severity) ──────────────────
+    // P1 = CRITICAL, P2 = HIGH, P3 = MEDIUM / LOW / anything else
+    let classicalPriority = 3;
+    if (c.severity === 'CRITICAL') classicalPriority = 1;
+    else if (c.severity === 'HIGH') classicalPriority = 2;
+
+    // ── Quantum Migration Priority (driven purely by quantum exposure + algo class) ──
+    // Asymmetric algorithms (RSA, ECC, DSA, DH) are broken by Shor's algorithm —
+    // they get Q1 if quantum-vulnerable. Hash/symmetric weakened by Grover → Q2.
+    let quantumPriority = 3;
+    if (c.quantumVulnerable) {
+      const a = c.algorithm.toLowerCase();
+      const isAsymmetric = /rsa|ec|ecdsa|ecdh|ecc|dsa|dh\b|elgamal|diffie/.test(a);
+      quantumPriority = isAsymmetric ? 1 : 2;
+    }
+
     return {
       ...c,
       fileCount: c.affectedFiles.size,
-      priority: priority
+      classicalPriority: classicalPriority,
+      quantumPriority: quantumPriority,
+      // Legacy 'priority' = classicalPriority so timeline/drawer still work
+      priority: classicalPriority
     };
   });
-  
-  // Sort by priority (1 first), then file count
+
+  // Sort classical list: by classicalPriority (1 first), then file count
   migrationCandidates.sort((a,b) => {
-    if (a.priority !== b.priority) return a.priority - b.priority;
+    if (a.classicalPriority !== b.classicalPriority) return a.classicalPriority - b.classicalPriority;
     return b.fileCount - a.fileCount;
   });
+
+  // Separate quantum list: quantum-vulnerable only, sorted by quantumPriority
+  const quantumCandidates = migrationCandidates.filter(c => c.quantumVulnerable)
+    .slice()
+    .sort((a,b) => {
+      if (a.quantumPriority !== b.quantumPriority) return a.quantumPriority - b.quantumPriority;
+      return b.fileCount - a.fileCount;
+    });
   
   updateDashboard(atRisk);
   renderRecommendations();
@@ -871,55 +930,74 @@ function updateDashboard(atRisk) {
   document.getElementById('qe-vuln').textContent = qVuln;
   document.getElementById('qe-safe').textContent = qSafe;
   
-  // Priority Counts
-  document.getElementById('p1-count').textContent = migrationCandidates.filter(c => c.priority === 1).length;
-  document.getElementById('p2-count').textContent = migrationCandidates.filter(c => c.priority === 2).length;
-  document.getElementById('p3-count').textContent = migrationCandidates.filter(c => c.priority === 3).length;
+  // Classical Priority Counts
+  document.getElementById('p1-count').textContent = migrationCandidates.filter(c => c.classicalPriority === 1).length;
+  document.getElementById('p2-count').textContent = migrationCandidates.filter(c => c.classicalPriority === 2).length;
+  document.getElementById('p3-count').textContent = migrationCandidates.filter(c => c.classicalPriority === 3).length;
+  // Quantum Priority Counts
+  document.getElementById('qp1-count').textContent = migrationCandidates.filter(c => c.quantumPriority === 1).length;
+  document.getElementById('qp2-count').textContent = migrationCandidates.filter(c => c.quantumPriority === 2).length;
+  document.getElementById('qp3-count').textContent = migrationCandidates.filter(c => !c.quantumVulnerable).length;
+}
+
+function makeRecCard(c, priorityLabel, priorityClass, priorityNum) {
+  const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Not Identified';
+  const cStr = encodeURIComponent(JSON.stringify({...c, affectedFiles:Array.from(c.affectedFiles)}));
+  return `
+    <div class="rec-card ${priorityClass}">
+      <div class="rec-hd">
+        <div>
+          <div class="rec-algo">${c.algorithm}</div>
+          <div class="rec-purpose">${c.purpose}</div>
+        </div>
+        <div class="rec-priority ${priorityClass}">${priorityLabel}</div>
+      </div>
+      <div class="rec-grid">
+        <div>
+          <div class="rg-lbl">Severity</div>
+          <div class="rg-val"><span class="badge ${getBadgeClass(c.severity)}" style="padding:2px 6px;">${c.severity}</span></div>
+        </div>
+        <div>
+          <div class="rg-lbl">Quantum Status</div>
+          <div class="rg-val" style="color:${c.quantumVulnerable?'var(--purple)':'var(--green)'}; font-weight:600;">${qStr}</div>
+        </div>
+        <div>
+          <div class="rg-lbl">Affected Files</div>
+          <div class="rg-val">${c.fileCount}</div>
+        </div>
+      </div>
+      <div class="rec-replace">
+        <div style="font-size:12px; color:var(--text-m); font-weight:600; text-transform:uppercase;">Recommended Replacement</div>
+        <div class="replace-arrow">→</div>
+        <div class="replace-val">${c.replacement}</div>
+      </div>
+      <div class="rec-ft">
+        <button class="btn-sec" onclick="openDrawer('${cStr}')">View Details</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderRecommendations() {
-  const container = document.getElementById('recommendations-list');
-  container.innerHTML = migrationCandidates.map(c => {
-    const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Safe';
-    const cStr = encodeURIComponent(JSON.stringify({...c, affectedFiles:Array.from(c.affectedFiles)}));
-    
-    return `
-      <div class="rec-card p${c.priority}">
-        <div class="rec-hd">
-          <div>
-            <div class="rec-algo">${c.algorithm}</div>
-            <div class="rec-purpose">${c.purpose}</div>
-          </div>
-          <div class="rec-priority p${c.priority}">Priority ${c.priority}</div>
-        </div>
-        
-        <div class="rec-grid">
-          <div>
-            <div class="rg-lbl">Current Risk</div>
-            <div class="rg-val"><span class="badge ${getBadgeClass(c.severity)}" style="padding:2px 6px;">${c.severity}</span></div>
-          </div>
-          <div>
-            <div class="rg-lbl">Quantum Risk</div>
-            <div class="rg-val" style="color:${c.quantumVulnerable?'var(--red)':'var(--green)'}; font-weight:600;">${qStr}</div>
-          </div>
-          <div>
-            <div class="rg-lbl">Affected Files</div>
-            <div class="rg-val">${c.fileCount}</div>
-          </div>
-        </div>
-        
-        <div class="rec-replace">
-          <div style="font-size:12px; color:var(--text-m); font-weight:600; text-transform:uppercase;">Recommend Replacement</div>
-          <div class="replace-arrow">→</div>
-          <div class="replace-val">${c.replacement}</div>
-        </div>
-        
-        <div class="rec-ft">
-          <button class="btn-sec" onclick="openDrawer('${cStr}')">View Details</button>
-        </div>
-      </div>
-    `;
+  // ── Classical Risk Track: sorted by classicalPriority (CRITICAL first) ──
+  const classicalContainer = document.getElementById('recommendations-list-classical');
+  const classicalLabels = { 1: ['P1 — CRITICAL', 'p1'], 2: ['P2 — HIGH', 'p2'], 3: ['P3 — MEDIUM/LOW', 'p3'] };
+  classicalContainer.innerHTML = migrationCandidates.map(c => {
+    const [lbl, cls] = classicalLabels[c.classicalPriority] || ['P3 — LOW', 'p3'];
+    return makeRecCard(c, lbl, cls, c.classicalPriority);
   }).join('');
+
+  // ── Quantum Migration Track: sorted by quantumPriority, quantum-vulnerable only ──
+  const quantumContainer = document.getElementById('recommendations-list-quantum');
+  if (quantumCandidates.length === 0) {
+    quantumContainer.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-s); font-size:13px;">No quantum-vulnerable algorithms detected in this scan.</div>';
+  } else {
+    const quantumLabels = { 1: ['Q1 — Asymmetric (Shor-Broken)', 'p1'], 2: ['Q2 — Hash/Symmetric (Grover-Weakened)', 'p2'] };
+    quantumContainer.innerHTML = quantumCandidates.map(c => {
+      const [lbl, cls] = quantumLabels[c.quantumPriority] || ['Q2 — Weakened', 'p2'];
+      return makeRecCard(c, lbl, cls, c.quantumPriority);
+    }).join('');
+  }
 }
 
 function renderTimeline() {
@@ -954,8 +1032,13 @@ function openDrawer(cEncoded) {
   document.getElementById('drw-purpose').textContent = c.purpose;
   
   const pBadge = document.getElementById('drw-priority');
-  pBadge.className = `rec-priority p${c.priority}`;
-  pBadge.textContent = `Priority ${c.priority}`;
+  const cpLbls = { 1:'P1 — CRITICAL', 2:'P2 — HIGH', 3:'P3 — MEDIUM/LOW' };
+  const qpLbls = { 1:'Q1 — Asymmetric', 2:'Q2 — Hash/Sym' };
+  const cpLabel = cpLbls[c.classicalPriority] || 'P3';
+  const qpLabel = c.quantumVulnerable ? (qpLbls[c.quantumPriority] || 'Q2') : 'Not Quantum Vulnerable';
+  const cpClass = 'p' + (c.classicalPriority || 3);
+  pBadge.className = 'rec-priority ' + cpClass;
+  pBadge.innerHTML = cpLabel + '<span style="margin-left:8px;font-weight:400;opacity:0.7;font-size:11px;">| Quantum: ' + qpLabel + '</span>';
   
   document.getElementById('drw-replacement').textContent = c.replacement;
   
