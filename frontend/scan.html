@@ -632,7 +632,7 @@ async function startRealScan() {
   addLog('Initializing upload pipeline...');
   setPipe(1);
 
-  const token = localStorage.getItem('token') || 'dummy-token';
+  const token = localStorage.getItem('cs_auth_token') || 'dummy-token';
 
   try {
     const formData = new FormData();

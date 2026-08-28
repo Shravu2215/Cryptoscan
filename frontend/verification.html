@@ -645,7 +645,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 <script src="engine.js"></script>
 <script>
 const API_BASE = 'http://localhost:3000';
-function getToken() { return localStorage.getItem('token') || 'dummy-token'; }
+function getToken() { return localStorage.getItem('cs_auth_token') || 'dummy-token'; }
 let activeScan = null;
 let currentHashHex = '';
 
