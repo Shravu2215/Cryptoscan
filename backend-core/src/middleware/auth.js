@@ -3,26 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function requireAuth(req, res, next) {
-  // TEMP: Bypass authentication for trial scanning
-  try {
-    let dummy = await prisma.user.findFirst({ where: { email: 'trial@example.com' } });
-    if (!dummy) {
-      dummy = await prisma.user.create({
-        data: {
-          email: 'trial@example.com',
-          name: 'Trial User',
-          provider: 'local'
-        }
-      });
-    }
-    req.user = dummy;
-    return next();
-  } catch (err) {
-    console.error('Trial auth error:', err);
-    return res.status(500).json({ error: 'Auth bypass failed' });
-  }
-
-  // --- Original Auth Logic (Disconnected) ---
+// --- Original Auth Logic (Disconnected) ---
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
