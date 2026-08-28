@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -101,4 +101,3 @@ ALTER TABLE "Cbom" ADD CONSTRAINT "Cbom_scanId_fkey" FOREIGN KEY ("scanId") REFE
 
 -- AddForeignKey
 ALTER TABLE "Anchor" ADD CONSTRAINT "Anchor_scanId_fkey" FOREIGN KEY ("scanId") REFERENCES "Scan"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
