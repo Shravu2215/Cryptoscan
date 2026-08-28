@@ -633,6 +633,7 @@ async function startRealScan() {
   setPipe(1);
 
   const token = localStorage.getItem('cs_auth_token') || 'dummy-token';
+  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-api.onrender.com';
 
   try {
     const formData = new FormData();
@@ -640,7 +641,7 @@ async function startRealScan() {
     formData.append('name', currentRepoName);
 
     addLog(`Uploading archive: ${currentRepoName} ...`);
-    const uploadRes = await fetch('http://localhost:3000/repos/upload', {
+    const uploadRes = await fetch(`${API_BASE}/repos/upload`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` },
       body: formData
@@ -652,7 +653,7 @@ async function startRealScan() {
     setPipe(2);
 
     addLog('Triggering remote scan analysis...');
-    const scanRes = await fetch(`http://localhost:3000/scan/${repo.id}`, {
+    const scanRes = await fetch(`${API_BASE}/scan/${repo.id}`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -667,7 +668,7 @@ async function startRealScan() {
     while (scanStatus === 'PENDING' || scanStatus === 'RUNNING') {
       await new Promise(r => setTimeout(r, 2000));
 
-      const res = await fetch(`http://localhost:3000/scan/${scanData.scanId}/findings`, {
+      const res = await fetch(`${API_BASE}/scan/${scanData.scanId}/findings`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       finalData = await res.json();
