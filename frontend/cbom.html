@@ -941,10 +941,9 @@ function renderTable() {
   const start = (currentPage - 1) * itemsPerPage;
   const pageData = filteredInventory.slice(start, start + itemsPerPage);
   
-  tbody.innerHTML = pageData.map((c) => {
-    const cStr = encodeURIComponent(JSON.stringify(c));
+  tbody.innerHTML = pageData.map((c, i) => {
     return `
-      <tr onclick="openDrawer('${cStr}')">
+      <tr class="cbom-row" style="cursor:pointer;" data-index="${i}">
         <td><span style="font-weight:600;color:var(--text-h)">${c.algorithm}</span></td>
         <td>${c.type}</td>
         <td>${c.purpose}</td>
@@ -955,6 +954,12 @@ function renderTable() {
       </tr>
     `;
   }).join('');
+  
+  document.querySelectorAll('.cbom-row').forEach(row => {
+    row.addEventListener('click', () => {
+      openDrawer(pageData[row.getAttribute('data-index')]);
+    });
+  });
   
   if (totalPages > 1) {
     pag.style.display = 'flex';
@@ -971,8 +976,7 @@ function changePage(dir) {
   renderTable();
 }
 
-function openDrawer(cEncoded) {
-  const c = JSON.parse(decodeURIComponent(cEncoded));
+function openDrawer(c) {
   
   document.getElementById('drw-algo').textContent = c.algorithm;
   document.getElementById('drw-fileline').textContent = `${c.file}${c.line ? ':'+c.line : ''}`;
