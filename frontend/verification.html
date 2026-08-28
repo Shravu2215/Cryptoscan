@@ -645,7 +645,14 @@ tbody tr:hover { background: var(--bg-card-hover); }
 <script src="engine.js"></script>
 <script>
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-api.onrender.com';
-function getToken() { return localStorage.getItem('cs_auth_token') || 'dummy-token'; }
+function getToken() {
+  const token = localStorage.getItem('cs_auth_token');
+  if (!token) {
+    window.location.href = 'login.html';
+    return '';
+  }
+  return token;
+}
 let activeScan = null;
 let currentHashHex = '';
 

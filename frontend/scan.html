@@ -632,7 +632,11 @@ async function startRealScan() {
   addLog('Initializing upload pipeline...');
   setPipe(1);
 
-  const token = localStorage.getItem('cs_auth_token') || 'dummy-token';
+  const token = localStorage.getItem('cs_auth_token');
+  if (!token) {
+    window.location.href = 'login.html';
+    return;
+  }
   const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-api.onrender.com';
 
   try {
