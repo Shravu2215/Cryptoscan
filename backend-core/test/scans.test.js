@@ -161,19 +161,19 @@ async function testFindingsCount(scanId) {
 async function testUnknownScanIdRejected() {
   console.log('\n(c) Anchor + Verify routes reject an unknown scanId with an error (not silent dummy data)');
 
-  const bogus = '00000000-dead-beef-0000-000000000000';
+  const bogus = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 
   const anchorR = await api('/scan/' + bogus + '/anchor', { method: 'POST' });
   assert(
-    anchorR.status === 404 || anchorR.status === 400 || anchorR.status === 500,
-    'POST /scan/<unknown>/anchor returns 404, 400, or 500'
+    anchorR.status === 404,
+    'POST /scan/<unknown>/anchor returns 404'
   );
   console.log('  /anchor status:', anchorR.status, '-', JSON.stringify(anchorR.body));
 
-  const verifyR = await api('/scan/' + bogus + '/verify', { method: 'POST' });
+  const verifyR = await api('/scan/' + bogus + '/verify', { method: 'GET' });
   assert(
-    verifyR.status === 404 || verifyR.status === 400 || verifyR.status === 500,
-    'POST /scan/<unknown>/verify returns 404, 400, or 500'
+    verifyR.status === 404,
+    'GET /scan/<unknown>/verify returns 404'
   );
   console.log('  /verify status:', verifyR.status, '-', JSON.stringify(verifyR.body));
 
