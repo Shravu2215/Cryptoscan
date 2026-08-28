@@ -1,1 +1,0 @@
-const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const scan = await prisma.scan.findUnique({ where: { id: 'c5d5590d-f484-4268-a581-416d88c85a39' }, include: { findings: true } }); console.log('Total Findings:', scan.findings.length); } main().finally(() => prisma.$disconnect());
