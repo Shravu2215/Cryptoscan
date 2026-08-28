@@ -7,6 +7,18 @@ const { verifyScan } = require('../../../blockchain-module/scripts/verify');
 
 const router = express.Router();
 
+function extractKeySize(algorithm) {
+  if (!algorithm) return null;
+  const sizeMatch = algorithm.match(/(?:RSA|AES|SECP|P-)[^0-9]*(\d+)/i);
+  if (sizeMatch) {
+    return parseInt(sizeMatch[1], 10);
+  }
+  if (/AES/i.test(algorithm)) {
+    return 256;
+  }
+  return null;
+}
+
 // POST /scan/:repoId
 // This creates the Scan row and flips status to RUNNING.
 // Scanner Engine (Person 2) owns the actual scanning logic — hook it in
@@ -74,7 +86,7 @@ router.post('/:repoId', requireAuth, async (req, res) => {
               algorithm: f.algorithm || 'UNKNOWN',
               library: f.library || null,
               usage: f.category || null,
-              keySize: null,
+              keySize: extractKeySize(f.algorithm),
               quantumStatus: ['Quantum-Broken', 'Quantum-Weakened'].includes(f.quantum_risk)
                 ? 'Quantum Vulnerable' : 'Quantum Safe',
               severity: (f.severity || 'Informational').toUpperCase(),
