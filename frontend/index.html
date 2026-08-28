@@ -382,7 +382,7 @@ body::after {
   </div>
 </div>
 
-<script src="auth.js"></script>
+<script src="assets/js/auth.js"></script>
 <script>
 // Do not auto-redirect so user can view login page directly
 // if (Auth.isLoggedIn()) window.location.href = 'dashboard.html';
@@ -436,7 +436,7 @@ form.addEventListener('submit', async (e) => {
   setLoading(true);
 
   try {
-    const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-backend.onrender.com';
+    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '' || window.location.protocol === 'file:') ? 'http://localhost:3000' : 'https://cryptoscan-backend.onrender.com';
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

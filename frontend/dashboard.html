@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="engine.js"></script>
+<script src="assets/js/engine.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -676,14 +676,14 @@ function renderDashboardData() {
   const risksEmpty = document.getElementById('empty-top-risks');
   const risksList = document.getElementById('top-risks-list');
   
-  const allFindings = (data.scans || []).flatMap(s => s.findings || []);
+  const topRisksFindings = (data.scans || []).flatMap(s => s.findings || []);
   
-  if (allFindings.length > 0) {
+  if (topRisksFindings.length > 0) {
     risksContent.style.display = 'block';
     risksEmpty.style.display = 'none';
     
     const algoMap = {};
-    allFindings.forEach(f => {
+    topRisksFindings.forEach(f => {
       const algo = f.algorithm || f.ruleId || 'Unknown';
       if(!algoMap[algo]) algoMap[algo] = { count: 0, severity: f.severity || 'Medium' };
       algoMap[algo].count++;
@@ -731,7 +731,7 @@ function syncBadges() {
 window.addEventListener('load', syncBadges);
 window.addEventListener('cryptoscan_data_updated', syncBadges);
 </script>
-<script src="auth.js?v=2"></script>
+<script src="assets/js/auth.js?v=2"></script>
 
 
 </body>

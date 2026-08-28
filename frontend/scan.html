@@ -534,7 +534,7 @@ body {
   </div>
 </main>
 
-<script src="engine.js"></script>
+<script src="assets/js/engine.js"></script>
 <script>
 let selectedFile = null;
 let currentRepoName = '';
@@ -637,7 +637,7 @@ async function startRealScan() {
     window.location.href = 'login.html';
     return;
   }
-  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-backend.onrender.com';
+  const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '' || window.location.protocol === 'file:') ? 'http://localhost:3000' : 'https://cryptoscan-backend.onrender.com';
 
   try {
     const formData = new FormData();
