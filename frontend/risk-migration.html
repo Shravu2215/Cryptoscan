@@ -780,7 +780,7 @@ function init() {
         quantumVulnerable: isQuantum(f),
         affectedFiles: new Set(),
         rationale: f.remediation || f.snippet || 'Component is considered insecure or vulnerable to quantum attacks.',
-        replacement: determineReplacement(algo, f.description || f.title || \'\')
+        replacement: determineReplacement(algo, f.description || f.title || '')
       };
     }
     candidateMap[algo].affectedFiles.add(f.file || 'unknown');
