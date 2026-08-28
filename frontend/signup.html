@@ -449,7 +449,7 @@ form.addEventListener('submit', async (e) => {
   try {
     const displayName = company ? `${name} (${company})` : name;
 
-    const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-api.onrender.com';
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://cryptoscan-backend.onrender.com';
     const res = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
