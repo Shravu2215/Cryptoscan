@@ -86,6 +86,20 @@ def _literal_bytes_len(node) -> Optional[int]:
     return None
 
 
+def _resolve_bytes_len(node) -> Optional[int]:
+    if node is None:
+        return None
+    lit_len = _literal_bytes_len(node)
+    if lit_len is not None:
+        return lit_len
+    if _is_dynamic_random_source(node):
+        if node.args:
+            arg = node.args[0]
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, int):
+                return arg.value
+    return None
+
+
 def _is_secret_name(name: str) -> bool:
     n = (name or "").lower()
     return any(hint in n for hint in rules.SECRET_NAME_HINTS)
@@ -304,7 +318,7 @@ class PythonAnalyzer:
         key_bits = None
         if algo_call.args:
             key_val = _resolve(algo_call.args[0], table)
-            blen = _literal_bytes_len(key_val)
+            blen = _resolve_bytes_len(key_val)
             if blen:
                 key_bits = blen * 8
 
@@ -410,10 +424,11 @@ class PythonAnalyzer:
         key_hardcoded = False
         if node.args:
             key_val = _resolve(node.args[0], table)
-            blen = _literal_bytes_len(key_val)
+            blen = _resolve_bytes_len(key_val)
             if blen:
                 key_bits = blen * 8
-                key_hardcoded = True
+                if isinstance(key_val, ast.Constant):
+                    key_hardcoded = True
 
         # IV: 3rd positional or iv=/nonce= kwarg
         iv_node = node.args[2] if len(node.args) >= 3 else None
