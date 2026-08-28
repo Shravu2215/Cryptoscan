@@ -612,11 +612,19 @@ function renderDashboardData() {
   updateStat('stat-findings', data.totalFindings || 0, hasData);
   updateStat('stat-critical', data.criticalFindings || 0, hasData);
   
+  const allFindings = (data.scans || []).flatMap(s => s.findings || []);
   let highCount = 0;
   let medCount = 0;
   let lowCount = 0;
   
-  updateStat('stat-high', 0, hasData); 
+  allFindings.forEach(f => {
+    const sev = (f.severity || '').toUpperCase();
+    if (sev === 'HIGH') highCount++;
+    else if (sev === 'MEDIUM') medCount++;
+    else if (sev === 'LOW') lowCount++;
+  });
+  
+  updateStat('stat-high', highCount, hasData); 
   updateStat('stat-quantum', data.quantumVulnerable || 0, hasData);
 
   // Render Table
@@ -695,7 +703,7 @@ function renderDashboardData() {
             <div class="risk-algo">${algo}</div>
             <div class="risk-count">${item.count} affected file${item.count > 1 ? 's' : ''}</div>
           </div>
-          <span class="badge ${badgeClass}">${item.severity}</span>
+          <span class="badge ${badgeClass}">${item.severity.toUpperCase()}</span>
         </div>
       `;
     }).join('');
