@@ -1,10 +1,11 @@
 """
-Core data model shared by the Python and JS/Node analyzers.
+Core data model shared by the Python, JS, Regex, Entropy, SCA, and Infra analyzers.
 Every analyzer emits Finding objects using this exact shape so the
 dedup engine and reporters don't need to know which language produced them.
 """
 from dataclasses import dataclass, field, asdict
 from enum import Enum
+import hashlib
 
 
 class Severity(str, Enum):
@@ -41,11 +42,11 @@ class QuantumRisk(str, Enum):
 
 
 class Confidence(str, Enum):
-    """Cross-layer corroboration tier. Added by Person 1 (Detection Layers).
+    """Cross-layer corroboration tier.
 
     CONFIRMED  — 2+ independent detection layers agree on the same issue.
     LIKELY     — one strong signal (e.g. resolved AST call against a known library,
-                 or entropy-secret-high-confidence).  Default for AST findings.
+                 or entropy-secret-high-confidence).
     POSSIBLE   — weak/single signal (regex-only, or entropy-name-hint-only).
     """
     CONFIRMED = "Confirmed"
@@ -58,10 +59,10 @@ class Finding:
     file: str
     line: int
     column: int
-    language: str            # "python" | "javascript"
+    language: str            # "python" | "javascript" | "infra" | "config" | "manifest"
     rule_id: str              # stable machine id, e.g. "md5-weak-password-hash"
     rule_name: str             # human label, e.g. "MD5 weak-password-hash"
-    category: str              # "hash" | "symmetric-cipher" | "asymmetric" | "rng" | "comparison"
+    category: str              # "hash" | "symmetric-cipher" | "asymmetric" | "rng" | "comparison" | "tls" | "hardcoded-secret"
     algorithm: str              # "MD5", "AES-256-CBC", "RSA-512", ...
     severity: Severity
     quantum_risk: QuantumRisk
@@ -79,16 +80,21 @@ class Finding:
     def __post_init__(self):
         if not self.call_site:
             self.call_site = f"{self.file}:{self.line}:{self.column}"
-        # Apply default here (not in field default) so that analyzers that
-        # explicitly pass confidence=Confidence.POSSIBLE aren't overridden.
         if self.confidence is None:
             self.confidence = Confidence.LIKELY
+
+    @property
+    def fingerprint(self) -> str:
+        """Stable deterministic content hash across re-scans."""
+        raw = f"{self.rule_id}:{self.algorithm}:{self.code_snippet.strip()}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
     def to_dict(self):
         d = asdict(self)
         d["severity"] = self.severity.value
         d["quantum_risk"] = self.quantum_risk.value
-        d["confidence"] = self.confidence.value  # additive key — no existing keys changed
+        d["confidence"] = self.confidence.value
         d["suppressed"] = self.suppressed
         d["suppression_reason"] = self.suppression_reason
+        d["fingerprint"] = self.fingerprint
         return d

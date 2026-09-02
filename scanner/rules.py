@@ -1,10 +1,9 @@
 """
 Single source of truth for algorithm -> (severity, quantum-risk tier, recommendation).
 Both the Python analyzer and the JS analyzer import THIS table instead of keeping
-their own copies, so the two language scanners can't drift apart on risk tagging
-(this is the bug called out in the review: JS path wasn't using the Classical Risk
-tag at all and everything non-RSA showed a flat "Safe").
+their own copies, so the language scanners stay aligned.
 """
+import re as _re
 from .models import Severity, QuantumRisk
 
 # ---------------------------------------------------------------------------
@@ -16,13 +15,12 @@ HASH_ALGOS = {
                                      "a memory-hard KDF (argon2id, scrypt, bcrypt) instead of a raw hash."),
     "sha1":    dict(algorithm="SHA-1",   severity=Severity.HIGH, quantum_risk=QuantumRisk.CLASSICAL_RISK,
                      recommendation="SHA-1 has known collision attacks. Replace with SHA-256 or SHA-3-256."),
-    "sha256":  dict(algorithm="SHA-256", severity=Severity.LOW,    quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
-                     recommendation="SHA-256 is currently fine; Grover's algorithm only halves effective "
-                                     "search security (128-bit post-quantum), which is still adequate."),
-    "sha3":    dict(algorithm="SHA-3",   severity=Severity.INFO,   quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
-                     recommendation="No action needed."),
-    "sha512":  dict(algorithm="SHA-512", severity=Severity.INFO,   quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
-                     recommendation="No action needed."),
+    "sha256":  dict(algorithm="SHA-256", severity=Severity.INFO,    quantum_risk=QuantumRisk.SAFE,
+                     recommendation="SHA-256 is strong and quantum-safe against Shor's algorithm."),
+    "sha3":    dict(algorithm="SHA-3",   severity=Severity.INFO,   quantum_risk=QuantumRisk.SAFE,
+                     recommendation="SHA-3 is strong and quantum-safe."),
+    "sha512":  dict(algorithm="SHA-512", severity=Severity.INFO,   quantum_risk=QuantumRisk.SAFE,
+                     recommendation="SHA-512 is strong and quantum-safe."),
 }
 
 # ---------------------------------------------------------------------------
@@ -49,10 +47,6 @@ def symmetric_profile(algo: str, mode: str, key_bits: int = None):
                                      "against Grover's algorithm." if (key_bits or 256) < 256 else
                                      "No action needed.")
     if mode in ("CBC", "CTR", "CFB", "OFB"):
-        # Non-AEAD mode. Severity is intentionally NOT critical by itself - it only becomes
-        # critical when combined with another concrete red flag (hardcoded key, static/reused IV,
-        # no separate MAC). Caller escalates severity when those companion flags are present.
-        # Key size is a factor: AES-128 is Medium, AES-256 is Low.
         sev = Severity.LOW if (key_bits and key_bits >= 256) else Severity.MEDIUM
         return dict(algorithm=label, severity=sev, quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
                      recommendation=f"{mode} mode provides no built-in integrity/authentication. Prefer "
@@ -65,8 +59,7 @@ def symmetric_profile(algo: str, mode: str, key_bits: int = None):
 
 
 # ---------------------------------------------------------------------------
-# Asymmetric algorithms - always Quantum-Broken (Shor's algorithm), regardless
-# of key size. Key size only affects the *classical* severity/urgency.
+# Asymmetric algorithms - always Quantum-Broken (Shor's algorithm)
 # ---------------------------------------------------------------------------
 def rsa_profile(bits: int):
     if bits is None:
@@ -76,7 +69,7 @@ def rsa_profile(bits: int):
     elif bits < 2048:
         sev = Severity.HIGH
     else:
-        sev = Severity.MEDIUM  # classically fine today; still quantum-broken
+        sev = Severity.MEDIUM
     tags = []
     if bits is not None and bits < 2048:
         tags.append("undersized-classical-key")
@@ -96,7 +89,6 @@ def rsa_profile(bits: int):
 
 
 def ecc_profile(curve: str, purpose: str = "signature"):
-    """purpose: 'signature' (ECDSA) or 'exchange' (ECDH). Never label these generically as 'ECC'."""
     algo = f"ECDSA ({curve})" if purpose == "signature" else f"ECDH ({curve})"
     return dict(
         algorithm=algo,
@@ -110,26 +102,25 @@ def ecc_profile(curve: str, purpose: str = "signature"):
     )
 
 
-# ---------------------------------------------------------------------------
-# Non-crypto-primitive but crypto-adjacent issues
-# ---------------------------------------------------------------------------
 INSECURE_RNG = dict(
     algorithm="Non-CSPRNG",
     severity=Severity.HIGH,
     quantum_risk=QuantumRisk.CLASSICAL_RISK,
     recommendation="This value feeds a security-sensitive operation (key/IV/token/nonce) but is "
-                    "generated with a non-cryptographic RNG. Use os.urandom / secrets (Python) or "
-                    "crypto.randomBytes (Node) instead.",
+                    "drawn from a non-cryptographic PRNG (random/Math.random). Attackers can "
+                    "predict its output. Use os.urandom(), secrets.token_bytes(), or crypto.randomBytes().",
 )
 
-TIMING_UNSAFE_COMPARE = dict(
-    algorithm="Non-constant-time comparison",
-    severity=Severity.MEDIUM,
+TIMING_UNSAFE_CMP = dict(
+    algorithm="Variable-Time Comparison",
+    severity=Severity.HIGH,
     quantum_risk=QuantumRisk.CLASSICAL_RISK,
-    recommendation="Comparing secrets (tokens/passwords/HMACs/signatures) with == leaks timing "
-                    "information that can be used to recover the value byte-by-byte (CWE-208). "
-                    "Use hmac.compare_digest (Python) or crypto.timingSafeEqual (Node).",
+    recommendation="Byte-by-byte equality ('==' or '!==') on signatures, hashes, MACs, or tokens "
+                    "leaks execution time proportional to the first mismatched byte, allowing "
+                    "forgery via timing oracle. Use hmac.compare_digest() (Python) or "
+                    "crypto.timingSafeEqual() (Node.js).",
 )
+TIMING_UNSAFE_COMPARE = TIMING_UNSAFE_CMP
 
 HARDCODED_KEY = dict(
     algorithm="Hardcoded key material",
@@ -141,67 +132,44 @@ HARDCODED_KEY = dict(
 )
 
 STATIC_IV = dict(
-    algorithm="Static/reused IV or nonce",
+    algorithm="Static/Reused IV",
     severity=Severity.HIGH,
     quantum_risk=QuantumRisk.CLASSICAL_RISK,
-    recommendation="A fixed or reused IV/nonce with CBC/CTR/GCM defeats the security guarantees of "
-                    "the mode (e.g. two-time-pad style plaintext recovery, or catastrophic auth-key "
-                    "reuse in GCM). Generate a fresh random IV/nonce per encryption call.",
-)
-
-# Secret-like identifier names used by both the hardcoded-key and RNG-context heuristics.
-SECRET_NAME_HINTS = (
-    "key", "secret", "password", "passwd", "pwd", "pass", "token", "apikey", "api_key",
-    "auth", "credential", "signature", "sign", "hash", "hmac", "nonce", "iv",
-    "salt", "session", "privatekey", "private_key", "otp", "pin", "reset",
-    "seed",
+    recommendation="Static, hardcoded, or zeroed IVs destroy confidentiality and allow replay/tampering "
+                    "attacks. Generate a fresh cryptographic random IV for each encryption operation "
+                    "using crypto.randomBytes() or os.urandom().",
 )
 
 
-import re as _re
+# ---------------------------------------------------------------------------
+# Secret-name detection
+# ---------------------------------------------------------------------------
+
+SINGLE_SECRET_HINTS = frozenset({
+    "secret", "privkey", "password", "passwd", "apikey", "token", "auth",
+    "key", "pass", "credential", "cert", "seed", "signature", "sig", "mac", "digest",
+})
+
+COMPOUND_SECRET_HINTS = (
+    "private_key", "priv_key", "api_key", "auth_token", "access_token",
+    "signing_key", "encryption_key", "aes_key", "des_key", "hmac_key",
+    "bearer_token", "client_secret", "db_pass", "db_password", "master_password",
+    "stripe_key", "webhook_key", "private_token", "expected_signature", "provided_signature",
+)
 
 def _tokenize_identifier(name: str):
-    """
-    Split an identifier into lowercase tokens on word boundaries.
-
-    Handles:
-      - UPPER_CASE_UNDERSCORED  → ["upper", "case", "underscored"]
-      - camelCase / PascalCase  → ["camel", "case"] / ["pascal", "case"]
-      - kebab-case              → ["kebab", "case"]
-      - mixed                   → all of the above combined
-
-    Returns a list of lowercase token strings.
-    """
-    # Insert a separator before each uppercase letter that follows a lowercase
-    # letter or digits (camelCase split), then split on non-alphanumeric chars.
-    s = _re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', name)
-    return [t.lower() for t in _re.split(r'[^a-zA-Z0-9]+', s) if t]
+    s = _re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', name).lower()
+    return [part for part in _re.split(r'[^a-z0-9]+', s) if part]
 
 
 def matches_secret_hint(name: str) -> bool:
-    """
-    Return True if the identifier/variable name contains a SECRET_NAME_HINTS
-    token at a whole-word boundary — NOT as a raw substring.
-
-    Examples:
-      matches_secret_hint("API_KEY")                   → True  (hint "key" == token)
-      matches_secret_hint("DB_PASSWORD")               → True  (hint "password" == token)
-      matches_secret_hint("AUTH_TOKEN")                → True  (hints "auth", "token" == tokens)
-      matches_secret_hint("NODE_TLS_REJECT_UNAUTHORIZED") → False (no token equals "auth")
-      matches_secret_hint("TOKENIZER_MODEL_PATH")      → False (no token equals "token")
-      matches_secret_hint("KEYBOARD_LAYOUT")           → False (no token equals "key")
-      matches_secret_hint("AUTHOR_NAME")               → False (no token equals "auth")
-      matches_secret_hint("PASSWORD_POLICY_MIN_LENGTH") → True (token "password" == hint)
-    """
+    low = name.lower()
+    if any(h in low for h in COMPOUND_SECRET_HINTS):
+        return True
     tokens = set(_tokenize_identifier(name))
-    return any(hint in tokens for hint in SECRET_NAME_HINTS)
+    return any(hint in tokens for hint in SINGLE_SECRET_HINTS)
 
-# ---------------------------------------------------------------------------
-# Symmetric constructions that aren't a single primitive call (e.g. Fernet,
-# which is a composed AES-128-CBC + HMAC-SHA256 recipe from the `cryptography`
-# package). Flagged informationally: it's already-authenticated, but pinned
-# to a 128-bit key so it carries a smaller post-quantum margin than AES-256-GCM.
-# ---------------------------------------------------------------------------
+
 FERNET_PROFILE = dict(
     algorithm="Fernet (AES-128-CBC+HMAC-SHA256)",
     severity=Severity.LOW,
@@ -219,6 +187,7 @@ NON_CRYPTO_ALGORITHMS = frozenset({
     "gzip", "zstd", "snappy", "lz4", "deflate", "bzip2", "br", "brotli", "lzo",
     "none", "raw", "null", "plain", "round-robin", "least-connections", "random",
     "linear", "binary", "dijkstra", "astar", "kmeans", "pca", "auto", "default",
+    "lru", "lfu", "fifo",
 })
 
 MODERN_STRONG_ALGORITHMS = frozenset({
@@ -227,6 +196,21 @@ MODERN_STRONG_ALGORITHMS = frozenset({
     "ml-kem", "ml-dsa", "slh-dsa", "ed25519", "x25519", "argon2", "argon2id",
     "bcrypt", "scrypt", "pbkdf2-sha256", "pbkdf2-sha512",
 })
+
+ALL_KNOWN_ALGORITHM_NAMES = NON_CRYPTO_ALGORITHMS | MODERN_STRONG_ALGORITHMS | frozenset({
+    "md5", "md4", "md2", "sha1", "sha-1", "sha256", "sha-256", "sha384", "sha-384", "sha512", "sha-512", "sha3",
+    "des", "3des", "des3", "tripledes", "tdes", "rc2", "rc4", "arc4", "blowfish", "cast5", "idea",
+    "aes", "aes-128", "aes-256", "aes-gcm", "aes-cbc", "aes-ecb", "rsa", "dsa", "ecdh", "ecdsa", "ecc",
+    "lru", "lfu", "fifo", "gzip", "zstd", "snappy", "deflate", "bzip2", "brotli", "lz4",
+})
+
+def is_known_algorithm_or_benign(val: str) -> bool:
+    if not val or not isinstance(val, str):
+        return False
+    norm = val.strip().lower().strip('"\'')
+    base = _re.split(r'[/_\-\s]', norm)[0] if norm else ""
+    return norm in ALL_KNOWN_ALGORITHM_NAMES or base in ALL_KNOWN_ALGORITHM_NAMES
+
 
 def classify_algorithm(value: str):
     """
@@ -237,7 +221,6 @@ def classify_algorithm(value: str):
         return None
 
     norm = value.strip().lower().strip('"\'')
-    # Strip mode/padding noise if present
     base_token = _re.split(r'[/_\-\s]', norm)[0] if norm else ""
 
     if norm in NON_CRYPTO_ALGORITHMS or base_token in NON_CRYPTO_ALGORITHMS:

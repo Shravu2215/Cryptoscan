@@ -184,7 +184,7 @@ class JSAnalyzer:
         scope_map = _annotate_func_scope(tree)
         source_lines = source.splitlines()
 
-        for call in _walk(tree, "CallExpression"):
+        for call in list(_walk(tree, "CallExpression")) + list(_walk(tree, "NewExpression")):
             findings.extend(self._check_call(call, file_path, assigns, source_lines, scope_map))
 
         for binexpr in _walk(tree, "BinaryExpression"):
@@ -209,10 +209,13 @@ class JSAnalyzer:
             if algo in rules.HASH_ALGOS:
                 profile = dict(rules.HASH_ALGOS[algo])
                 is_password_ctx = "password" in snippet.lower() or "pwd" in snippet.lower() or "passwd" in snippet.lower()
-                rule_id = f"{algo}-weak-password-hash" if is_password_ctx else f"{algo}-hashing"
-                out.append(self._mk(file_path, line, col, rule_id,
-                                      f"{profile['algorithm']} {'weak-password-hash' if is_password_ctx else 'hashing'}",
-                                      "hash", profile, snippet, specificity=3 if is_password_ctx else 2))
+                if algo in ("sha256", "sha3", "sha512", "sha384") and not is_password_ctx:
+                    pass
+                else:
+                    rule_id = f"{algo}-weak-password-hash" if is_password_ctx else f"{algo}-hashing"
+                    out.append(self._mk(file_path, line, col, rule_id,
+                                          f"{profile['algorithm']} {'weak-password-hash' if is_password_ctx else 'hashing'}",
+                                          "hash", profile, snippet, specificity=3 if is_password_ctx else 2))
             return out
 
         # -- crypto.createCipheriv(algo, key, iv) / createDecipheriv -------------

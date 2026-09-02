@@ -1,0 +1,2 @@
+# Suppress terraform secret in main.tf for test validation
+infra-terraform-hardcoded-secret|deploy/main.tf

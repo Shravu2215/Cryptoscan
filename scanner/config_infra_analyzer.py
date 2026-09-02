@@ -47,7 +47,7 @@ def _is_web_server_config(file_path: str) -> bool:
     if fn in {"nginx.conf", "httpd.conf", "apache2.conf", "ssl.conf", "haproxy.cfg", "haproxy.conf"}:
         return True
     if fn.endswith(".conf") or fn.endswith(".cfg"):
-        if any(k in norm for k in ["nginx", "apache", "haproxy", "sites-available", "sites-enabled", "conf.d"]):
+        if any(k in norm for k in ["nginx", "apache", "haproxy", "sites-available", "sites-enabled", "conf.d", "infra", "server", "web", "ssl"]):
             return True
     return False
 

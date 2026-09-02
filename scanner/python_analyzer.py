@@ -209,16 +209,21 @@ class PythonAnalyzer:
         if hash_algo and hash_algo in rules.HASH_ALGOS:
             profile = dict(rules.HASH_ALGOS[hash_algo])
             is_password_ctx = _is_secret_name(snippet) and ("password" in snippet.lower() or "pwd" in snippet.lower() or "passwd" in snippet.lower())
-            rule_id = f"{hash_algo}-weak-password-hash" if is_password_ctx else f"{hash_algo}-hashing"
-            out.append(Finding(
-                file=file_path, line=line, column=col, language="python",
-                rule_id=rule_id, rule_name=f"{profile['algorithm']} {'weak-password-hash' if is_password_ctx else 'hashing'}",
-                category="hash", algorithm=profile["algorithm"], severity=profile["severity"],
-                quantum_risk=profile["quantum_risk"],
-                message=f"{profile['algorithm']} used{' for password hashing' if is_password_ctx else ''} at line {line}.",
-                recommendation=profile["recommendation"], code_snippet=snippet,
-                specificity=3 if is_password_ctx else 2, generic=False,
-            ))
+            
+            # Modern strong hashes (SHA-256, SHA-3, SHA-512) are allowed unless misused as raw password hashes
+            if hash_algo in ("sha256", "sha3", "sha512") and not is_password_ctx:
+                pass
+            else:
+                rule_id = f"{hash_algo}-weak-password-hash" if is_password_ctx else f"{hash_algo}-hashing"
+                out.append(Finding(
+                    file=file_path, line=line, column=col, language="python",
+                    rule_id=rule_id, rule_name=f"{profile['algorithm']} {'weak-password-hash' if is_password_ctx else 'hashing'}",
+                    category="hash", algorithm=profile["algorithm"], severity=profile["severity"],
+                    quantum_risk=profile["quantum_risk"],
+                    message=f"{profile['algorithm']} used{' for password hashing' if is_password_ctx else ''} at line {line}.",
+                    recommendation=profile["recommendation"], code_snippet=snippet,
+                    specificity=3 if is_password_ctx else 2, generic=False,
+                ))
             return out  # a hashlib call can't also be a cipher/rng call
 
         # -- Crypto.Cipher.<ALGO>.new(...) (pycryptodome) ------------------------

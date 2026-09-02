@@ -1,16 +1,17 @@
 """
 Allow-list and Finding Suppression Layer (.cryptoscan-ignore).
 
-Supports suppressing known or accepted findings either file-wide or on a specific line.
-Format in .cryptoscan-ignore at repo root:
-  # Comments start with #
-  rule_id|relative/path/to/file.py
-  rule_id|relative/path/to/file.py|line_number
+Supports suppressing known or accepted findings using stable identifiers:
+  1. rule_id|relative/path/to/file.ext
+  2. rule_id|relative/path/to/file.ext|line_number
+  3. rule_id|relative/path/to/file.ext|fingerprint
+  4. rule_id|relative/path/to/file.ext|algorithm_or_token
+  5. fingerprint
 
-First-class pipeline stage:
-  - Matching findings are marked with `suppressed: True` and `suppression_reason`.
-  - Suppressed findings remain visible in reports and exports with their suppression status.
-  - Active (unsuppressed) findings are separated for CI/CD gate evaluation.
+Suppressed findings:
+  - Are marked `suppressed = True` with a descriptive reason.
+  - Remain preserved in history and audit reports.
+  - Are excluded from active risk tallies (Critical/High/Medium/Low) and CI/CD fail exits.
 """
 import os
 from typing import List, Set, Tuple, Any
@@ -31,7 +32,6 @@ def _normalize_rel_path(path: str, repo_path: str = "") -> str:
 def load_suppressions(repo_path: str) -> Set[Tuple[Any, ...]]:
     """
     Loads suppression rules from .cryptoscan-ignore in the target repo root.
-    Returns a set containing (rule_id, rel_path) and/or (rule_id, rel_path, line_no).
     """
     suppressions: Set[Tuple[Any, ...]] = set()
     ignore_file = os.path.join(repo_path, ".cryptoscan-ignore")
@@ -47,16 +47,20 @@ def load_suppressions(repo_path: str) -> Set[Tuple[Any, ...]]:
                     continue
 
                 parts = [p.strip() for p in line.split("|")]
-                if len(parts) == 2:
+                if len(parts) == 1:
+                    # Single fingerprint or token
+                    suppressions.add(("FINGERPRINT", parts[0]))
+                elif len(parts) == 2:
                     rule_id, rel_path = parts[0], _normalize_rel_path(parts[1])
                     suppressions.add((rule_id, rel_path))
                 elif len(parts) >= 3:
                     rule_id, rel_path = parts[0], _normalize_rel_path(parts[1])
+                    sub = parts[2]
                     try:
-                        line_no = int(parts[2])
+                        line_no = int(sub)
                         suppressions.add((rule_id, rel_path, line_no))
                     except ValueError:
-                        suppressions.add((rule_id, rel_path))
+                        suppressions.add((rule_id, rel_path, sub))
     except Exception:
         pass
 
@@ -69,25 +73,37 @@ def apply_suppressions(
     repo_path: str = "",
 ) -> Tuple[List[Finding], int]:
     """
-    Marks matching findings as suppressed with reason and returns (active_kept_findings, suppressed_count).
-    Also sets `f.suppressed = True` and `f.suppression_reason` in-place on suppressed finding objects.
+    Marks matching findings as suppressed with reason and returns (all_findings, suppressed_count).
+    Suppressed findings are marked `f.suppressed = True` with `f.suppression_reason` set,
+    so they remain accessible for audit while excluded from active risk counts.
     """
     if not suppressions:
         return findings, 0
 
     suppressed_count = 0
-    kept: List[Finding] = []
 
     for f in findings:
         rel_path = _normalize_rel_path(f.file, repo_path)
         base_name = os.path.basename(f.file)
+        fp = getattr(f, "fingerprint", "")
+        algo = getattr(f, "algorithm", "").lower()
 
         is_suppressed = False
         reason = ""
 
+        # Check line-specific match
         if (f.rule_id, rel_path, f.line) in suppressions:
             is_suppressed = True
             reason = f"Suppressed by rule '{f.rule_id}' on {rel_path}:{f.line}"
+        # Check fingerprint match
+        elif ("FINGERPRINT", fp) in suppressions or (f.rule_id, rel_path, fp) in suppressions:
+            is_suppressed = True
+            reason = f"Suppressed by fingerprint '{fp}' for rule '{f.rule_id}'"
+        # Check algorithm sub-match
+        elif (f.rule_id, rel_path, algo) in suppressions:
+            is_suppressed = True
+            reason = f"Suppressed by algorithm token '{algo}' on {rel_path}"
+        # Check file-wide match
         elif (f.rule_id, rel_path) in suppressions:
             is_suppressed = True
             reason = f"Suppressed by file-wide rule '{f.rule_id}' on {rel_path}"
@@ -102,7 +118,6 @@ def apply_suppressions(
             f.suppressed = True
             f.suppression_reason = reason
             suppressed_count += 1
-        else:
-            kept.append(f)
 
+    kept = [f for f in findings if not f.suppressed]
     return kept, suppressed_count

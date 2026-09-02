@@ -171,7 +171,7 @@ def _analyze_dockerfile(file_path: str, source: str) -> List[Finding]:
                     confidence=Confidence.POSSIBLE,
                     tags=["dockerfile", "weak-algorithm"],
                 ))
-            elif _secret_name_match(var_name) and not _is_placeholder(val) and len(val) >= 4:
+            elif _secret_name_match(var_name) and not _is_placeholder(val) and not rules.is_known_algorithm_or_benign(val) and len(val) >= 4:
                 findings.append(Finding(
                     file=file_path,
                     line=_validate_line_bounds(line_no, total_lines),
@@ -233,7 +233,7 @@ def _analyze_env_file(file_path: str, source: str) -> List[Finding]:
                     confidence=Confidence.POSSIBLE,
                     tags=["env-file", "weak-algorithm"],
                 ))
-            elif _secret_name_match(key) and not _is_placeholder(val) and len(val) >= 4:
+            elif _secret_name_match(key) and not _is_placeholder(val) and not rules.is_known_algorithm_or_benign(val) and len(val) >= 4:
                 findings.append(Finding(
                     file=file_path,
                     line=_validate_line_bounds(line_no, total_lines),
@@ -321,8 +321,8 @@ def _analyze_yaml_json(file_path: str, source: str) -> List[Finding]:
                     confidence=Confidence.POSSIBLE,
                     tags=["config", "weak-algorithm"],
                 ))
-            # 2. Secret check (key matches secret hints, value is non-placeholder)
-            elif _secret_name_match(key) and not _is_placeholder(val) and len(val) >= 4 and not val.startswith("{") and not val.startswith("["):
+            # 2. Secret check (key matches secret hints, value is non-placeholder and non-algorithm)
+            elif _secret_name_match(key) and not _is_placeholder(val) and not rules.is_known_algorithm_or_benign(val) and len(val) >= 4 and not val.startswith("{") and not val.startswith("["):
                 findings.append(Finding(
                     file=file_path,
                     line=_validate_line_bounds(line_no, total_lines),
@@ -387,7 +387,7 @@ def _analyze_ini_conf(file_path: str, source: str) -> List[Finding]:
                     confidence=Confidence.POSSIBLE,
                     tags=["config", "weak-algorithm"],
                 ))
-            elif _secret_name_match(key) and not _is_placeholder(val) and len(val) >= 4:
+            elif _secret_name_match(key) and not _is_placeholder(val) and not rules.is_known_algorithm_or_benign(val) and len(val) >= 4:
                 findings.append(Finding(
                     file=file_path,
                     line=_validate_line_bounds(line_no, total_lines),

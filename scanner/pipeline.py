@@ -144,7 +144,7 @@ def scan_repo(repo_path, scan_id=None):
 
     # Apply allow-list / suppressions from .cryptoscan-ignore
     suppressions = load_suppressions(target_dir)
-    findings, suppressed_count = apply_suppressions(findings, suppressions, repo_path=target_dir)
+    _, suppressed_count = apply_suppressions(findings, suppressions, repo_path=target_dir)
     
     out_findings = []
     for i, f in enumerate(findings):
