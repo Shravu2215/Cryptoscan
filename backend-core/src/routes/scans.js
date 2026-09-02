@@ -129,7 +129,7 @@ router.get('/:scanId/findings', requireAuth, async (req, res) => {
 router.get('/:scanId/cbom', requireAuth, async (req, res) => {
   try {
     const { scanId } = req.params;
-    const scan = await prisma.scan.findUnique({ where: { id: scanId } });
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
 
     const dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
@@ -146,10 +146,21 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
       recommendation: f.recommendation
     }));
 
+    let repoScans = [];
+    if (scan.repoId) {
+      repoScans = await prisma.scan.findMany({
+        where: { repoId: scan.repoId },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, createdAt: true, repoId: true }
+      });
+    }
+
     const cbom = buildCbom({
       scanId: scan.id,
       repoId: scan.repoId,
       createdAt: scan.createdAt,
+      repo: scan.repo,
+      repoScans,
       rawFindings
     });
 
@@ -160,11 +171,88 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
   }
 });
 
+// GET /scan/:scanId/diff
+// Compares this scan's CBOM with the immediately preceding scan's CBOM of the same repository.
+router.get('/:scanId/diff', requireAuth, async (req, res) => {
+  try {
+    const { scanId } = req.params;
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
+    if (!scan) return res.status(404).json({ error: 'Scan not found' });
+
+    let repoScans = [];
+    if (scan.repoId) {
+      repoScans = await prisma.scan.findMany({
+        where: { repoId: scan.repoId },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, createdAt: true, repoId: true }
+      });
+    }
+
+    const currentDbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
+    const currentRawFindings = currentDbFindings.map(f => ({
+      id: f.id,
+      file: f.filePath,
+      line: f.lineNumber,
+      algorithm: f.algorithm,
+      severity: f.severity,
+      quantumStatus: f.quantumStatus,
+      usage: f.usage,
+      recommendation: f.recommendation
+    }));
+
+    const currentCbom = buildCbom({
+      scanId: scan.id,
+      repoId: scan.repoId,
+      createdAt: scan.createdAt,
+      repo: scan.repo,
+      repoScans,
+      rawFindings: currentRawFindings
+    });
+
+    let previousCbom = null;
+    if (scan.repoId && repoScans.length > 1) {
+      const currentIndex = repoScans.findIndex(s => s.id === scan.id);
+      if (currentIndex > 0) {
+        const prevScanMeta = repoScans[currentIndex - 1];
+        const prevScan = await prisma.scan.findUnique({ where: { id: prevScanMeta.id }, include: { repo: true } });
+        if (prevScan) {
+          const prevDbFindings = await prisma.finding.findMany({ where: { scanId: prevScan.id }, orderBy: { id: 'asc' } });
+          const prevRawFindings = prevDbFindings.map(f => ({
+            id: f.id,
+            file: f.filePath,
+            line: f.lineNumber,
+            algorithm: f.algorithm,
+            severity: f.severity,
+            quantumStatus: f.quantumStatus,
+            usage: f.usage,
+            recommendation: f.recommendation
+          }));
+          previousCbom = buildCbom({
+            scanId: prevScan.id,
+            repoId: prevScan.repoId,
+            createdAt: prevScan.createdAt,
+            repo: prevScan.repo,
+            repoScans,
+            rawFindings: prevRawFindings
+          });
+        }
+      }
+    }
+
+    const { computeCbomDiff } = require('../services/cbomDiff');
+    const diff = computeCbomDiff(currentCbom, previousCbom);
+    return res.json(diff);
+  } catch (err) {
+    console.error('CBOM diff error:', err);
+    return res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
 // POST /scan/:scanId/anchor
 router.post('/:scanId/anchor', requireAuth, async (req, res) => {
   try {
     const { scanId } = req.params;
-    let scan = await prisma.scan.findUnique({ where: { id: scanId } });
+    let scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
     if (!scan) {
       if (scanId === 'ffffffff-ffff-ffff-ffff-ffffffffffff') {
         return res.status(404).json({ error: 'Scan not found' });
@@ -194,7 +282,16 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
       usage: f.usage,
       recommendation: f.recommendation
     }));
-    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
+
+    let repoScans = [];
+    if (scan.repoId) {
+      repoScans = await prisma.scan.findMany({
+        where: { repoId: scan.repoId },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, createdAt: true, repoId: true }
+      });
+    }
+    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, repo: scan.repo, repoScans, rawFindings });
     const contentBuffer = Buffer.from(JSON.stringify(cbom));
 
     // Check if we use mock (from frontend or env)
@@ -203,31 +300,43 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
       return res.json({
         txHash: "0x7f3a9a14b51c881249b6d9e034abc88d92bc9f201a9f14",
         onChainHash: "8f4c7a91d2938f45a6b7e8d9c102b3a4f5c6e7d8a9b0c1d2e3f4a5b6c7d8e91a",
-        network: "mocknet"
+        network: "mock",
+        verified: true
       });
     }
 
-    const anchorResult = await anchorScan(scanId, contentBuffer);
+    // Call blockchain-module anchor script
+    const { anchorCBOM } = require('../../../blockchain-module/scripts/anchor');
+    const result = await anchorCBOM(contentBuffer, {
+      scanId: scan.id,
+      orgId: 'cryptoscan-core'
+    });
 
-    // Save to DB
-    await prisma.anchor.upsert({
+    // Save anchor record to DB
+    const anchor = await prisma.anchor.upsert({
       where: { scanId: scan.id },
       update: {
-        contentHash: anchorResult.contentHash,
-        txHash: anchorResult.txHash,
-        signature: anchorResult.signature,
-        network: anchorResult.network || "localhost"
+        contentHash: result.merkleRoot,
+        txHash: result.txHash,
+        signature: result.signature,
+        network: result.network
       },
       create: {
         scanId: scan.id,
-        contentHash: anchorResult.contentHash,
-        txHash: anchorResult.txHash,
-        signature: anchorResult.signature,
-        network: anchorResult.network || "localhost"
+        contentHash: result.merkleRoot,
+        txHash: result.txHash,
+        signature: result.signature,
+        network: result.network
       }
     });
 
-    return res.json(anchorResult);
+    return res.json({
+      txHash: anchor.txHash,
+      onChainHash: anchor.contentHash,
+      signature: anchor.signature,
+      network: anchor.network,
+      blockNumber: result.blockNumber
+    });
   } catch (err) {
     console.error('Anchor error:', err);
     return res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -235,14 +344,19 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
 });
 
 // GET /scan/:scanId/verify
+// Person 5 will connect this to real smart contract verification.
+// For now: read the anchored hash from the Anchor record and compare against
+// the recomputed hash of the current scan findings.
 router.get('/:scanId/verify', requireAuth, async (req, res) => {
   try {
     const { scanId } = req.params;
-    const anchor = await prisma.anchor.findUnique({ where: { scanId } });
-    if (!anchor) return res.status(404).json({ error: 'No anchor found for this scan' });
 
-    // Build current CBOM
-    let dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
+    const anchor = await prisma.anchor.findUnique({ where: { scanId } });
+    if (!anchor) {
+      return res.status(404).json({ error: 'No anchor found for this scan' });
+    }
+
+    const dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
     const rawFindings = dbFindings.map(f => ({
       id: f.id,
       file: f.filePath,
@@ -254,8 +368,16 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
       recommendation: f.recommendation
     }));
     
-    const scan = await prisma.scan.findUnique({ where: { id: scanId } });
-    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
+    let repoScans = [];
+    if (scan && scan.repoId) {
+      repoScans = await prisma.scan.findMany({
+        where: { repoId: scan.repoId },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, createdAt: true, repoId: true }
+      });
+    }
+    const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, repo: scan.repo, repoScans, rawFindings });
     const cbomJson = JSON.stringify(cbom);
 
     // Recompute hash using Merkle root if available (matching anchor.js)
@@ -308,6 +430,48 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Verify error:', err);
+    return res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+// POST /simulate/migration
+// Simulation-only endpoint — evaluates PQC migration for a single crypto component.
+// NEVER mutates source code, scan data, CBOM, database, or blockchain/IPFS.
+router.post('/simulate/migration', requireAuth, (req, res) => {
+  try {
+    const { simulateMigration } = require('../services/migrationSimulation');
+    const component = req.body;
+    if (!component || typeof component !== 'object' || Array.isArray(component)) {
+      return res.status(400).json({ error: 'Request body must be a single crypto component object.' });
+    }
+    const result = simulateMigration(component);
+    if (!result.simulationValid) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('Migration simulation error:', err);
+    return res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+// POST /simulate/migration/batch
+// Simulation-only endpoint — evaluates PQC migration for multiple components at once.
+// NEVER mutates source code, scan data, CBOM, database, or blockchain/IPFS.
+router.post('/simulate/migration/batch', requireAuth, (req, res) => {
+  try {
+    const { simulateMigrationBatch } = require('../services/migrationSimulation');
+    const components = req.body;
+    if (!Array.isArray(components)) {
+      return res.status(400).json({ error: 'Request body must be an array of crypto component objects.' });
+    }
+    const result = simulateMigrationBatch(components);
+    if (!result.simulationValid) {
+      return res.status(400).json(result);
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('Batch migration simulation error:', err);
     return res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });

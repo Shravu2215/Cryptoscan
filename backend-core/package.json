@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "test": "node test/scans.test.js",
+    "test": "node test/cbom2.test.js && node test/cbomVersioning.test.js && node test/cbomDiff.test.js && node test/hndlScoring.test.js && node test/businessContext.test.js && node test/pqcRecommendation.test.js && node test/migrationSimulation.test.js && node test/scans.test.js",
     "postinstall": "node scripts/install-scanner.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
