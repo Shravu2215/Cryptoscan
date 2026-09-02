@@ -21,6 +21,7 @@ and URL-encode special characters in the password.
 | POST   | /auth/signup           | No   | creates new user |
 | POST   | /auth/login             | No   | returns JWT |
 | POST   | /repos/upload           | Yes  | multipart, field name `repo`, .zip only |
+| POST   | /repos/github          | Yes  | JSON `{ "url": "https://github.com/owner/repository" }`, public repositories |
 | POST   | /scan/:repoId            | Yes  | creates Scan row, triggers scanner engine |
 | GET    | /scan/:scanId/findings   | Yes  | reads real DB findings rows |
 | GET    | /scan/:scanId/cbom       | Yes  | builds CycloneDX-compliant CBOM |

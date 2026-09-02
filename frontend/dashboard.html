@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Dashboard Ã¢â‚¬â€œ CryptoScan</title>
+<title>Dashboard - CryptoScan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -419,42 +419,42 @@ tbody tr:hover { background: var(--bg-card-hover); }
       <div class="scard scard-primary">
         <div class="sc-lbl">Repositories</div>
         <div class="sc-val" id="stat-repos">
-          <span class="empty-val">Ã¢â‚¬â€</span>
+          <span class="empty-val">-</span>
         </div>
         <div class="empty-sub" id="stat-repos-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Total Scans</div>
         <div class="sc-val" id="stat-scans">
-          <span class="empty-val">Ã¢â‚¬â€</span>
+          <span class="empty-val">-</span>
         </div>
         <div class="empty-sub" id="stat-scans-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Total Findings</div>
         <div class="sc-val" id="stat-findings">
-          <span class="empty-val">Ã¢â‚¬â€</span>
+          <span class="empty-val">-</span>
         </div>
         <div class="empty-sub" id="stat-findings-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Critical</div>
         <div class="sc-val" style="color: var(--red);" id="stat-critical">
-          <span class="empty-val">Ã¢â‚¬â€</span>
+          <span class="empty-val">-</span>
         </div>
         <div class="empty-sub" id="stat-critical-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">High</div>
         <div class="sc-val" style="color: var(--amber);" id="stat-high">
-          <span class="empty-val">Ã¢â‚¬â€</span>
+          <span class="empty-val">-</span>
         </div>
         <div class="empty-sub" id="stat-high-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Quantum Risk</div>
         <div class="sc-val" style="color: var(--purple);" id="stat-quantum">
-          <span class="empty-val">Ã¢â‚¬â€</span>
+          <span class="empty-val">-</span>
         </div>
         <div class="empty-sub" id="stat-quantum-sub">Awaiting scan data</div>
       </div>
@@ -573,7 +573,7 @@ function updateStat(id, value, hasData) {
     el.innerHTML = value;
     sub.style.display = 'none';
   } else {
-    el.innerHTML = '<span class="empty-val">Ã¢â‚¬â€</span>';
+    el.innerHTML = '<span class="empty-val">-</span>';
     sub.style.display = 'block';
   }
 }
