@@ -11,10 +11,10 @@ from models import Severity, QuantumRisk
 # Hash algorithms
 # ---------------------------------------------------------------------------
 HASH_ALGOS = {
-    "md5":     dict(algorithm="MD5",     severity=Severity.HIGH,   quantum_risk=QuantumRisk.CLASSICAL_RISK,
+    "md5":     dict(algorithm="MD5",     severity=Severity.CRITICAL,   quantum_risk=QuantumRisk.CLASSICAL_RISK,
                      recommendation="Replace MD5 with SHA-256/SHA-3. If used for password storage, use "
                                      "a memory-hard KDF (argon2id, scrypt, bcrypt) instead of a raw hash."),
-    "sha1":    dict(algorithm="SHA-1",   severity=Severity.MEDIUM, quantum_risk=QuantumRisk.CLASSICAL_RISK,
+    "sha1":    dict(algorithm="SHA-1",   severity=Severity.HIGH, quantum_risk=QuantumRisk.CLASSICAL_RISK,
                      recommendation="SHA-1 has known collision attacks. Replace with SHA-256 or SHA-3-256."),
     "sha256":  dict(algorithm="SHA-256", severity=Severity.LOW,    quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
                      recommendation="SHA-256 is currently fine; Grover's algorithm only halves effective "
@@ -52,11 +52,14 @@ def symmetric_profile(algo: str, mode: str, key_bits: int = None):
         # Non-AEAD mode. Severity is intentionally NOT critical by itself - it only becomes
         # critical when combined with another concrete red flag (hardcoded key, static/reused IV,
         # no separate MAC). Caller escalates severity when those companion flags are present.
-        return dict(algorithm=label, severity=Severity.LOW, quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
+        # Key size is a factor: AES-128 is Medium, AES-256 is Low.
+        sev = Severity.LOW if (key_bits and key_bits >= 256) else Severity.MEDIUM
+        return dict(algorithm=label, severity=sev, quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
                      recommendation=f"{mode} mode provides no built-in integrity/authentication. Prefer "
                                      "AES-256-GCM. If CBC must be kept, pair it with a separate "
                                      "encrypt-then-MAC (HMAC-SHA-256).")
-    return dict(algorithm=label, severity=Severity.MEDIUM, quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
+    sev = Severity.LOW if (key_bits and key_bits >= 256) else Severity.MEDIUM
+    return dict(algorithm=label, severity=sev, quantum_risk=QuantumRisk.QUANTUM_WEAKENED,
                  recommendation="Verify this cipher mode provides authenticated encryption; prefer "
                                  "AES-256-GCM.")
 
@@ -153,6 +156,45 @@ SECRET_NAME_HINTS = (
     "salt", "session", "privatekey", "private_key", "otp", "pin", "reset",
     "seed",
 )
+
+
+import re as _re
+
+def _tokenize_identifier(name: str):
+    """
+    Split an identifier into lowercase tokens on word boundaries.
+
+    Handles:
+      - UPPER_CASE_UNDERSCORED  → ["upper", "case", "underscored"]
+      - camelCase / PascalCase  → ["camel", "case"] / ["pascal", "case"]
+      - kebab-case              → ["kebab", "case"]
+      - mixed                   → all of the above combined
+
+    Returns a list of lowercase token strings.
+    """
+    # Insert a separator before each uppercase letter that follows a lowercase
+    # letter or digits (camelCase split), then split on non-alphanumeric chars.
+    s = _re.sub(r'(?<=[a-z0-9])(?=[A-Z])', '_', name)
+    return [t.lower() for t in _re.split(r'[^a-zA-Z0-9]+', s) if t]
+
+
+def matches_secret_hint(name: str) -> bool:
+    """
+    Return True if the identifier/variable name contains a SECRET_NAME_HINTS
+    token at a whole-word boundary — NOT as a raw substring.
+
+    Examples:
+      matches_secret_hint("API_KEY")                   → True  (hint "key" == token)
+      matches_secret_hint("DB_PASSWORD")               → True  (hint "password" == token)
+      matches_secret_hint("AUTH_TOKEN")                → True  (hints "auth", "token" == tokens)
+      matches_secret_hint("NODE_TLS_REJECT_UNAUTHORIZED") → False (no token equals "auth")
+      matches_secret_hint("TOKENIZER_MODEL_PATH")      → False (no token equals "token")
+      matches_secret_hint("KEYBOARD_LAYOUT")           → False (no token equals "key")
+      matches_secret_hint("AUTHOR_NAME")               → False (no token equals "auth")
+      matches_secret_hint("PASSWORD_POLICY_MIN_LENGTH") → True (token "password" == hint)
+    """
+    tokens = set(_tokenize_identifier(name))
+    return any(hint in tokens for hint in SECRET_NAME_HINTS)
 
 # ---------------------------------------------------------------------------
 # Symmetric constructions that aren't a single primitive call (e.g. Fernet,

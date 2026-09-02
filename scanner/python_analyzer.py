@@ -101,8 +101,8 @@ def _resolve_bytes_len(node) -> Optional[int]:
 
 
 def _is_secret_name(name: str) -> bool:
-    n = (name or "").lower()
-    return any(hint in n for hint in rules.SECRET_NAME_HINTS)
+    """Delegates to the shared word-boundary matcher in rules."""
+    return rules.matches_secret_hint(name)
 
 
 def _line_src(source_lines, lineno):

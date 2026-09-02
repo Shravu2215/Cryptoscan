@@ -22,19 +22,19 @@ from models import Finding
 
 
 def dedup(findings: List[Finding]) -> List[Finding]:
-    # Pass 1: collapse exact duplicates (same call_site + rule_id).
+    # Pass 1: collapse exact duplicates (same file + line + rule_id).
     seen = {}
     for f in findings:
-        key = (f.call_site, f.rule_id)
+        key = (f.file, f.line, f.rule_id)
         if key not in seen:
             seen[key] = f
     deduped = list(seen.values())
 
-    # Pass 2: group by call_site; drop generic findings if a specific one
-    # exists for the same call site.
+    # Pass 2: group by (file, line); drop generic findings if a specific one
+    # exists for the same call site / line.
     by_site = {}
     for f in deduped:
-        by_site.setdefault(f.call_site, []).append(f)
+        by_site.setdefault((f.file, f.line), []).append(f)
 
     out: List[Finding] = []
     for site, group in by_site.items():

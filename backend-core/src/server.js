@@ -18,6 +18,9 @@ app.use('/api/auth', authRoutes);
 app.use('/repos', repoRoutes);
 app.use('/scan', scanRoutes);
 
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../../frontend')));
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });

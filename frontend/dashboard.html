@@ -3,20 +3,12 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Dashboard — CryptoScan</title>
-  <script>
-    function initTheme() {
-      if (localStorage.getItem('cs_theme') === 'light') {
-        document.documentElement.classList.add('light-mode');
-      }
-    }
-    initTheme();
-  </script>
+<title>Dashboard Ã¢â‚¬â€œ CryptoScan</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="assets/js/engine.js"></script>
+<script src="engine.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -55,20 +47,6 @@
   --sb-w: 240px;
   --t: .2s ease;
 }
-    :root.light-mode {
-      --bg-main: #f8fafc;
-      --bg-sidebar: #ffffff;
-      --bg-card: #ffffff;
-      --bg-card-hover: #f1f5f9;
-      --border-color: #e2e8f0;
-      --border-light: #e2e8f0;
-
-      --text-h: #0f172a;
-      --text-b: #334155;
-      --text-m: #475569;
-      --text-s: #64748b;
-    }
-
 
 html { font-size: 14px; }
 body {
@@ -245,7 +223,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .qa-ttl { font-size: 13px; font-weight: 500; color: var(--text-h); }
 
 /* Profile Avatar */
-.profile-avatar-wrap { position: relative; display: flex; align-items: center; }
+.profile-avatar-wrap { position: relative; }
 .profile-avatar {
   width: 36px; height: 36px; border-radius: 50%;
   background: linear-gradient(135deg, #15803d, #22c55e);
@@ -387,14 +365,11 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         New Scan
       </button>
+    </div>
+  
     <!-- Profile Avatar -->
     <div class="profile-avatar-wrap">
-      
-        <button class="theme-toggle" id="theme-btn" title="Toggle Theme" style="background:transparent;border:none;color:var(--text-m);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px;border-radius:var(--r-sm);transition:all 0.2s;margin-right:16px;">
-          <svg id="theme-icon-moon" style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
-          <svg id="theme-icon-sun" style="width:20px;height:20px;display:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        </button>
-        <button class="profile-avatar" id="profile-btn" title="Account">
+      <button class="profile-avatar" id="profile-btn" title="Account">
         <span class="profile-initials" id="profile-initials">U</span>
       </button>
       <div class="profile-dropdown" id="profile-dropdown">
@@ -410,7 +385,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
           Settings
         </a>
-        <a class="pd-item pd-logout" href="javascript:void(0)" onclick="if(typeof Auth !== 'undefined'){Auth.logout();}else{localStorage.clear();window.location.href='login.html';}">
+        <a class="pd-item pd-logout" href="#" onclick="event.preventDefault(); Auth.logout();">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
           Logout
         </a>
@@ -444,42 +419,42 @@ tbody tr:hover { background: var(--bg-card-hover); }
       <div class="scard scard-primary">
         <div class="sc-lbl">Repositories</div>
         <div class="sc-val" id="stat-repos">
-          <span class="empty-val">—</span>
+          <span class="empty-val">Ã¢â‚¬â€</span>
         </div>
         <div class="empty-sub" id="stat-repos-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Total Scans</div>
         <div class="sc-val" id="stat-scans">
-          <span class="empty-val">—</span>
+          <span class="empty-val">Ã¢â‚¬â€</span>
         </div>
         <div class="empty-sub" id="stat-scans-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Total Findings</div>
         <div class="sc-val" id="stat-findings">
-          <span class="empty-val">—</span>
+          <span class="empty-val">Ã¢â‚¬â€</span>
         </div>
         <div class="empty-sub" id="stat-findings-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Critical</div>
         <div class="sc-val" style="color: var(--red);" id="stat-critical">
-          <span class="empty-val">—</span>
+          <span class="empty-val">Ã¢â‚¬â€</span>
         </div>
         <div class="empty-sub" id="stat-critical-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">High</div>
         <div class="sc-val" style="color: var(--amber);" id="stat-high">
-          <span class="empty-val">—</span>
+          <span class="empty-val">Ã¢â‚¬â€</span>
         </div>
         <div class="empty-sub" id="stat-high-sub">Awaiting scan data</div>
       </div>
       <div class="scard">
         <div class="sc-lbl">Quantum Risk</div>
         <div class="sc-val" style="color: var(--purple);" id="stat-quantum">
-          <span class="empty-val">—</span>
+          <span class="empty-val">Ã¢â‚¬â€</span>
         </div>
         <div class="empty-sub" id="stat-quantum-sub">Awaiting scan data</div>
       </div>
@@ -598,7 +573,7 @@ function updateStat(id, value, hasData) {
     el.innerHTML = value;
     sub.style.display = 'none';
   } else {
-    el.innerHTML = '<span class="empty-val">—</span>';
+    el.innerHTML = '<span class="empty-val">Ã¢â‚¬â€</span>';
     sub.style.display = 'block';
   }
 }
@@ -607,25 +582,21 @@ function renderDashboardData() {
   const data = CryptoEngine.getData();
   const hasData = data.repositories && data.repositories.length > 0;
   
+  const allFindings = (data.scans || []).flatMap(s => s.findings || []);
+  const totalFindings = allFindings.length || data.totalFindings || 0;
+  
+  const critCount = allFindings.filter(f => (f.severity || '').toLowerCase() === 'critical').length;
+  const highCount = allFindings.filter(f => (f.severity || '').toLowerCase() === 'high').length;
+  const medCount = allFindings.filter(f => (f.severity || '').toLowerCase() === 'medium').length;
+  const lowCount = allFindings.filter(f => (f.severity || '').toLowerCase() === 'low').length;
+  const quantCount = allFindings.filter(f => f.quantum === 'yes' || (f.quantumStatus || '').toLowerCase().includes('vulnerable')).length;
+  
   updateStat('stat-repos', data.repositories ? data.repositories.length : 0, hasData);
   updateStat('stat-scans', data.totalScans || 0, hasData);
-  updateStat('stat-findings', data.totalFindings || 0, hasData);
-  updateStat('stat-critical', data.criticalFindings || 0, hasData);
-  
-  const allFindings = (data.scans || []).flatMap(s => s.findings || []);
-  let highCount = 0;
-  let medCount = 0;
-  let lowCount = 0;
-  
-  allFindings.forEach(f => {
-    const sev = (f.severity || '').toUpperCase();
-    if (sev === 'HIGH') highCount++;
-    else if (sev === 'MEDIUM') medCount++;
-    else if (sev === 'LOW') lowCount++;
-  });
-  
+  updateStat('stat-findings', totalFindings, hasData);
+  updateStat('stat-critical', critCount, hasData);
   updateStat('stat-high', highCount, hasData); 
-  updateStat('stat-quantum', data.quantumVulnerable || 0, hasData);
+  updateStat('stat-quantum', quantCount, hasData);
 
   // Render Table
   const tbl = document.getElementById('tbl-repos');
@@ -655,17 +626,14 @@ function renderDashboardData() {
   const riskContent = document.getElementById('risk-dist-content');
   const riskEmpty = document.getElementById('empty-risk-dist');
   
-  if (hasData && data.totalFindings > 0) {
+  if (hasData && totalFindings > 0) {
     riskContent.style.display = 'block';
     riskEmpty.style.display = 'none';
-    // Simplified distribution based on available data (no fake percentages)
-    let critPct = (data.criticalFindings / data.totalFindings) * 100;
-    let otherPct = 100 - critPct; 
     
-    document.getElementById('rb-crit').style.width = critPct + '%';
-    document.getElementById('rb-high').style.width = '0%';
-    document.getElementById('rb-med').style.width = otherPct + '%'; 
-    document.getElementById('rb-low').style.width = '0%';
+    document.getElementById('rb-crit').style.width = (critCount / totalFindings) * 100 + '%';
+    document.getElementById('rb-high').style.width = (highCount / totalFindings) * 100 + '%';
+    document.getElementById('rb-med').style.width = (medCount / totalFindings) * 100 + '%'; 
+    document.getElementById('rb-low').style.width = (lowCount / totalFindings) * 100 + '%';
   } else {
     riskContent.style.display = 'none';
     riskEmpty.style.display = 'flex';
@@ -676,14 +644,14 @@ function renderDashboardData() {
   const risksEmpty = document.getElementById('empty-top-risks');
   const risksList = document.getElementById('top-risks-list');
   
-  const topRisksFindings = (data.scans || []).flatMap(s => s.findings || []);
+  const allFindings = (data.scans || []).flatMap(s => s.findings || []);
   
-  if (topRisksFindings.length > 0) {
+  if (allFindings.length > 0) {
     risksContent.style.display = 'block';
     risksEmpty.style.display = 'none';
     
     const algoMap = {};
-    topRisksFindings.forEach(f => {
+    allFindings.forEach(f => {
       const algo = f.algorithm || f.ruleId || 'Unknown';
       if(!algoMap[algo]) algoMap[algo] = { count: 0, severity: f.severity || 'Medium' };
       algoMap[algo].count++;
@@ -703,7 +671,7 @@ function renderDashboardData() {
             <div class="risk-algo">${algo}</div>
             <div class="risk-count">${item.count} affected file${item.count > 1 ? 's' : ''}</div>
           </div>
-          <span class="badge ${badgeClass}">${item.severity.toUpperCase()}</span>
+          <span class="badge ${badgeClass}">${item.severity}</span>
         </div>
       `;
     }).join('');
@@ -731,13 +699,9 @@ function syncBadges() {
 window.addEventListener('load', syncBadges);
 window.addEventListener('cryptoscan_data_updated', syncBadges);
 </script>
-<script src="assets/js/auth.js?v=2"></script>
-
-
+<script src="auth.js"></script>
 </body>
 </html>
-
-
 
 
 

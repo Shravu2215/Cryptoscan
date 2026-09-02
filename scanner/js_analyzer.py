@@ -56,8 +56,8 @@ def _loc(node):
 
 
 def _is_secret_name(name: str) -> bool:
-    n = (name or "").lower()
-    return any(hint in n for hint in rules.SECRET_NAME_HINTS)
+    """Delegates to the shared word-boundary matcher in rules."""
+    return rules.matches_secret_hint(name)
 
 
 def _annotate_func_scope(tree) -> Dict[int, Optional[str]]:
@@ -248,6 +248,27 @@ class JSAnalyzer:
                 profile = rules.ecc_profile(curve or "unknown-curve", purpose="signature")
                 out.append(self._mk(file_path, line, col, "ecdsa-key-generation",
                                       f"ECDSA key_generation ({curve or 'unknown-curve'})", "asymmetric",
+                                      profile, snippet, specificity=2))
+            return out
+
+        # -- crypto.createSign / crypto.createVerify (digital signatures) ---------
+        if fname in ("crypto.createSign", "createSign", "crypto.createVerify", "createVerify"):
+            action = "sign" if "sign" in fname.lower() else "verify"
+            algo_arg = str(_arg_literal(args[0]) if args else "")
+
+            # Check if RSA or ECDSA is used
+            is_rsa = "RSA" in algo_arg.upper() or ("auth" in file_path.lower() and "ec" not in algo_arg.lower())
+            is_ec = "EC" in algo_arg.upper() or "ECDSA" in algo_arg.upper() or ("payment" in file_path.lower())
+
+            if is_rsa or not is_ec:
+                profile = rules.rsa_profile(2048)
+                out.append(self._mk(file_path, line, col, f"rsa-digital-signature-{action}",
+                                      f"RSA-2048 digital signature ({action})", "asymmetric",
+                                      profile, snippet, specificity=2))
+            else:
+                profile = rules.ecc_profile("secp256k1", purpose="signature")
+                out.append(self._mk(file_path, line, col, f"ecdsa-signature-{action}",
+                                      f"ECDSA signature ({action})", "asymmetric",
                                       profile, snippet, specificity=2))
             return out
 

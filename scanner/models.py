@@ -40,6 +40,19 @@ class QuantumRisk(str, Enum):
     SAFE = "Safe"
 
 
+class Confidence(str, Enum):
+    """Cross-layer corroboration tier. Added by Person 1 (Detection Layers).
+
+    CONFIRMED  — 2+ independent detection layers agree on the same issue.
+    LIKELY     — one strong signal (e.g. resolved AST call against a known library,
+                 or entropy-secret-high-confidence).  Default for AST findings.
+    POSSIBLE   — weak/single signal (regex-only, or entropy-name-hint-only).
+    """
+    CONFIRMED = "Confirmed"
+    LIKELY = "Likely"
+    POSSIBLE = "Possible"
+
+
 @dataclass
 class Finding:
     file: str
@@ -59,13 +72,22 @@ class Finding:
     generic: bool = False        # True for catch-all rules like "AES encryption"
     call_site: str = ""           # normalized (file:line:col) key used for dedup grouping
     tags: list = field(default_factory=list)
+    # Confidence tier: set by the source analyzer; can be promoted to CONFIRMED
+    # by confidence.promote_confirmed() when 2+ layers corroborate the same site.
+    # Default=LIKELY preserves the existing behaviour for all AST-only findings.
+    confidence: Confidence = field(default=None)
 
     def __post_init__(self):
         if not self.call_site:
             self.call_site = f"{self.file}:{self.line}:{self.column}"
+        # Apply default here (not in field default) so that analyzers that
+        # explicitly pass confidence=Confidence.POSSIBLE aren't overridden.
+        if self.confidence is None:
+            self.confidence = Confidence.LIKELY
 
     def to_dict(self):
         d = asdict(self)
         d["severity"] = self.severity.value
         d["quantum_risk"] = self.quantum_risk.value
+        d["confidence"] = self.confidence.value  # additive key — no existing keys changed
         return d

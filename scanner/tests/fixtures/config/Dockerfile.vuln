@@ -1,0 +1,13 @@
+# Vulnerable Dockerfile — contains hardcoded secret in ENV and disabled TLS
+FROM node:18-alpine
+
+# Hardcoded secret — should trigger dockerfile-hardcoded-secret
+ENV SECRET_KEY=d8f3a9c1e4b7f2a0dc3e5b8f1a4c7e0b2d5f8a1c4e7b0d3f6a9c2e5b8f1a4c7
+
+# TLS disabled — should trigger tls-verification-disabled
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node", "server.js"]

@@ -801,9 +801,9 @@ function populateLibraryFilter() {
 }
 
 function updateSummaryStats() {
-  document.getElementById('stat-components').textContent = inventory.length;
-  
   const algos = new Set(inventory.map(c => c.algorithm));
+  
+  document.getElementById('stat-components').textContent = inventory.length;
   document.getElementById('stat-algorithms').textContent = algos.size;
   
   const libs = new Set(inventory.map(c => c.library));

@@ -222,6 +222,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
 .badge-med { background: var(--yellow-bg); color: var(--yellow); border-color: rgba(234, 179, 8, 0.2); }
 .badge-low { background: var(--gray-bg); color: var(--gray); border-color: rgba(113, 113, 122, 0.2); }
 .badge-quant { background: var(--purple-bg); color: var(--purple); border-color: rgba(139, 92, 246, 0.2); }
+.badge-conf { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-color: rgba(56, 189, 248, 0.2); }
+.badge-likely { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border-color: rgba(148, 163, 184, 0.2); }
+.badge-poss { background: rgba(100, 116, 139, 0.1); color: #64748b; border-color: rgba(100, 116, 139, 0.2); }
 
 /* Empty States */
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
@@ -550,6 +553,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
                     <th>File</th>
                     <th>Line</th>
                     <th>Status</th>
+                    <th>Confidence</th>
                   </tr>
                 </thead>
                 <tbody id="findings-tbody"></tbody>
@@ -780,6 +784,11 @@ function getBadgeClass(sev) {
   if(sev === 'MEDIUM') return 'badge-med';
   return 'badge-low';
 }
+function getConfBadgeClass(conf) {
+  if(conf === 'Confirmed') return 'badge-conf';
+  if(conf === 'Likely') return 'badge-likely';
+  return 'badge-poss';
+}
 
 function updateRiskChart() {
   if (allFindings.length === 0) {
@@ -927,6 +936,8 @@ function renderTable() {
     const purpose = f.usage || f.category || '-';
     const quant = isQuantum(f) ? 'Vulnerable' : 'Safe';
     const qClass = isQuantum(f) ? 'badge-quant' : 'badge-safe';
+    const conf = f.confidence || 'Likely';
+    const confClass = getConfBadgeClass(conf);
     
     return `
       <tr class="finding-row" style="cursor:pointer;" data-index="${i}">
@@ -936,6 +947,7 @@ function renderTable() {
         <td><span class="code-font" style="color:var(--text-m);">${f.file || 'unknown'}</span></td>
         <td><span class="code-font" style="color:var(--text-m);">${f.line || '?'}</span></td>
         <td><span class="badge ${qClass}">${quant}</span></td>
+        <td><span class="badge ${confClass}">${conf}</span></td>
       </tr>
     `;
   }).join('');

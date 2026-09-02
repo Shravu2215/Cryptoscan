@@ -9,9 +9,12 @@ import shutil
 # Make sure we can import from scanner
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from python_analyzer import PythonAnalyzer
-from js_analyzer import JSAnalyzer
-from dedup import dedup
+from scanner.python_analyzer import PythonAnalyzer
+from scanner.js_analyzer import JSAnalyzer
+from scanner.dedup import dedup
+from scanner.regex_analyzer import RegexAnalyzer
+from scanner.entropy_analyzer import EntropyAnalyzer
+from scanner.confidence import promote_confirmed
 
 def scan_repo(repo_path, scan_id=None):
     scan_id = scan_id or str(uuid.uuid4())
@@ -31,18 +34,16 @@ def scan_repo(repo_path, scan_id=None):
 
     py = PythonAnalyzer()
     js = JSAnalyzer()
+    rx = RegexAnalyzer()
+    ent = EntropyAnalyzer()
     findings = []
     
     for root, dirs, files in os.walk(target_dir):
         # exclude common dirs
-        dirs[:] = [d for d in dirs if d not in {"node_modules", ".git", "venv", ".venv", "__pycache__", "vendor", "vendors", "bower_components"}]
+        dirs[:] = [d for d in dirs if d not in {"node_modules", ".git", "venv", ".venv", "__pycache__", "vendor", "vendors", "bower_components", "dist", "build"}]
         for fn in files:
             path = os.path.join(root, fn)
             ext = os.path.splitext(fn)[1]
-            norm_path = path.replace("\\", "/")
-            if fn.endswith(".min.js") or "/static/js/" in norm_path or "/vendor/" in norm_path or "/vendors/" in norm_path:
-                continue
-
             try:
                 with open(path, "r", encoding="utf-8", errors="ignore") as fh:
                     source = fh.read()
@@ -51,10 +52,18 @@ def scan_repo(repo_path, scan_id=None):
             
             if ext == ".py":
                 findings.extend(py.analyze(path, source))
+                findings.extend(ent.analyze(path, source))
             elif ext in {".js", ".mjs", ".cjs", ".jsx"}:
                 findings.extend(js.analyze(path, source))
+                findings.extend(ent.analyze(path, source))
+            elif (ext in {".yml", ".yaml", ".json", ".ini", ".conf", ".env"}
+                  or fn.startswith(".env")
+                  or fn == "Dockerfile" or fn.startswith("Dockerfile.")):
+                findings.extend(rx.analyze(path, source))
+                findings.extend(ent.analyze(path, source))
                 
     findings = dedup(findings)
+    findings = promote_confirmed(findings)
     
     out_findings = []
     for i, f in enumerate(findings):
@@ -70,7 +79,8 @@ def scan_repo(repo_path, scan_id=None):
             "quantum_risk": f.quantum_risk.value,
             "message": f.message,
             "recommendation": f.recommendation,
-            "raw_call": getattr(f, 'code_snippet', '')
+            "raw_call": getattr(f, 'code_snippet', ''),
+            "confidence": f.confidence.value,
         })
 
     if temp_dir:

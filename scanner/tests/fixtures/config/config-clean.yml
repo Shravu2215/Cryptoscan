@@ -1,0 +1,22 @@
+# Clean YAML config — zero secrets, all safe defaults (negative control)
+# This file should produce ZERO findings from the regex/entropy analyzers.
+
+database:
+  host: db.internal.example.com
+  port: 5432
+  # Password loaded from environment variable — not a literal secret
+  password: ${DATABASE_PASSWORD}
+
+http_client:
+  timeout: 30
+  # TLS verification is enabled (secure default)
+  verify: true
+  pool_size: 10
+
+cache:
+  backend: redis
+  url: redis://localhost:6379
+
+logging:
+  level: info
+  format: json

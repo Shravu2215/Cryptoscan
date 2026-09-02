@@ -17,13 +17,17 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from python_analyzer import PythonAnalyzer
-from js_analyzer import JSAnalyzer
-from dedup import dedup
-import report
+from scanner.python_analyzer import PythonAnalyzer
+from scanner.js_analyzer import JSAnalyzer
+from scanner.dedup import dedup
+from scanner.regex_analyzer import RegexAnalyzer
+from scanner.entropy_analyzer import EntropyAnalyzer
+from scanner.confidence import promote_confirmed
+from scanner import report
 
 PY_EXT = {".py"}
 JS_EXT = {".js", ".mjs", ".cjs", ".jsx"}
+CONFIG_EXT = {".yml", ".yaml", ".json", ".ini", ".conf", ".env"}
 SKIP_DIRS = {"node_modules", ".git", "__pycache__", "venv", ".venv", "dist", "build"}
 
 
@@ -35,17 +39,24 @@ def iter_source_files(root, extensions):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for fn in filenames:
             ext = os.path.splitext(fn)[1]
+            # Always yield Dockerfiles and .env files regardless of extension filter
+            if fn == "Dockerfile" or fn.startswith("Dockerfile.") or fn.startswith(".env"):
+                yield os.path.join(dirpath, fn)
+                continue
             if ext in extensions:
                 yield os.path.join(dirpath, fn)
 
 
 def scan(root, extensions=None):
-    extensions = extensions or (PY_EXT | JS_EXT)
+    extensions = extensions or (PY_EXT | JS_EXT | CONFIG_EXT)
     py = PythonAnalyzer()
     js = JSAnalyzer()
+    rx = RegexAnalyzer()
+    ent = EntropyAnalyzer()
     findings = []
     for path in iter_source_files(root, extensions):
         ext = os.path.splitext(path)[1]
+        fn = os.path.basename(path)
         try:
             with open(path, "r", encoding="utf-8", errors="ignore") as fh:
                 source = fh.read()
@@ -53,9 +64,18 @@ def scan(root, extensions=None):
             continue
         if ext in PY_EXT:
             findings.extend(py.analyze(path, source))
+            findings.extend(ent.analyze(path, source))
         elif ext in JS_EXT:
             findings.extend(js.analyze(path, source))
-    return dedup(findings)
+            findings.extend(ent.analyze(path, source))
+        elif (ext in CONFIG_EXT
+              or fn.startswith(".env")
+              or fn == "Dockerfile" or fn.startswith("Dockerfile.")):
+            findings.extend(rx.analyze(path, source))
+            findings.extend(ent.analyze(path, source))
+    findings = dedup(findings)
+    findings = promote_confirmed(findings)
+    return findings
 
 
 def main():
