@@ -1,8 +1,9 @@
-# CBOM + Findings Module (Job 3)
+# CBOM + Findings Service
 
-Serves scanner findings and generates a Cryptographic Bill of Materials
-(CBOM). No hardcoded `RSA -> ML-KEM` mapping, no random vulnerability
-scores — both are real, explainable logic (see below).
+Serves scanner findings and generates a standardized CycloneDX Cryptographic Bill of Materials (CBOM). Provides explainable, purpose-based post-quantum migration recommendations (e.g. ML-KEM for key exchange, ML-DSA for signatures) and transparent vulnerability scoring.
+
+> **Architectural Note**: This directory houses the **standalone CBOM microservice & test harness** (listening on `http://localhost:4003`). In the full-stack CryptoScan deployment, these same core CBOM generation algorithms are embedded natively within `backend-core` (running on `http://localhost:3000`), allowing the platform to run monolithically without requiring an external microservice process.
+
 
 ## Run it
 

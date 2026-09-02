@@ -2,22 +2,21 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { ethers } = require('ethers');
+const { buildMerkleTree } = require('../../integrity-service/merkle');
+const { getSigningKey } = require('../../integrity-service/kms');
+const { requestTimestamp } = require('../../integrity-service/timestamp');
 require('dotenv').config();
 
 /**
- * Real anchor flow — no dummy tx id, no fake signature:
- *   1. SHA-256 hash the scan content (findings + CBOM JSON, byte-for-byte)
- *   2. Sign that hash with the wallet's private key (ECDSA, real signature)
- *   3. Submit a real transaction to CryptoAnchor.anchorScan() on-chain
- *   4. Return { contentHash, signature, txHash } — this is exactly what
- *      backend-core writes into the Anchor table.
+ * Real anchor flow — Merkle-tree root commitment + KMS signing + RFC 3161 timestamping:
+ *   1. Extract/parse CBOM components and compute deterministic Merkle root (via merkle.js)
+ *   2. Obtain an RFC 3161 trusted timestamp for the Merkle root (via timestamp.js)
+ *   3. Sign the Merkle root content commitment with the KMS-managed key (ECDSA, secp256k1)
+ *   4. Submit a real transaction to CryptoAnchor.anchorScan(scanId, contentHash) on-chain
+ *   5. Return { scanId, contentHash, signature, txHash, merkleRoot, timestamp, ... }
  *
  * Usage:
  *   node scripts/anchor.js <scanId> <path-to-content-json>
- *
- * In production this logic gets called from the
- * POST /scan/:scanId/anchor route (module 4/5) instead of the CLI —
- * same three steps, just triggered over HTTP.
  */
 
 function sha256Hex(buffer) {
@@ -30,12 +29,44 @@ function scanIdToBytes32(scanId) {
   return ethers.keccak256(ethers.toUtf8Bytes(scanId));
 }
 
+/**
+ * Extracts or wraps CBOM components into a deterministic array for the Merkle tree builder.
+ * Accepts:
+ *   - CBOM object/string/buffer with a `components` array
+ *   - Direct array of components
+ *   - Raw content buffer or object (wrapped as a single component)
+ */
+function extractComponents(contentInput) {
+  if (Array.isArray(contentInput)) {
+    return contentInput.length > 0 ? contentInput : [{ empty: true }];
+  }
+
+  let parsed = contentInput;
+  if (Buffer.isBuffer(contentInput) || typeof contentInput === 'string') {
+    try {
+      parsed = JSON.parse(contentInput.toString('utf8'));
+    } catch (err) {
+      return [{ content: contentInput.toString('utf8') }];
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    return parsed.length > 0 ? parsed : [{ empty: true }];
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed.components) && parsed.components.length > 0) {
+      return parsed.components;
+    }
+    return [parsed];
+  }
+
+  return [{ content: String(parsed) }];
+}
+
 async function anchorScan(scanId, contentBuffer) {
   const rpcUrl = process.env.RPC_URL || 'http://127.0.0.1:8545';
-  const privateKey = process.env.PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error('PRIVATE_KEY not set in .env — refusing to anchor without a real signer');
-  }
+  const signingKey = getSigningKey();
 
   const deployedPath = path.join(__dirname, '..', 'deployed-contract.json');
   if (!fs.existsSync(deployedPath)) {
@@ -44,17 +75,25 @@ async function anchorScan(scanId, contentBuffer) {
   const { address: contractAddress, network } = JSON.parse(fs.readFileSync(deployedPath, 'utf8'));
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
-  const wallet = new ethers.Wallet(privateKey, provider);
+  const wallet = new ethers.Wallet(signingKey.privateKey, provider);
 
-  // Step 1: real hash
-  const contentHash = sha256Hex(contentBuffer);
+  // Step 1: Merkle tree root commitment (replaces whole-blob hashing)
+  const components = extractComponents(contentBuffer);
+  const { root: merkleRoot } = buildMerkleTree(components);
+  const contentHash = '0x' + merkleRoot;
 
-  // Step 2: real signature — wallet signs the content hash itself,
-  // independent of the transaction, so it can be verified off-chain
-  // even before the tx confirms.
+  // Step 2: RFC 3161 trusted timestamp for the Merkle root
+  let timestamp = null;
+  try {
+    timestamp = await requestTimestamp(merkleRoot);
+  } catch (tsErr) {
+    console.warn('RFC 3161 timestamp acquisition warning:', tsErr.message);
+  }
+
+  // Step 3: KMS-backed signature over the on-chain content commitment
   const signature = await wallet.signMessage(ethers.getBytes(contentHash));
 
-  // Step 3: real transaction
+  // Step 4: Real transaction on-chain
   const abi = [
     'function anchorScan(bytes32 scanId, bytes32 contentHash) external',
   ];
@@ -75,6 +114,8 @@ async function anchorScan(scanId, contentBuffer) {
     network,
     anchoredBy: wallet.address,
     blockNumber: receipt.blockNumber,
+    merkleRoot,
+    timestamp,
   };
 }
 

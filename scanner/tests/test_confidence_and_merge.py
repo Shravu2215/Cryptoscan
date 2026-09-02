@@ -217,24 +217,37 @@ class TestFreshFixtureRepos:
         assert Confidence.POSSIBLE in confidences, "Expected at least one Possible confidence finding"
 
     def test_repo_b_scan(self):
+        import shutil
         repo_b_dir = os.path.join(self.FIXTURES_DIR, "repo_b")
-        findings = scan(repo_b_dir)
+        env_dst = os.path.join(repo_b_dir, ".env")
+        env_src = os.path.join(self.FIXTURES_DIR, ".env.vuln")
+        created = False
+        if not os.path.exists(env_dst) and os.path.exists(env_src):
+            shutil.copy(env_src, env_dst)
+            created = True
 
-        # 1. No false positives on benign identifiers in repo_b
-        for f in findings:
-            for benign in ["KEYBOARD_LAYOUT_TYPE", "AUTHENTICATION_PROVIDER_CLASS", "TOKENIZER_VOCAB_SIZE"]:
-                assert benign not in (f.code_snippet or ""), f"Flagged benign identifier {benign}"
+        try:
+            findings = scan(repo_b_dir)
 
-        # 2. MD5 hash in sample.py produces 1 finding with Likely confidence
-        md5_findings = [f for f in findings if "md5" in f.rule_id]
-        assert len(md5_findings) == 1
-        assert md5_findings[0].confidence == Confidence.LIKELY
+            # 1. No false positives on benign identifiers in repo_b
+            for f in findings:
+                for benign in ["KEYBOARD_LAYOUT_TYPE", "AUTHENTICATION_PROVIDER_CLASS", "TOKENIZER_VOCAB_SIZE"]:
+                    assert benign not in (f.code_snippet or ""), f"Flagged benign identifier {benign}"
 
-        # 3. Multi-layer corroborated secrets in repo_b (.env) are CONFIRMED
-        confirmed_findings = [f for f in findings if f.confidence == Confidence.CONFIRMED]
-        assert len(confirmed_findings) >= 2, "Corroborated secrets in .env should be CONFIRMED"
+            # 2. MD5 hash in sample.py produces 1 finding with Likely confidence
+            md5_findings = [f for f in findings if "md5" in f.rule_id]
+            assert len(md5_findings) == 1
+            assert md5_findings[0].confidence == Confidence.LIKELY
 
-        # 4. Total findings has a mix of tiers
-        tiers = {f.confidence for f in findings}
-        assert Confidence.CONFIRMED in tiers
-        assert Confidence.LIKELY in tiers
+            # 3. Multi-layer corroborated secrets in repo_b (.env) are CONFIRMED
+            confirmed_findings = [f for f in findings if f.confidence == Confidence.CONFIRMED]
+            assert len(confirmed_findings) >= 2, "Corroborated secrets in .env should be CONFIRMED"
+
+            # 4. Total findings has a mix of tiers
+            tiers = {f.confidence for f in findings}
+            assert Confidence.CONFIRMED in tiers
+            assert Confidence.LIKELY in tiers
+        finally:
+            if created and os.path.exists(env_dst):
+                os.remove(env_dst)
+

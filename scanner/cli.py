@@ -15,7 +15,12 @@ import argparse
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_scanner_dir = os.path.dirname(os.path.abspath(__file__))
+_parent_dir = os.path.dirname(_scanner_dir)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
+if _scanner_dir not in sys.path:
+    sys.path.insert(0, _scanner_dir)
 
 from scanner.python_analyzer import PythonAnalyzer
 from scanner.js_analyzer import JSAnalyzer

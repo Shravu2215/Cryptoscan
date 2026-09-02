@@ -1,6 +1,6 @@
 # CryptoScan (ECDAT) — Backend Core
 
-Owns: DB schema, Auth, Repo upload, Scan trigger stub.
+Owns: Database schema, Authentication, Repository upload, Scanner dispatch, CBOM generation, and Blockchain anchoring/verification.
 
 ## Setup
 
@@ -18,40 +18,24 @@ and URL-encode special characters in the password.
 
 | Method | Path                  | Auth | Notes |
 |--------|------------------------|------|-------|
-| POST   | /auth/signup           | No   | not in original contract, but login needs users to exist |
+| POST   | /auth/signup           | No   | creates new user |
 | POST   | /auth/login             | No   | returns JWT |
 | POST   | /repos/upload           | Yes  | multipart, field name `repo`, .zip only |
-| POST   | /scan/:repoId            | Yes  | creates Scan row, **Scanner team hooks in here** |
-| GET    | /scan/:scanId/findings   | Yes  | reads real DB rows |
+| POST   | /scan/:repoId            | Yes  | creates Scan row, triggers scanner engine |
+| GET    | /scan/:scanId/findings   | Yes  | reads real DB findings rows |
+| GET    | /scan/:scanId/cbom       | Yes  | builds CycloneDX-compliant CBOM |
+| POST   | /scan/:scanId/anchor     | Yes  | Merkle root commitment + RFC 3161 timestamp + Sepolia anchor |
+| GET    | /scan/:scanId/verify     | Yes  | verifies current DB Merkle root against live Sepolia contract |
 
-## Full API contract (for reference — other modules build against this)
+## Module Integration
 
-```
-POST /auth/login
-POST /repos/upload
-POST /scan/:repoId              -> triggers scanner
-GET  /scan/:scanId/findings
-GET  /scan/:scanId/cbom
-POST /scan/:scanId/anchor       -> real hash + real sign + real blockchain tx
-GET  /scan/:scanId/verify       -> reads real on-chain hash, compares
-```
+- **Scanner Engine:** integrated into `src/routes/scans.js` via `python scanner/cli.py`.
+- **CBOM Service:** integrated via `buildCbom()` in `src/services/cbomGenerator.js`.
+- **Blockchain Module:** integrated via `anchorScan()` and `verifyScan()` in `src/routes/scans.js`.
+- **Integrity Service:** provides Merkle trees, RFC 3161 timestamping, and KMS signing.
 
-## For other modules
 
-- **Scanner (Person 2):** hook your scan logic into `src/routes/scans.js`
-  where marked `--- Scanner Engine hook ---`. Write results into the
-  `Finding` table via `prisma.finding.createMany(...)`.
-- **CBOM (Person 3):** add a `src/routes/cbom.js` with
-  `GET /scan/:scanId/cbom`, write into the `Cbom` table. Schema already has
-  the `Cbom` model — don't fork it, ask if you need fields added.
-- **Blockchain (Person 4):** add `src/routes/anchor.js` with
-  `POST /scan/:scanId/anchor`, write into the `Anchor` model.
-- **Verify (Person 5):** add `GET /scan/:scanId/verify` reading from `Anchor`
-  + live chain state.
-- **Frontend (Person 6):** the JSON shapes above are your contract. Mock them
-  exactly, swap to real fetch calls once each endpoint is live.
-
-## Hard rule (from the team doc)
+## Production Integrity Standard
 
 No `mock`, `dummy`, `fake_tx_hash`, or `TODO: replace with real later` ships
 to the demo. If something can't be done for real yet, scope it down — don't

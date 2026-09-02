@@ -37,10 +37,12 @@ node scripts/anchor.js <scanId> <path-to-content.json>
 ```
 
 Does, in order:
-1. SHA-256 hashes the content file
-2. Signs that hash with the configured wallet (real ECDSA signature)
-3. Submits `CryptoAnchor.anchorScan(scanId, contentHash)` on-chain
-4. Prints `{ contentHash, signature, txHash, network, anchoredBy, blockNumber }`
+1. Canonicalizes CBOM components and computes a deterministic Merkle root (via merkle.js)
+2. Obtains an RFC 3161 trusted timestamp for the Merkle root (via timestamp.js)
+3. Signs the Merkle root content commitment with the KMS-managed key (via kms.js)
+4. Submits `CryptoAnchor.anchorScan(scanId, contentHash)` on-chain
+5. Prints `{ contentHash, signature, txHash, network, anchoredBy, blockNumber, merkleRoot, timestamp }`
+
 
 This is exactly what `POST /scan/:scanId/anchor` (module 4/5) should write
 into the `Anchor` table — call `anchorScan()` from `scripts/anchor.js`

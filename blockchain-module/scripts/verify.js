@@ -2,15 +2,15 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { ethers } = require('ethers');
+const { buildMerkleTree } = require('../../integrity-service/merkle');
 require('dotenv').config();
 
 /**
  * Real verify flow — this backs module 5's GET /scan/:scanId/verify:
- *   1. Recompute SHA-256 over the CURRENT content (findings + CBOM as
- *      stored today)
+ *   1. Recompute the Merkle root over the CURRENT CBOM content (via merkle.js)
  *   2. Read the on-chain record for this scanId (real chain read, not
  *      a DB lookup)
- *   3. Compare recomputed hash vs on-chain hash -> tamper-evidence
+ *   3. Compare recomputed Merkle root vs on-chain hash -> tamper-evidence
  *   4. Optionally verify the stored ECDSA signature recovers the
  *      expected signer address
  *
@@ -24,6 +24,38 @@ function sha256Hex(buffer) {
 
 function scanIdToBytes32(scanId) {
   return ethers.keccak256(ethers.toUtf8Bytes(scanId));
+}
+
+/**
+ * Extracts or wraps CBOM components into a deterministic array for the Merkle tree builder.
+ * Mirrors extractComponents() in anchor.js.
+ */
+function extractComponents(contentInput) {
+  if (Array.isArray(contentInput)) {
+    return contentInput.length > 0 ? contentInput : [{ empty: true }];
+  }
+
+  let parsed = contentInput;
+  if (Buffer.isBuffer(contentInput) || typeof contentInput === 'string') {
+    try {
+      parsed = JSON.parse(contentInput.toString('utf8'));
+    } catch (err) {
+      return [{ content: contentInput.toString('utf8') }];
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    return parsed.length > 0 ? parsed : [{ empty: true }];
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed.components) && parsed.components.length > 0) {
+      return parsed.components;
+    }
+    return [parsed];
+  }
+
+  return [{ content: String(parsed) }];
 }
 
 async function verifyScan(scanId, currentContentBuffer, signature) {
@@ -48,7 +80,10 @@ async function verifyScan(scanId, currentContentBuffer, signature) {
     return { verified: false, reason: 'No anchor found on-chain for this scanId', scanId };
   }
 
-  const recomputedHash = sha256Hex(currentContentBuffer);
+  // Recompute Merkle root commitment matching anchor.js
+  const components = extractComponents(currentContentBuffer);
+  const { root: merkleRoot } = buildMerkleTree(components);
+  const recomputedHash = '0x' + merkleRoot;
   const hashMatches = recomputedHash.toLowerCase() === onChainHash.toLowerCase();
 
   let signatureValid = null;

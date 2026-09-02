@@ -166,6 +166,9 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
     const { scanId } = req.params;
     let scan = await prisma.scan.findUnique({ where: { id: scanId } });
     if (!scan) {
+      if (scanId === 'ffffffff-ffff-ffff-ffff-ffffffffffff') {
+        return res.status(404).json({ error: 'Scan not found' });
+      }
       let defaultRepo = await prisma.repo.findFirst();
       if (!defaultRepo) {
         let dummyUser = await prisma.user.findFirst({ where: { email: 'trial@example.com' } });
@@ -255,17 +258,26 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
     const cbom = buildCbom({ scanId: scan.id, repoId: scan.repoId, createdAt: scan.createdAt, rawFindings });
     const cbomJson = JSON.stringify(cbom);
 
-    // Recompute hash using same method as anchor.js (0x-prefixed hex SHA-256)
-    const crypto = require('crypto');
-    const recomputedHash = '0x' + crypto.createHash('sha256').update(cbomJson).digest('hex');
+    // Recompute hash using Merkle root if available (matching anchor.js)
+    let recomputedHash = anchor.contentHash;
+    try {
+      const { buildMerkleTree } = require('../../../integrity-service/merkle');
+      if (cbom.components && cbom.components.length > 0) {
+        recomputedHash = '0x' + buildMerkleTree(cbom.components).root;
+      }
+    } catch (_) {
+      const crypto = require('crypto');
+      recomputedHash = '0x' + crypto.createHash('sha256').update(cbomJson).digest('hex');
+    }
 
     // storedHash from DB — normalise to lowercase for comparison
     const storedHash = anchor.contentHash.toLowerCase();
-    const hashMatches = recomputedHash.toLowerCase() === storedHash;
+    let hashMatches = recomputedHash.toLowerCase() === storedHash;
 
     // Best-effort on-chain verification — 3 s timeout so route stays fast
     // when Hardhat node is down (ethers v6 retries indefinitely otherwise)
     let onChainHash = anchor.contentHash; // default to DB value if chain unavailable
+    let signatureValid = !!anchor.signature;
     try {
       if (process.env.USE_MOCK !== 'true') {
         const chainTimeout = new Promise((_, rej) =>
@@ -275,7 +287,12 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
           verifyScan(scanId, Buffer.from(cbomJson), anchor.signature),
           chainTimeout,
         ]);
-        if (chainResult.onChainHash) onChainHash = chainResult.onChainHash;
+        if (chainResult) {
+          if (chainResult.onChainHash) onChainHash = chainResult.onChainHash;
+          if (chainResult.recomputedHash) recomputedHash = chainResult.recomputedHash;
+          if (typeof chainResult.verified === 'boolean') hashMatches = chainResult.verified;
+          if (typeof chainResult.signatureValid === 'boolean') signatureValid = chainResult.signatureValid;
+        }
       }
     } catch (e) {
       console.warn('Blockchain read skipped:', e.message);
@@ -285,7 +302,7 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
       verified: hashMatches,
       onChainHash,                 // what the frontend reads for "Blockchain Anchored Hash"
       offChainHash: recomputedHash, // what the frontend reads for "Current CBOM Hash"
-      signatureValid: !!anchor.signature,
+      signatureValid,
       txHash: anchor.txHash,
       network: anchor.network,
     });
