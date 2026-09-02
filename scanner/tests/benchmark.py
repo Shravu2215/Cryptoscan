@@ -3,7 +3,8 @@ CryptoScan Accuracy Benchmarking Pipeline (Precision / Recall / F1).
 
 Runs the full scanner pipeline against hand-verified fixtures in ground_truth.json
 or any custom ground-truth answer key.
-Evaluates True Positives (TP), False Positives (FP), and False Negatives (FN).
+Evaluates True Positives (TP), False Positives (FP), and False Negatives (FN)
+both overall and per detection layer (AST, Regex/Entropy, SCA, Config/Infra).
 Appends results to benchmark_results.jsonl to track scanner accuracy over time.
 
 Usage:
@@ -41,10 +42,22 @@ def _get_git_commit() -> str:
         return ""
 
 
+def _classify_fixture_layer(rel_path: str) -> str:
+    """Classify fixture path into detection layer."""
+    norm = rel_path.replace("\\", "/").lower()
+    if "fixtures/sca" in norm:
+        return "SCA (Manifest)"
+    if "fixtures/infra" in norm:
+        return "Config / Infra"
+    if "fixtures/config" in norm:
+        return "Regex / Config"
+    return "AST (Python/JS)"
+
+
 def run_benchmark(ground_truth_path: Optional[str] = None, base_dir: Optional[str] = None) -> Dict[str, Any]:
     """
     Executes accuracy benchmarking across ground-truth fixtures.
-    Returns dictionary with precision, recall, f1, counts, and timestamp.
+    Returns dictionary with precision, recall, f1, counts, per-layer breakdowns, and timestamp.
     """
     gt_path = ground_truth_path or DEFAULT_GROUND_TRUTH_PATH
     b_dir = base_dir or TESTS_DIR
@@ -57,11 +70,19 @@ def run_benchmark(ground_truth_path: Optional[str] = None, base_dir: Optional[st
     total_fn = 0
     fixture_details = []
 
+    layer_stats: Dict[str, Dict[str, int]] = {
+        "AST (Python/JS)": {"tp": 0, "fp": 0, "fn": 0, "fixtures": 0},
+        "Regex / Config": {"tp": 0, "fp": 0, "fn": 0, "fixtures": 0},
+        "SCA (Manifest)": {"tp": 0, "fp": 0, "fn": 0, "fixtures": 0},
+        "Config / Infra": {"tp": 0, "fp": 0, "fn": 0, "fixtures": 0},
+    }
+
     for rel_path, spec in ground_truth.items():
         abs_path = os.path.join(b_dir, rel_path.replace("/", os.sep))
         if not os.path.isfile(abs_path) and not os.path.isdir(abs_path):
             continue
 
+        layer_name = _classify_fixture_layer(rel_path)
         expected_rules = set(spec.get("expected_rule_ids", []))
         findings = scan(abs_path)
         actual_rules = {f.rule_id for f in findings}
@@ -81,8 +102,15 @@ def run_benchmark(ground_truth_path: Optional[str] = None, base_dir: Optional[st
         total_fp += fp
         total_fn += fn
 
+        if layer_name in layer_stats:
+            layer_stats[layer_name]["tp"] += tp
+            layer_stats[layer_name]["fp"] += fp
+            layer_stats[layer_name]["fn"] += fn
+            layer_stats[layer_name]["fixtures"] += 1
+
         fixture_details.append({
             "fixture": rel_path,
+            "layer": layer_name,
             "expected": list(expected_rules),
             "actual": list(actual_rules),
             "tp": tp,
@@ -94,6 +122,21 @@ def run_benchmark(ground_truth_path: Optional[str] = None, base_dir: Optional[st
     recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 1.0
     f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
+    layers_summary = {}
+    for l_name, s in layer_stats.items():
+        l_prec = s["tp"] / (s["tp"] + s["fp"]) if (s["tp"] + s["fp"]) > 0 else 1.0
+        l_rec = s["tp"] / (s["tp"] + s["fn"]) if (s["tp"] + s["fn"]) > 0 else 1.0
+        l_f1 = (2 * l_prec * l_rec) / (l_prec + l_rec) if (l_prec + l_rec) > 0 else 1.0
+        layers_summary[l_name] = {
+            "fixtures": s["fixtures"],
+            "tp": s["tp"],
+            "fp": s["fp"],
+            "fn": s["fn"],
+            "precision": round(l_prec, 4),
+            "recall": round(l_rec, 4),
+            "f1": round(l_f1, 4),
+        }
+
     result = {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "git_commit": _get_git_commit() or None,
@@ -104,10 +147,11 @@ def run_benchmark(ground_truth_path: Optional[str] = None, base_dir: Optional[st
         "precision": round(precision, 4),
         "recall": round(recall, 4),
         "f1": round(f1, 4),
+        "layers": layers_summary,
         "details": fixture_details,
     }
 
-    # Append to benchmark_results.jsonl (minimal record without verbose details)
+    # Append to benchmark_results.jsonl
     log_entry = {
         "timestamp": result["timestamp"],
         "git_commit": result["git_commit"],
@@ -125,22 +169,27 @@ def run_benchmark(ground_truth_path: Optional[str] = None, base_dir: Optional[st
 
 
 def print_summary(result: Dict[str, Any]):
-    print("=" * 65)
-    print(" CRYPTOSCAN ACCURACY BENCHMARK SUMMARY")
-    print("=" * 65)
+    print("=" * 70)
+    print(" CRYPTOSCAN ACCURACY BENCHMARK SUMMARY (OVERALL & PER-LAYER)")
+    print("=" * 70)
     print(f" Timestamp:      {result['timestamp']}")
     if result.get('git_commit'):
         print(f" Git Commit:     {result['git_commit'][:8]}")
     print(f" Total Fixtures: {result['total_fixtures']}")
-    print("-" * 65)
+    print("-" * 70)
     print(f" True Positives (TP):   {result['tp']:<5}  (Correctly detected vulnerabilities)")
     print(f" False Positives (FP):  {result['fp']:<5}  (False alarms on clean/unrelated code)")
     print(f" False Negatives (FN):  {result['fn']:<5}  (Missed known vulnerabilities)")
-    print("-" * 65)
-    print(f" Precision:             {result['precision'] * 100:.2f}%")
-    print(f" Recall:                {result['recall'] * 100:.2f}%")
-    print(f" F1 Score:              {result['f1'] * 100:.2f}%")
-    print("=" * 65)
+    print("-" * 70)
+    print(f" Overall Precision:     {result['precision'] * 100:.2f}%")
+    print(f" Overall Recall:        {result['recall'] * 100:.2f}%")
+    print(f" Overall F1 Score:      {result['f1'] * 100:.2f}%")
+    print("=" * 70)
+    print(f" {'LAYER':<22} | {'TP':<4} | {'FP':<4} | {'FN':<4} | {'PRECISION':<9} | {'RECALL':<8} | {'F1':<8}")
+    print("-" * 70)
+    for layer_name, s in result.get("layers", {}).items():
+        print(f" {layer_name:<22} | {s['tp']:<4} | {s['fp']:<4} | {s['fn']:<4} | {s['precision']*100:>8.2f}% | {s['recall']*100:>7.2f}% | {s['f1']*100:>7.2f}%")
+    print("=" * 70)
 
 
 if __name__ == "__main__":
