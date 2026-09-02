@@ -18,7 +18,7 @@ Two distinct bugs this exists to fix:
    redundant once either fires).
 """
 from typing import List
-from models import Finding
+from .models import Finding
 
 
 def dedup(findings: List[Finding]) -> List[Finding]:

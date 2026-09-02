@@ -1,7 +1,7 @@
 import json
 from collections import Counter
 from typing import List
-from models import Finding
+from .models import Finding
 
 
 def summarize(findings: List[Finding]) -> dict:

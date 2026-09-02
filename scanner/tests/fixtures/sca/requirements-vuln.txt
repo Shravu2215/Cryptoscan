@@ -1,0 +1,5 @@
+# Vulnerable python requirements manifest
+flask==3.0.0
+pycrypto==2.6.1
+rsa>=4.8
+pycryptodome==3.19.0

@@ -37,15 +37,15 @@ from .models import Finding, Confidence, Severity
 def _layer_token(f: Finding) -> str:
     """
     Returns a short string identifying which detection layer produced a finding.
-
-    AST layer:     language in {"python","javascript"} AND rule_id doesn't start with "entropy-"
-    Entropy layer: rule_id starts with "entropy-"
-    Config/Regex:  language == "config"
     """
     if f.language in {"python", "javascript"} and not f.rule_id.startswith("entropy-"):
         return "ast"
     if f.rule_id.startswith("entropy-"):
         return "entropy"
+    if f.language == "infra" or "infra" in f.rule_id:
+        return "infra"
+    if f.language == "manifest" or f.rule_id.startswith("sca-"):
+        return "manifest"
     return "config"
 
 
@@ -54,11 +54,15 @@ def _layer_token(f: Finding) -> str:
 # ---------------------------------------------------------------------------
 
 _RULE_QUALITY: Dict[str, int] = {
+    "infra-k8s-secret-plaintext": 120,
+    "infra-terraform-hardcoded-secret": 115,
+    "aes-hardcoded-key": 110,
     "entropy-secret-high-confidence": 100,
     "entropy-secret-high-entropy-only": 80,
     "entropy-secret-name-hint-only": 60,
     "dockerfile-hardcoded-secret": 50,
     "config-plaintext-secret": 40,
+    "tls-verification-disabled": 35,
 }
 
 def _rule_quality(rule_id: str) -> int:
@@ -81,13 +85,17 @@ def promote_confirmed(findings: List[Finding]) -> List[Finding]:
     """
     After dedup():
       1. Group findings by (file, line).
-      2. When 2+ findings from different layers agree on the same secret issue
-         (category in {"hardcoded-secret", "secret"}), merge them into one
-         Finding with Confidence.CONFIRMED, highest severity, and best rule_id.
-      3. For other multi-layer agreement cases (e.g. non-secret findings at
-         same line), promote confidence to Confidence.CONFIRMED without dropping.
+      2. When 2+ findings from DIFFERENT layers agree on the same secret issue
+         (category in {"hardcoded-secret", "secret"} or rule_id == "aes-hardcoded-key"):
+           - Merge them into one Finding with:
+               * Confidence.CONFIRMED
+               * The highest severity among the agreeing layers
+               * The most specific rule_id (AST specific > high entropy > regex > name hint)
+           - Drop the duplicate finding(s) for that secret.
+      3. For all surviving findings at any multi-layer corroborated site (file, line),
+         promote confidence to Confidence.CONFIRMED.
 
-    Returns the merged/promoted list.
+    Returns the merged and promoted list sorted deterministically.
     """
     site_groups: Dict[Tuple[str, int], List[int]] = {}
     for idx, f in enumerate(findings):
@@ -105,18 +113,27 @@ def promote_confirmed(findings: List[Finding]) -> List[Finding]:
 
         if len(layers) >= 2:
             # Check for hardcoded-secret category overlap to merge
-            secret_indices = [i for i in indices if findings[i].category in {"hardcoded-secret", "secret"}]
+            secret_indices = [
+                i for i in indices
+                if findings[i].category in {"hardcoded-secret", "secret"} or findings[i].rule_id == "aes-hardcoded-key"
+            ]
             if len(secret_indices) >= 2:
                 secret_layers = {_layer_token(findings[i]) for i in secret_indices}
                 if len(secret_layers) >= 2:
-                    # Merge secret findings into the best one
                     secret_group = [findings[i] for i in secret_indices]
-                    best_idx = max(secret_indices, key=lambda i: (_rule_quality(findings[i].rule_id), _sev_rank(findings[i])))
+                    # Deterministic pick: quality rank, severity rank, then rule_id tiebreaker
+                    best_idx = max(
+                        secret_indices,
+                        key=lambda i: (
+                            _rule_quality(findings[i].rule_id),
+                            _sev_rank(findings[i]),
+                            findings[i].rule_id,
+                        ),
+                    )
                     best = findings[best_idx]
                     best.confidence = Confidence.CONFIRMED
                     best.severity = max(secret_group, key=_sev_rank).severity
 
-                    # Mark other secret findings as dropped
                     for i in secret_indices:
                         if i != best_idx:
                             dropped.add(i)
@@ -127,5 +144,5 @@ def promote_confirmed(findings: List[Finding]) -> List[Finding]:
                     findings[i].confidence = Confidence.CONFIRMED
 
     out = [findings[i] for i in range(len(findings)) if i not in dropped]
-    out.sort(key=lambda f: (f.file, f.line, -f.severity.rank))
+    out.sort(key=lambda f: (f.file, f.line, -f.severity.rank, f.rule_id))
     return out

@@ -5,7 +5,7 @@ their own copies, so the two language scanners can't drift apart on risk tagging
 (this is the bug called out in the review: JS path wasn't using the Classical Risk
 tag at all and everything non-RSA showed a flat "Safe").
 """
-from models import Severity, QuantumRisk
+from .models import Severity, QuantumRisk
 
 # ---------------------------------------------------------------------------
 # Hash algorithms
@@ -151,7 +151,7 @@ STATIC_IV = dict(
 
 # Secret-like identifier names used by both the hardcoded-key and RNG-context heuristics.
 SECRET_NAME_HINTS = (
-    "key", "secret", "password", "passwd", "pwd", "token", "apikey", "api_key",
+    "key", "secret", "password", "passwd", "pwd", "pass", "token", "apikey", "api_key",
     "auth", "credential", "signature", "sign", "hash", "hmac", "nonce", "iv",
     "salt", "session", "privatekey", "private_key", "otp", "pin", "reset",
     "seed",
@@ -210,3 +210,116 @@ FERNET_PROFILE = dict(
                     "128-bit key gives a smaller post-quantum margin than AES-256-GCM. Prefer "
                     "AES-256-GCM directly for new code with long-lived confidentiality needs.",
 )
+
+# ---------------------------------------------------------------------------
+# Centralized Algorithm Classification Registry (Weak, Strong, Non-Crypto)
+# ---------------------------------------------------------------------------
+
+NON_CRYPTO_ALGORITHMS = frozenset({
+    "gzip", "zstd", "snappy", "lz4", "deflate", "bzip2", "br", "brotli", "lzo",
+    "none", "raw", "null", "plain", "round-robin", "least-connections", "random",
+    "linear", "binary", "dijkstra", "astar", "kmeans", "pca", "auto", "default",
+})
+
+MODERN_STRONG_ALGORITHMS = frozenset({
+    "sha256", "sha-256", "sha3", "sha-3", "sha384", "sha-384", "sha512", "sha-512",
+    "aes-gcm", "aes-256-gcm", "aes-128-gcm", "chacha20-poly1305", "poly1305",
+    "ml-kem", "ml-dsa", "slh-dsa", "ed25519", "x25519", "argon2", "argon2id",
+    "bcrypt", "scrypt", "pbkdf2-sha256", "pbkdf2-sha512",
+})
+
+def classify_algorithm(value: str):
+    """
+    Classifies an algorithm string value from source code or config files.
+    Returns a dict with vulnerability details if weak/deprecated, or None if safe/non-crypto.
+    """
+    if not value or not isinstance(value, str):
+        return None
+
+    norm = value.strip().lower().strip('"\'')
+    # Strip mode/padding noise if present
+    base_token = _re.split(r'[/_\-\s]', norm)[0] if norm else ""
+
+    if norm in NON_CRYPTO_ALGORITHMS or base_token in NON_CRYPTO_ALGORITHMS:
+        return None
+
+    if norm in MODERN_STRONG_ALGORITHMS or base_token in MODERN_STRONG_ALGORITHMS:
+        return None
+
+    # Check weak hashes
+    if norm in {"md5", "md4", "md2"} or base_token in {"md5", "md4", "md2"}:
+        return dict(
+            algorithm="MD5",
+            rule_id="config-weak-algorithm",
+            rule_name="Weak Hash Algorithm Configured",
+            category="hash",
+            severity=Severity.CRITICAL,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="MD5 is broken by collision attacks. Replace with SHA-256 or SHA-3.",
+        )
+    if norm in {"sha1", "sha-1"} or base_token in {"sha1", "sha-1"}:
+        return dict(
+            algorithm="SHA-1",
+            rule_id="config-weak-algorithm",
+            rule_name="Weak Hash Algorithm Configured",
+            category="hash",
+            severity=Severity.HIGH,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="SHA-1 has known collision attacks. Replace with SHA-256 or SHA-3.",
+        )
+    if norm in {"ripemd160", "ripemd"} or base_token in {"ripemd160", "ripemd"}:
+        return dict(
+            algorithm="RIPEMD-160",
+            rule_id="config-weak-algorithm",
+            rule_name="Legacy Hash Algorithm Configured",
+            category="hash",
+            severity=Severity.MEDIUM,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="Replace RIPEMD with SHA-256 or SHA-3.",
+        )
+
+    # Check weak symmetric ciphers
+    if norm in {"des", "3des", "des3", "tripledes", "tdes"} or base_token in {"des", "3des", "des3", "tripledes", "tdes"}:
+        return dict(
+            algorithm="3DES/DES",
+            rule_id="config-weak-algorithm",
+            rule_name="Weak Legacy Cipher Configured",
+            category="symmetric-cipher",
+            severity=Severity.CRITICAL,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="DES/3DES is deprecated with small 64-bit block size (Sweet32 attack). Replace with AES-256-GCM.",
+        )
+    if norm in {"rc4", "arc4", "rc2", "arc2"} or base_token in {"rc4", "arc4", "rc2"}:
+        return dict(
+            algorithm="RC4",
+            rule_id="config-weak-algorithm",
+            rule_name="Broken Stream Cipher Configured",
+            category="symmetric-cipher",
+            severity=Severity.CRITICAL,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="RC4 stream cipher is cryptographically broken. Replace with AES-256-GCM or ChaCha20-Poly1305.",
+        )
+    if norm in {"blowfish", "cast5", "idea"} or base_token in {"blowfish", "cast5", "idea"}:
+        return dict(
+            algorithm="Blowfish/Legacy",
+            rule_id="config-weak-algorithm",
+            rule_name="Legacy Cipher Configured",
+            category="symmetric-cipher",
+            severity=Severity.HIGH,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="Legacy ciphers with small block sizes are vulnerable to collision attacks. Migrate to AES-256-GCM.",
+        )
+
+    # Check ECB mode
+    if "ecb" in norm.split("-") or "ecb" in norm.split("_") or norm == "ecb":
+        return dict(
+            algorithm="ECB Mode",
+            rule_id="config-weak-algorithm",
+            rule_name="Insecure ECB Cipher Mode Configured",
+            category="symmetric-cipher",
+            severity=Severity.CRITICAL,
+            quantum_risk=QuantumRisk.CLASSICAL_RISK,
+            recommendation="ECB mode leaks plaintext structure. Switch to AES-256-GCM or AES-256-CBC with HMAC.",
+        )
+
+    return None

@@ -65,6 +65,9 @@ model Finding {
   severity       String   
   description    String   
   recommendation String?
+  confidence     String   @default("Likely")
+  suppressed     Boolean  @default(false)
+  suppressionReason String?
   createdAt      DateTime @default(now())
 }
 

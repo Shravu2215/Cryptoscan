@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CryptoScan Real-Time Scanner & IndexedDB Storage Engine
  */
 
@@ -153,8 +153,8 @@ const CryptoEngine = {
     const findings = dbFindings.map(f => ({
       id: f.id,
       title: f.algorithm + ' ' + (f.usage || ''),
-      category: f.library || 'Unknown API',
-      library: f.library || null,
+      category: f.library || 'Standard API',
+      library: f.library || 'Standard API',
       severity: f.severity.toLowerCase(),
       quantum: (f.quantumStatus || '').toLowerCase().includes('vulnerable') ? 'yes' : 'safe',
       file: f.filePath,
@@ -163,8 +163,11 @@ const CryptoEngine = {
       remediation: f.recommendation || '',
       algorithm: f.algorithm,
       usage: f.usage,
-      keySize: f.keySize,
-      quantumStatus: f.quantumStatus
+      keySize: f.keySize ? `${f.keySize}-bit` : 'N/A',
+      quantumStatus: f.quantumStatus,
+      confidence: f.confidence || 'Likely',
+      suppressed: Boolean(f.suppressed),
+      suppressionReason: f.suppressionReason || null
     }));
 
     const componentMap = {};
@@ -190,14 +193,14 @@ const CryptoEngine = {
       const locStr = f.filePath + ':' + (f.lineNumber || '?');
       comp.locations.push(locStr);
       
-      if (f.keySize) comp.keySizes.add(f.keySize);
+      if (f.keySize) comp.keySizes.add(`${f.keySize}-bit`);
       comp.severities.add(f.severity ? f.severity.toUpperCase() : 'LOW');
     }
 
     const cbomAssets = Object.values(componentMap).map(c => ({
       name: c.name,
       operations: Array.from(c.operations),
-      library: Array.from(c.libraries).join(', ') || 'Unknown',
+      library: Array.from(c.libraries).filter(l => l && l !== 'Standard API').join(', ') || (Array.from(c.libraries)[0] || 'Standard Crypto API'),
       locations: c.locations,
       keySize: Array.from(c.keySizes).join(', ') || 'N/A',
       quantumRisk: c.quantumRisk,
@@ -216,8 +219,8 @@ const CryptoEngine = {
       highRisk: cbomAssets.filter(c => c.severity === 'Critical' || c.severity === 'High').length
     };
 
-    const criticalCount = findings.filter(f => f.severity === 'critical').length;
-    const quantumCount = findings.filter(f => f.quantum === 'yes').length;
+    const criticalCount = findings.filter(f => f.severity === 'critical' && !f.suppressed).length;
+    const quantumCount = findings.filter(f => f.quantum === 'yes' && !f.suppressed).length;
 
     const scanResult = {
       scanId: scanId,

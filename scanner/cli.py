@@ -28,11 +28,16 @@ from scanner.dedup import dedup
 from scanner.regex_analyzer import RegexAnalyzer
 from scanner.entropy_analyzer import EntropyAnalyzer
 from scanner.confidence import promote_confirmed
+from scanner.sca_analyzer import SCAAnalyzer
+from scanner.config_infra_analyzer import ConfigInfraAnalyzer
+from scanner.sca_correlation import correlate_sca_with_source
+from scanner.suppression import load_suppressions, apply_suppressions
 from scanner import report
 
 PY_EXT = {".py"}
 JS_EXT = {".js", ".mjs", ".cjs", ".jsx"}
-CONFIG_EXT = {".yml", ".yaml", ".json", ".ini", ".conf", ".env"}
+CONFIG_EXT = {".yml", ".yaml", ".json", ".ini", ".conf", ".env", ".tf", ".xml"}
+MANIFEST_NAMES = {"package.json", "requirements.txt", "pom.xml"}
 SKIP_DIRS = {"node_modules", ".git", "__pycache__", "venv", ".venv", "dist", "build"}
 
 
@@ -43,9 +48,12 @@ def iter_source_files(root, extensions):
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
         for fn in filenames:
-            ext = os.path.splitext(fn)[1]
-            # Always yield Dockerfiles and .env files regardless of extension filter
-            if fn == "Dockerfile" or fn.startswith("Dockerfile.") or fn.startswith(".env"):
+            ext = os.path.splitext(fn)[1].lower()
+            # Always yield Dockerfiles, .env files, manifests, and configs regardless of extension filter
+            if (fn == "Dockerfile" or fn.startswith("Dockerfile.") or fn.startswith(".env")
+                    or "package" in fn.lower() or "requirements" in fn.lower() or "pom" in fn.lower()
+                    or ext in CONFIG_EXT
+                    or fn.lower() in {"nginx.conf", "httpd.conf", "apache2.conf"}):
                 yield os.path.join(dirpath, fn)
                 continue
             if ext in extensions:
@@ -58,15 +66,28 @@ def scan(root, extensions=None):
     js = JSAnalyzer()
     rx = RegexAnalyzer()
     ent = EntropyAnalyzer()
+    sca = SCAAnalyzer()
+    infra = ConfigInfraAnalyzer()
     findings = []
+
     for path in iter_source_files(root, extensions):
-        ext = os.path.splitext(path)[1]
-        fn = os.path.basename(path)
+        ext = os.path.splitext(path)[1].lower()
+        fn = os.path.basename(path).lower()
         try:
             with open(path, "r", encoding="utf-8", errors="ignore") as fh:
                 source = fh.read()
         except OSError:
             continue
+
+        # 1. SCA Manifest Layer
+        if "package" in fn or "requirements" in fn or "pom" in fn or fn in MANIFEST_NAMES:
+            findings.extend(sca.analyze(path, source))
+
+        # 2. Infra / Config Layer
+        if ext in {".tf", ".conf", ".yaml", ".yml"} or fn in {"nginx.conf", "httpd.conf", "apache2.conf"}:
+            findings.extend(infra.analyze(path, source))
+
+        # 3. Source Code / Regex / Entropy Layers
         if ext in PY_EXT:
             findings.extend(py.analyze(path, source))
             findings.extend(ent.analyze(path, source))
@@ -75,11 +96,18 @@ def scan(root, extensions=None):
             findings.extend(ent.analyze(path, source))
         elif (ext in CONFIG_EXT
               or fn.startswith(".env")
-              or fn == "Dockerfile" or fn.startswith("Dockerfile.")):
+              or "dockerfile" in fn):
             findings.extend(rx.analyze(path, source))
             findings.extend(ent.analyze(path, source))
+
     findings = dedup(findings)
     findings = promote_confirmed(findings)
+    findings = correlate_sca_with_source(findings)
+
+    # Apply allow-list / suppressions from .cryptoscan-ignore
+    suppressions = load_suppressions(root if os.path.isdir(root) else os.path.dirname(root))
+    findings, _ = apply_suppressions(findings, suppressions, repo_path=root)
+
     return findings
 
 
@@ -103,8 +131,11 @@ def main():
             fh.write(report.to_json(findings))
         print(f"\nFull JSON report written to {args.json}")
 
-    # non-zero exit if any Critical/High finding, for CI use
-    if any(f.severity.value in ("Critical", "High") for f in findings):
+    # non-zero exit if any unsuppressed Critical/High finding, for CI use
+    active_critical_or_high = any(
+        f.severity.value in ("Critical", "High") and not f.suppressed for f in findings
+    )
+    if active_critical_or_high:
         sys.exit(1)
     sys.exit(0)
 

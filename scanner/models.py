@@ -72,10 +72,9 @@ class Finding:
     generic: bool = False        # True for catch-all rules like "AES encryption"
     call_site: str = ""           # normalized (file:line:col) key used for dedup grouping
     tags: list = field(default_factory=list)
-    # Confidence tier: set by the source analyzer; can be promoted to CONFIRMED
-    # by confidence.promote_confirmed() when 2+ layers corroborate the same site.
-    # Default=LIKELY preserves the existing behaviour for all AST-only findings.
     confidence: Confidence = field(default=None)
+    suppressed: bool = False
+    suppression_reason: str = ""
 
     def __post_init__(self):
         if not self.call_site:
@@ -90,4 +89,6 @@ class Finding:
         d["severity"] = self.severity.value
         d["quantum_risk"] = self.quantum_risk.value
         d["confidence"] = self.confidence.value  # additive key — no existing keys changed
+        d["suppressed"] = self.suppressed
+        d["suppression_reason"] = self.suppression_reason
         return d

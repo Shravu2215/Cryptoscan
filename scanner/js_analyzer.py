@@ -8,8 +8,8 @@ tagging can't drift between the two language paths.
 """
 from typing import List, Optional, Dict, Any
 
-from models import Finding, Severity, QuantumRisk
-import rules
+from .models import Finding, Severity, QuantumRisk
+from . import rules
 
 try:
     import esprima
@@ -272,6 +272,80 @@ class JSAnalyzer:
                                       profile, snippet, specificity=2))
             return out
 
+        # -- CryptoJS.<ALGO>.encrypt / CryptoJS.<ALGO> ----------------------------
+        if "CryptoJS" in fname or fname.startswith("algo."):
+            upper_fname = fname.upper()
+            if "RC4" in upper_fname:
+                profile = dict(
+                    algorithm="RC4",
+                    severity=Severity.CRITICAL,
+                    quantum_risk=QuantumRisk.CLASSICAL_RISK,
+                    recommendation="RC4 stream cipher is cryptographically broken. Migrate to AES-256-GCM or ChaCha20-Poly1305.",
+                )
+                out.append(self._mk(file_path, line, col, "cryptojs-rc4-stream-cipher",
+                                      "CryptoJS RC4 stream cipher", "stream-cipher",
+                                      profile, snippet, specificity=3))
+                return out
+            elif "TRIPLEDES" in upper_fname or "3DES" in upper_fname:
+                profile = dict(
+                    algorithm="3DES/DES",
+                    severity=Severity.HIGH,
+                    quantum_risk=QuantumRisk.CLASSICAL_RISK,
+                    recommendation="Triple-DES has 64-bit blocks vulnerable to Sweet32. Migrate to AES-256-GCM.",
+                )
+                out.append(self._mk(file_path, line, col, "cryptojs-tripledes-cipher",
+                                      "CryptoJS TripleDES symmetric encryption", "symmetric-cipher",
+                                      profile, snippet, specificity=3))
+                return out
+            elif "DES" in upper_fname:
+                profile = dict(
+                    algorithm="DES",
+                    severity=Severity.CRITICAL,
+                    quantum_risk=QuantumRisk.CLASSICAL_RISK,
+                    recommendation="DES has an obsolete 56-bit key size. Migrate to AES-256-GCM.",
+                )
+                out.append(self._mk(file_path, line, col, "cryptojs-des-cipher",
+                                      "CryptoJS DES symmetric encryption", "symmetric-cipher",
+                                      profile, snippet, specificity=3))
+                return out
+            elif "MD5" in upper_fname:
+                profile = dict(rules.HASH_ALGOS["md5"])
+                out.append(self._mk(file_path, line, col, "cryptojs-md5-hash",
+                                      "CryptoJS MD5 hashing", "hash",
+                                      profile, snippet, specificity=2))
+                return out
+            elif "SHA1" in upper_fname:
+                profile = dict(rules.HASH_ALGOS["sha1"])
+                out.append(self._mk(file_path, line, col, "cryptojs-sha1-hash",
+                                      "CryptoJS SHA-1 hashing", "hash",
+                                      profile, snippet, specificity=2))
+                return out
+
+        # -- jsrsasign / KJUR.crypto.Signature (e.g. SHA1withRSA) -----------------
+        if "KJUR" in fname or "Signature" in fname or "jsrsasign" in fname:
+            if "SHA1WITHRSA" in snippet.upper() or "SHA1" in snippet.upper():
+                profile = dict(
+                    algorithm="SHA1withRSA",
+                    severity=Severity.HIGH,
+                    quantum_risk=QuantumRisk.QUANTUM_BROKEN,
+                    recommendation="SHA1withRSA uses collision-weak SHA-1 and classical RSA. Migrate to ML-DSA (FIPS 204) or ECDSA with SHA-256.",
+                )
+                out.append(self._mk(file_path, line, col, "jsrsasign-sha1withrsa-weak-signature",
+                                      "jsrsasign SHA1withRSA digital signature", "signature",
+                                      profile, snippet, specificity=3))
+                return out
+            elif "MD5WITHRSA" in snippet.upper():
+                profile = dict(
+                    algorithm="MD5withRSA",
+                    severity=Severity.CRITICAL,
+                    quantum_risk=QuantumRisk.QUANTUM_BROKEN,
+                    recommendation="MD5withRSA uses broken MD5 hash and classical RSA. Migrate to ML-DSA (FIPS 204).",
+                )
+                out.append(self._mk(file_path, line, col, "jsrsasign-md5withrsa-weak-signature",
+                                      "jsrsasign MD5withRSA digital signature", "signature",
+                                      profile, snippet, specificity=3))
+                return out
+
         # -- Math.random() feeding a security-sensitive value ---------------------
         if fname == "Math.random":
             func_name = scope_map.get(id(node))
@@ -320,7 +394,7 @@ class JSAnalyzer:
         if key_hardcoded:
             hp = dict(rules.HARDCODED_KEY)
             out.append(self._mk(file_path, line, col, "aes-hardcoded-key",
-                                  f"AES-{bits}-{mode or '?'} hardcoded-key", "symmetric-cipher", hp, snippet,
+                                  f"AES-{bits}-{mode or '?'} hardcoded-key", "hardcoded-secret", hp, snippet,
                                   specificity=4))
 
         if iv_node is not None and iv_static and mode in ("CBC", "CTR", "CFB", "OFB", "GCM"):

@@ -72,14 +72,17 @@ router.post('/:repoId', requireAuth, async (req, res) => {
               filePath: f.file,
               lineNumber: f.line || null,
               algorithm: f.algorithm || 'UNKNOWN',
-              library: f.library || null,
+              library: f.library || 'Standard API',
               usage: f.category || null,
-              keySize: null,
+              keySize: f.key_size || (f.algorithm.includes('1024') ? 1024 : f.algorithm.includes('2048') ? 2048 : (f.algorithm.includes('56') || (f.algorithm.includes('DES') && !f.algorithm.includes('3DES'))) ? 56 : f.algorithm.includes('256') ? 256 : f.algorithm.includes('128') ? 128 : null),
               quantumStatus: ['Quantum-Broken', 'Quantum-Weakened'].includes(f.quantum_risk)
                 ? 'Quantum Vulnerable' : 'Quantum Safe',
               severity: (f.severity || 'Informational').toUpperCase(),
               description: f.message || f.raw_call || '',
-              recommendation: f.recommendation || null
+              recommendation: f.recommendation || null,
+              confidence: f.confidence || 'Likely',
+              suppressed: Boolean(f.suppressed),
+              suppressionReason: f.suppression_reason || null
             }));
 
             if (dbFindings.length > 0) {
@@ -118,6 +121,7 @@ router.get('/:scanId/findings', requireAuth, async (req, res) => {
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
 
     const findings = await prisma.finding.findMany({ where: { scanId } });
+    // Expose confidence so the frontend badge renders Possible/Likely/Confirmed correctly
     return res.json({ scanId, status: scan.status, findings });
   } catch (err) {
     console.error('Findings fetch error:', err);

@@ -11,8 +11,8 @@ ec.generate_private_key), `random` used for security-sensitive values, and
 import ast
 from typing import List, Optional
 
-from models import Finding, Severity, QuantumRisk
-import rules
+from .models import Finding, Severity, QuantumRisk
+from . import rules
 
 
 def _name_of(node) -> str:
@@ -248,8 +248,8 @@ class PythonAnalyzer:
         if fname == "hmac.new":
             out.extend(self._check_hmac_digest(node, file_path, table, source_lines, aliases))
 
-        # -- RSA.generate(bits) (pycryptodome) ------------------------------------
-        if fname in ("RSA.generate",):
+        # -- RSA.generate(bits) (pycryptodome) or rsa.newkeys(bits) (rsa) ---------
+        if fname in ("RSA.generate", "rsa.newkeys", "newkeys"):
             bits = None
             if node.args:
                 lit = _resolve(node.args[0], table)
@@ -282,6 +282,28 @@ class PythonAnalyzer:
             profile = rules.ecc_profile(curve, purpose="signature")
             out.append(self._mk_finding(file_path, line, col, "python", "ecdsa-key-generation",
                                           f"ECDSA key_generation ({curve})", "asymmetric", profile, snippet,
+                                          specificity=2))
+
+        # -- DSA key generation (pycryptodome / cryptography) ---------------------
+        if fname in ("dsa.generate_private_key", "DSA.generate"):
+            bits = None
+            if node.args:
+                lit = _resolve(node.args[0], table)
+                if isinstance(lit, ast.Constant) and isinstance(lit.value, int):
+                    bits = lit.value
+            for kw in node.keywords:
+                if kw.arg == "key_size":
+                    lit = _resolve(kw.value, table)
+                    if isinstance(lit, ast.Constant) and isinstance(lit.value, int):
+                        bits = lit.value
+            profile = dict(
+                algorithm=f"DSA-{bits}" if bits else "DSA",
+                severity=Severity.HIGH if (bits and bits < 2048) else Severity.MEDIUM,
+                quantum_risk=QuantumRisk.QUANTUM_BROKEN,
+                recommendation="DSA is broken by Shor's algorithm and weak when key size < 2048. Migrate to ML-DSA (FIPS 204).",
+            )
+            out.append(self._mk_finding(file_path, line, col, "python", "dsa-key-generation",
+                                          "DSA key_generation", "asymmetric", profile, snippet,
                                           specificity=2))
 
         # -- insecure RNG feeding a security-sensitive value ----------------------
@@ -452,7 +474,7 @@ class PythonAnalyzer:
         if key_hardcoded:
             hp = dict(rules.HARDCODED_KEY)
             out.append(self._mk_finding(file_path, line, col, "python", "aes-hardcoded-key",
-                                          f"AES-{key_bits}-{mode or '?'} hardcoded-key", "symmetric-cipher",
+                                          f"AES-{key_bits}-{mode or '?'} hardcoded-key", "hardcoded-secret",
                                           hp, snippet, specificity=4))
 
         if iv_node is not None and iv_static and mode in ("CBC", "CTR", "CFB", "OFB", "GCM"):

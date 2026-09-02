@@ -110,6 +110,11 @@ def _is_likely_fp(value: str, name: str) -> bool:
         return True
     if _PATH_RE.match(value):
         return True
+    # English prose / sentences / log messages with spaces (e.g. "...removed legacy RC4 support...")
+    if " " in value:
+        words = [w for w in re.split(r'[^A-Za-z0-9]+', value) if w]
+        if len(words) >= 3:
+            return True
     # UUID: only skip if the identifier name doesn't match SECRET_NAME_HINTS
     if _UUID_RE.match(value) and not _is_secret_name(name):
         return True
@@ -145,19 +150,7 @@ def shannon_entropy(s: str) -> float:
 # Source-extraction helpers — pull string-literal assignments line by line
 # ---------------------------------------------------------------------------
 
-# Python:  IDENTIFIER = "literal"  or  IDENTIFIER = 'literal'
-_PY_ASSIGNMENT = re.compile(
-    r'''^[ \t]*([A-Z_][A-Z0-9_]*)[ \t]*=[ \t]*(?:"([^"\\]*(\\.[^"\\]*)*)"|'([^'\\]*(\\.[^'\\]*)*)')''',
-    re.IGNORECASE | re.MULTILINE,
-)
-
-# JS/TS:  const|let|var IDENTIFIER = "literal"
-_JS_ASSIGNMENT = re.compile(
-    r'''\b(?:const|let|var)[ \t]+([A-Z_$][A-Z0-9_$]*)[ \t]*=[ \t]*(?:"([^"\\]*(\\.[^"\\]*)*)"|'([^'\\]*(\\.[^'\\]*)*)')''',
-    re.IGNORECASE | re.MULTILINE,
-)
-
-# .env / config: KEY=value  (same as regex_analyzer, shared logic via simple regex)
+# .env / config: KEY=value
 _ENV_ASSIGNMENT = re.compile(
     r'^[ \t]*([A-Z_][A-Z0-9_]*)[ \t]*=[ \t]*([^\n#]+)',
     re.IGNORECASE | re.MULTILINE,
@@ -167,39 +160,67 @@ _ENV_ASSIGNMENT = re.compile(
 def _extract_py_assignments(source: str) -> List[Tuple[int, str, str]]:
     """Yield (line_no, identifier, literal_value) for Python source."""
     results = []
-    for m in _PY_ASSIGNMENT.finditer(source):
-        name = m.group(1)
-        # group 2 = double-quoted value, group 4 = single-quoted value
-        value = (m.group(2) or m.group(4) or "").replace('\\n', '\n').replace('\\t', '\t')
-        line_no = source[:m.start()].count('\n') + 1
-        results.append((line_no, name, value))
-    return results
-
-
-def _extract_js_assignments(source: str) -> List[Tuple[int, str, str]]:
-    """Yield (line_no, identifier, literal_value) for JS/TS source."""
-    results = []
-    for m in _JS_ASSIGNMENT.finditer(source):
-        name = m.group(1)
-        value = (m.group(2) or m.group(4) or "").replace('\\n', '\n').replace('\\t', '\t')
-        line_no = source[:m.start()].count('\n') + 1
-        results.append((line_no, name, value))
-    return results
-
-
-def _extract_env_assignments(source: str) -> List[Tuple[int, str, str]]:
-    """Yield (line_no, identifier, value) for .env / config files."""
-    results = []
-    for m in _ENV_ASSIGNMENT.finditer(source):
+    # Match variable assignments and keyword arguments: IDENT = "literal" / IDENT = b"literal"
+    assign_re = re.compile(
+        r'(?:^[ \t]*|\b)([A-Za-z_][A-Za-z0-9_]*)[ \t]*=[ \t]*(?:[brufBRUF]{1,2})?(?:"([^"\\]*(?:\\.[^"\\]*)*)"|\'([^\'\\]*(?:\\.[^\'\\]*)*)\')',
+        re.IGNORECASE | re.MULTILINE,
+    )
+    for m in assign_re.finditer(source):
         # Skip comment lines
         line_start = source.rfind('\n', 0, m.start()) + 1
         raw_prefix = source[line_start:m.start()].lstrip()
         if raw_prefix.startswith('#'):
             continue
         name = m.group(1)
-        value = m.group(2).strip().strip('"\'')
+        value = (m.group(2) if m.group(2) is not None else (m.group(3) or "")).replace('\\n', '\n').replace('\\t', '\t')
         line_no = source[:m.start()].count('\n') + 1
         results.append((line_no, name, value))
+
+    return results
+
+
+def _extract_js_assignments(source: str) -> List[Tuple[int, str, str]]:
+    """Yield (line_no, identifier, literal_value) for JS/TS source."""
+    results = []
+    # Match const/let/var IDENT = "literal" or object property IDENT: "literal"
+    assign_re = re.compile(
+        r'(?:^[ \t]*|\b)(?:const|let|var)?[ \t]*([A-Za-z_$][A-Za-z0-9_$]*)[ \t]*[:=][ \t]*(?:"([^"\\]*(?:\\.[^"\\]*)*)"|\'([^\'\\]*(?:\\.[^\'\\]*)*)\'|`([^`\\]*(?:\\.[^`\\]*)*)`)',
+        re.IGNORECASE | re.MULTILINE,
+    )
+    for m in assign_re.finditer(source):
+        line_start = source.rfind('\n', 0, m.start()) + 1
+        raw_prefix = source[line_start:m.start()].lstrip()
+        if raw_prefix.startswith('//') or raw_prefix.startswith('/*') or raw_prefix.startswith('*'):
+            continue
+        name = m.group(1)
+        value = (m.group(2) if m.group(2) is not None else (m.group(3) if m.group(3) is not None else (m.group(4) or ""))).replace('\\n', '\n').replace('\\t', '\t')
+        line_no = source[:m.start()].count('\n') + 1
+        results.append((line_no, name, value))
+
+    return results
+
+
+def _extract_env_assignments(source: str) -> List[Tuple[int, str, str]]:
+    """Yield (line_no, identifier, value) for .env / config files."""
+    results = []
+    lines = source.splitlines()
+    for line_no, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#') or stripped.startswith(';'):
+            continue
+        if '=' in stripped:
+            name, raw_val = stripped.split('=', 1)
+            name = name.strip()
+            val = raw_val.strip()
+            if val.startswith('"') and '"' in val[1:]:
+                val = val[1:val.index('"', 1)]
+            elif val.startswith("'") and "'" in val[1:]:
+                val = val[1:val.index("'", 1)]
+            else:
+                if ' #' in val:
+                    val = val.split(' #', 1)[0].strip()
+            if re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', name):
+                results.append((line_no, name, val))
     return results
 
 
