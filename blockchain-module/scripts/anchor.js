@@ -5,6 +5,7 @@ const { ethers } = require('ethers');
 const { buildMerkleTree } = require('../../integrity-service/merkle');
 const { getSigningKey } = require('../../integrity-service/kms');
 const { requestTimestamp } = require('../../integrity-service/timestamp');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 require('dotenv').config();
 
 /**
@@ -64,15 +65,42 @@ function extractComponents(contentInput) {
   return [{ content: String(parsed) }];
 }
 
-async function anchorScan(scanId, contentBuffer) {
-  const rpcUrl = process.env.RPC_URL || 'http://127.0.0.1:8545';
-  const signingKey = getSigningKey();
-
+async function anchorScan(scanId, contentBuffer, options = {}) {
   const deployedPath = path.join(__dirname, '..', 'deployed-contract.json');
-  if (!fs.existsSync(deployedPath)) {
-    throw new Error('deployed-contract.json not found — run deploy.js first');
+  const chainMode = (options && options.chainMode) || process.env.CHAIN_MODE || 'permissioned';
+  const isPermissioned = chainMode === 'permissioned';
+  const targetNetwork = isPermissioned ? 'localhost' : 'sepolia';
+
+  const netPath = path.join(__dirname, '..', `deployed-${targetNetwork}.json`);
+  const defaultPath = path.join(__dirname, '..', 'deployed-contract.json');
+
+  let deployedAddress = '';
+  let deployedNetwork = targetNetwork;
+
+  if (fs.existsSync(netPath)) {
+    const data = JSON.parse(fs.readFileSync(netPath, 'utf8'));
+    deployedAddress = data.address;
+    deployedNetwork = data.network || targetNetwork;
+  } else if (fs.existsSync(defaultPath)) {
+    const data = JSON.parse(fs.readFileSync(defaultPath, 'utf8'));
+    deployedAddress = data.address;
+    deployedNetwork = data.network || targetNetwork;
+  } else if (!options.contractAddress && !process.env.PERMISSIONED_CONTRACT_ADDRESS && !process.env.PUBLIC_CONTRACT_ADDRESS) {
+    throw new Error('No deployment file found — run deploy.js first');
   }
-  const { address: contractAddress, network } = JSON.parse(fs.readFileSync(deployedPath, 'utf8'));
+
+  const rpcUrl = (options && options.rpcUrl) ||
+    (isPermissioned
+      ? (process.env.PERMISSIONED_RPC_URL || 'http://127.0.0.1:8545')
+      : (process.env.PUBLIC_RPC_URL || process.env.SEPOLIA_RPC_URL || process.env.RPC_URL || 'http://127.0.0.1:8545'));
+
+  const contractAddress = (options && options.contractAddress) ||
+    (isPermissioned
+      ? (process.env.PERMISSIONED_CONTRACT_ADDRESS || deployedAddress)
+      : (process.env.PUBLIC_CONTRACT_ADDRESS || deployedAddress));
+
+  const network = isPermissioned ? 'localhost' : 'sepolia';
+  const signingKey = getSigningKey();
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
   const wallet = new ethers.Wallet(signingKey.privateKey, provider);
@@ -93,14 +121,30 @@ async function anchorScan(scanId, contentBuffer) {
   // Step 3: KMS-backed signature over the on-chain content commitment
   const signature = await wallet.signMessage(ethers.getBytes(contentHash));
 
-  // Step 4: Real transaction on-chain
+  // Step 4: Real transaction on-chain (supporting Person 5 signature with fallback)
   const abi = [
+    'function anchorScan(bytes32 scanId, bytes32 merkleRoot, string orgId, string scannerVersion) external',
     'function anchorScan(bytes32 scanId, bytes32 contentHash) external',
   ];
   const contract = new ethers.Contract(contractAddress, abi, wallet);
 
   const scanIdBytes32 = scanIdToBytes32(scanId);
-  const tx = await contract.anchorScan(scanIdBytes32, contentHash);
+  const orgId = (options && options.orgId) || process.env.ORG_ID || 'default-org';
+  const scannerVersion = (options && options.scannerVersion) || process.env.SCANNER_VERSION || '1.0.0';
+
+  const nonce = await provider.getTransactionCount(wallet.address, 'pending');
+  let tx;
+  try {
+    tx = await contract['anchorScan(bytes32,bytes32,string,string)'](
+      scanIdBytes32,
+      contentHash,
+      orgId,
+      scannerVersion,
+      { nonce }
+    );
+  } catch (callErr) {
+    tx = await contract['anchorScan(bytes32,bytes32)'](scanIdBytes32, contentHash, { nonce });
+  }
   console.log('Transaction submitted:', tx.hash);
 
   const receipt = await tx.wait();
@@ -109,12 +153,14 @@ async function anchorScan(scanId, contentBuffer) {
   return {
     scanId,
     contentHash,
+    merkleRoot,
+    orgId,
+    scannerVersion,
     signature,
     txHash: receipt.hash,
     network,
     anchoredBy: wallet.address,
     blockNumber: receipt.blockNumber,
-    merkleRoot,
     timestamp,
   };
 }

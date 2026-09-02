@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { ethers } = require('ethers');
 const { buildMerkleTree } = require('../../integrity-service/merkle');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 require('dotenv').config();
 
 /**
@@ -58,23 +59,60 @@ function extractComponents(contentInput) {
   return [{ content: String(parsed) }];
 }
 
-async function verifyScan(scanId, currentContentBuffer, signature) {
-  const rpcUrl = process.env.RPC_URL || 'http://127.0.0.1:8545';
+async function verifyScan(scanId, currentContentBuffer, signature, options = {}) {
+  const chainMode = (options && options.chainMode) || process.env.CHAIN_MODE || 'permissioned';
+  const isPermissioned = chainMode === 'permissioned';
+  const targetNetwork = isPermissioned ? 'localhost' : 'sepolia';
 
-  const deployedPath = path.join(__dirname, '..', 'deployed-contract.json');
-  if (!fs.existsSync(deployedPath)) {
-    throw new Error('deployed-contract.json not found — run deploy.js first');
+  const netPath = path.join(__dirname, '..', `deployed-${targetNetwork}.json`);
+  const defaultPath = path.join(__dirname, '..', 'deployed-contract.json');
+
+  let deployedAddress = '';
+  let deployedNetwork = targetNetwork;
+
+  if (fs.existsSync(netPath)) {
+    const data = JSON.parse(fs.readFileSync(netPath, 'utf8'));
+    deployedAddress = data.address;
+    deployedNetwork = data.network || targetNetwork;
+  } else if (fs.existsSync(defaultPath)) {
+    const data = JSON.parse(fs.readFileSync(defaultPath, 'utf8'));
+    deployedAddress = data.address;
+    deployedNetwork = data.network || targetNetwork;
+  } else if (!options.contractAddress && !process.env.PERMISSIONED_CONTRACT_ADDRESS && !process.env.PUBLIC_CONTRACT_ADDRESS) {
+    throw new Error('No deployment file found — run deploy.js first');
   }
-  const { address: contractAddress } = JSON.parse(fs.readFileSync(deployedPath, 'utf8'));
+
+  const rpcUrl = (options && options.rpcUrl) ||
+    (isPermissioned
+      ? (process.env.PERMISSIONED_RPC_URL || 'http://127.0.0.1:8545')
+      : (process.env.PUBLIC_RPC_URL || process.env.SEPOLIA_RPC_URL || process.env.RPC_URL || 'http://127.0.0.1:8545'));
+
+  const contractAddress = (options && options.contractAddress) ||
+    (isPermissioned
+      ? (process.env.PERMISSIONED_CONTRACT_ADDRESS || deployedAddress)
+      : (process.env.PUBLIC_CONTRACT_ADDRESS || deployedAddress));
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
-  const abi = [
-    'function getAnchor(bytes32 scanId) external view returns (bytes32 contentHash, address anchoredBy, uint256 timestamp, bool exists)',
-  ];
+
+  let abi;
+  const artifactPath = path.join(__dirname, '..', 'artifacts', 'contracts', 'CryptoAnchor.sol', 'CryptoAnchor.json');
+  if (fs.existsSync(artifactPath)) {
+    abi = JSON.parse(fs.readFileSync(artifactPath, 'utf8')).abi;
+  } else {
+    abi = [
+      'function getAnchor(bytes32 scanId) external view returns (bytes32 merkleRoot, address anchoredBy, uint256 timestamp, string orgId, string scannerVersion, bool exists)',
+    ];
+  }
   const contract = new ethers.Contract(contractAddress, abi, provider);
 
   const scanIdBytes32 = scanIdToBytes32(scanId);
-  const [onChainHash, anchoredBy, timestamp, exists] = await contract.getAnchor(scanIdBytes32);
+  let onChainHash, anchoredBy, timestamp, orgId, scannerVersion, exists;
+  const res = await contract.getAnchor(scanIdBytes32);
+  if (res.length >= 6) {
+    [onChainHash, anchoredBy, timestamp, orgId, scannerVersion, exists] = res;
+  } else {
+    [onChainHash, anchoredBy, timestamp, exists] = res;
+  }
 
   if (!exists) {
     return { verified: false, reason: 'No anchor found on-chain for this scanId', scanId };
@@ -105,6 +143,8 @@ async function verifyScan(scanId, currentContentBuffer, signature) {
     signatureValid,
     anchoredBy,
     anchoredAt: new Date(Number(timestamp) * 1000).toISOString(),
+    orgId: orgId || null,
+    scannerVersion: scannerVersion || null,
   };
 }
 

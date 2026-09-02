@@ -2,67 +2,169 @@
 pragma solidity ^0.8.24;
 
 /**
- * CryptoAnchor
+ * @title CryptoAnchor
+ * @notice Anchors cryptographic scan commitments (Merkle root, orgId, scannerVersion,
+ * timestamp, and submitter) on-chain for tamper-evident verification.
  *
- * Anchors the SHA-256 hash of a scan's (findings + CBOM) content on-chain,
- * so any later "verify" call can prove the report wasn't tampered with
- * after the fact — the on-chain hash is the source of truth.
+ * Implements write-once immutable historical records: once anchored, a scanId
+ * cannot be overwritten or updated.
  *
- * Mirrors the Anchor table in backend-core/prisma/schema.prisma:
- *   scanId, contentHash, txHash (implicit — the tx that calls this),
- *   signature is done off-chain by the submitting wallet (msg.sender IS
- *   the signature — no separate signature field needed on-chain).
+ * Enforces role-based write access: only the contract owner or explicitly
+ * authorized writers may submit anchors. Read operations are public.
  */
 contract CryptoAnchor {
     struct AnchorRecord {
-        bytes32 contentHash;   // sha256 of the off-chain content (findings+cbom)
-        address anchoredBy;    // wallet that submitted the anchor (acts as signer)
-        uint256 timestamp;     // block timestamp at anchor time
-        bool exists;
+        bytes32 merkleRoot;     // SHA-256 Merkle root of canonical CBOM components
+        address anchoredBy;    // Wallet address that submitted the anchor
+        uint256 timestamp;     // Block timestamp at anchor submission time
+        string orgId;          // Organization or tenant identifier
+        string scannerVersion; // Version string of scanner engine (e.g. "1.0.0")
+        bool exists;           // True once anchored (immutable flag)
     }
 
-    // scanId (as bytes32, e.g. keccak256 of the UUID string) => record
+    /// @notice Contract deployer and administrator
+    address public owner;
+
+    /// @notice Mapping of accounts authorized to submit scan anchors
+    mapping(address => bool) public authorizedWriters;
+
+    /// @notice Mapping from scanId (bytes32 keccak256 of UUID) to its AnchorRecord
     mapping(bytes32 => AnchorRecord) private anchors;
 
+    /// @notice Emitted when a scan is anchored on-chain
     event ScanAnchored(
         bytes32 indexed scanId,
-        bytes32 contentHash,
+        bytes32 merkleRoot,
         address indexed anchoredBy,
-        uint256 timestamp
+        uint256 timestamp,
+        string orgId,
+        string scannerVersion
     );
 
+    /// @notice Emitted when a writer is authorized
+    event WriterAuthorized(address indexed writer);
+
+    /// @notice Emitted when a writer is revoked
+    event WriterRevoked(address indexed writer);
+
+    /// @notice Emitted when contract ownership is transferred
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "CryptoAnchor: caller is not the owner");
+        _;
+    }
+
+    modifier onlyAuthorized() {
+        require(msg.sender == owner || authorizedWriters[msg.sender], "CryptoAnchor: unauthorized writer");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        authorizedWriters[msg.sender] = true;
+        emit WriterAuthorized(msg.sender);
+    }
+
     /**
-     * Anchor a scan's content hash. Reverts if this scanId was already
-     * anchored — an anchor is a one-time, immutable commitment, not an
-     * update. If a scan is re-run, generate a new scanId.
+     * @notice Grants or revokes anchor submission permissions for an account.
+     * @param writer Address to authorize or revoke.
+     * @param authorized True to authorize, false to revoke.
      */
-    function anchorScan(bytes32 scanId, bytes32 contentHash) external {
-        require(!anchors[scanId].exists, 'CryptoAnchor: scanId already anchored');
-        require(contentHash != bytes32(0), 'CryptoAnchor: empty contentHash');
+    function setAuthorizedWriter(address writer, bool authorized) external onlyOwner {
+        require(writer != address(0), "CryptoAnchor: invalid writer address");
+        authorizedWriters[writer] = authorized;
+        if (authorized) {
+            emit WriterAuthorized(writer);
+        } else {
+            emit WriterRevoked(writer);
+        }
+    }
+
+    /**
+     * @notice Transfers ownership of the contract to a new account.
+     * @param newOwner Address of the new owner.
+     */
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "CryptoAnchor: new owner cannot be zero address");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+        authorizedWriters[newOwner] = true;
+    }
+
+    /**
+     * @notice Anchors a scan's Merkle root with organization ID and scanner version.
+     * @param scanId Unique 32-byte identifier for the scan (e.g. keccak256 of UUID).
+     * @param merkleRoot 32-byte cryptographic Merkle root of the CBOM components.
+     * @param orgId Identifier for the organization or tenant.
+     * @param scannerVersion Version of the scanner used for this scan.
+     */
+    function anchorScan(
+        bytes32 scanId,
+        bytes32 merkleRoot,
+        string memory orgId,
+        string memory scannerVersion
+    ) public onlyAuthorized {
+        require(!anchors[scanId].exists, "CryptoAnchor: scanId already anchored");
+        require(merkleRoot != bytes32(0), "CryptoAnchor: empty merkleRoot");
 
         anchors[scanId] = AnchorRecord({
-            contentHash: contentHash,
+            merkleRoot: merkleRoot,
             anchoredBy: msg.sender,
             timestamp: block.timestamp,
+            orgId: orgId,
+            scannerVersion: scannerVersion,
             exists: true
         });
 
-        emit ScanAnchored(scanId, contentHash, msg.sender, block.timestamp);
+        emit ScanAnchored(
+            scanId,
+            merkleRoot,
+            msg.sender,
+            block.timestamp,
+            orgId,
+            scannerVersion
+        );
     }
 
     /**
-     * Read back the anchored record for verification. The verify service
-     * calls this, recomputes the off-chain hash, and compares.
+     * @notice Overload for backward compatibility with 2-parameter callers.
+     */
+    function anchorScan(bytes32 scanId, bytes32 merkleRoot) external onlyAuthorized {
+        anchorScan(scanId, merkleRoot, "default-org", "1.0.0");
+    }
+
+    /**
+     * @notice Retrieves the anchored record for a given scanId.
+     * @param scanId 32-byte scan identifier.
      */
     function getAnchor(bytes32 scanId)
         external
         view
-        returns (bytes32 contentHash, address anchoredBy, uint256 timestamp, bool exists)
+        returns (
+            bytes32 merkleRoot,
+            address anchoredBy,
+            uint256 timestamp,
+            string memory orgId,
+            string memory scannerVersion,
+            bool exists
+        )
     {
-        AnchorRecord memory rec = anchors[scanId];
-        return (rec.contentHash, rec.anchoredBy, rec.timestamp, rec.exists);
+        AnchorRecord storage rec = anchors[scanId];
+        return (
+            rec.merkleRoot,
+            rec.anchoredBy,
+            rec.timestamp,
+            rec.orgId,
+            rec.scannerVersion,
+            rec.exists
+        );
     }
 
+    /**
+     * @notice Returns true if the scan has already been anchored.
+     * @param scanId 32-byte scan identifier.
+     */
     function isAnchored(bytes32 scanId) external view returns (bool) {
         return anchors[scanId].exists;
     }

@@ -1,12 +1,59 @@
-.venv/
-__pycache__/
-.pytest_cache/
-*.pyc
-
+# Dependency directories
 node_modules/
+.venv/
+venv/
+env/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment files & secrets (Strictly ignored)
 .env
+.env.*
+!.env.example
+*.env
+
+# SQLite databases & logs
 *.db
+*.db-journal
+*.sqlite
+*.sqlite3
+backend-core/prisma/*.db
+backend-core/prisma/*.db-journal
 
+# Uploads & temporary scan files
+backend-core/uploads/*
+!backend-core/uploads/.gitkeep
 scanner/out.json
-.vscode/
+scratch/
 
+# Build outputs & caches
+dist/
+build/
+.next/
+out/
+coverage/
+.nyc_output/
+
+# Hardhat & Smart contract artifacts
+blockchain-module/artifacts/
+blockchain-module/cache/
+blockchain-module/typechain/
+blockchain-module/typechain-types/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE & OS artifacts
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

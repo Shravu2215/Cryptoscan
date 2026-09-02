@@ -308,6 +308,161 @@ function verifyProof(leaf, proof, root) {
   return currentHash === root;
 }
 
+/**
+ * Computes the deterministic leaf hash for a scan record in a batch.
+ *
+ * @param {object} scan - Scan record object containing at least scanId and merkleRoot.
+ * @returns {string} 64-character lowercase hex SHA-256 hash.
+ */
+function computeScanLeaf(scan) {
+  if (!scan || typeof scan !== 'object') {
+    throw new TypeError('Scan record must be a non-null object');
+  }
+  if (!scan.scanId || typeof scan.scanId !== 'string') {
+    throw new TypeError('Scan record must have a valid string scanId');
+  }
+  const rawRoot = scan.merkleRoot || '';
+  const cleanRoot = rawRoot.replace(/^0x/i, '').toLowerCase();
+  if (!isValidSha256Hex(cleanRoot)) {
+    throw new TypeError(`Scan record for '${scan.scanId}' must have a valid 64-character hex merkleRoot`);
+  }
+
+  const normalized = {
+    scanId: String(scan.scanId),
+    merkleRoot: cleanRoot,
+    ...(scan.orgId ? { orgId: String(scan.orgId) } : {}),
+    ...(scan.scannerVersion ? { scannerVersion: String(scan.scannerVersion) } : {}),
+  };
+
+  return hash(canonicalize(normalized));
+}
+
+/**
+ * Sorts an array of scan records deterministically by scanId (lexicographical order),
+ * using merkleRoot as tie-breaker.
+ *
+ * @param {Array<object>} scans - Array of scan record objects.
+ * @returns {Array<object>} New sorted array of scan records.
+ */
+function sortScanBatch(scans) {
+  return [...scans].sort((a, b) => {
+    const cmp = String(a.scanId).localeCompare(String(b.scanId));
+    if (cmp !== 0) return cmp;
+    const rootA = (a.merkleRoot || '').replace(/^0x/i, '').toLowerCase();
+    const rootB = (b.merkleRoot || '').replace(/^0x/i, '').toLowerCase();
+    return rootA.localeCompare(rootB);
+  });
+}
+
+/**
+ * Builds a deterministic batch Merkle tree combining multiple scan records.
+ *
+ * Leaf Ordering Rule:
+ * Scans are sorted deterministically in lexicographical order by `scanId`.
+ * Each scan is canonicalized as { scanId, merkleRoot, [orgId], [scannerVersion] }
+ * and hashed via SHA-256 to form a leaf.
+ *
+ * The tree is constructed using sorted-pair binary hashing and Bitcoin-style
+ * odd-node duplication, reusing the core buildMerkleTree engine.
+ *
+ * @param {Array<object>} scans - Array of scan records.
+ * @param {object} [options] - Options passed to buildMerkleTree.
+ * @returns {{
+ *   batchRoot: string,
+ *   batchRootHex: string,
+ *   scans: Array<object>,
+ *   leaves: string[],
+ *   tree: string[][]
+ * }}
+ */
+function buildBatchMerkleTree(scans, options = {}) {
+  if (!Array.isArray(scans)) {
+    throw new TypeError('Scans must be an array');
+  }
+  if (scans.length === 0) {
+    throw new Error('Cannot build batch Merkle tree from empty scans array');
+  }
+
+  // Step 1: Deterministic leaf ordering by scanId
+  const sortedScans = sortScanBatch(scans);
+
+  // Step 2: Generate normalized canonical objects for each scan
+  const normalizedComponents = sortedScans.map((s) => {
+    const rawRoot = s.merkleRoot || '';
+    const cleanRoot = rawRoot.replace(/^0x/i, '').toLowerCase();
+    if (!isValidSha256Hex(cleanRoot)) {
+      throw new TypeError(`Scan record for '${s.scanId}' has invalid merkleRoot: expected 64 hex chars`);
+    }
+    return {
+      scanId: String(s.scanId),
+      merkleRoot: cleanRoot,
+      ...(s.orgId ? { orgId: String(s.orgId) } : {}),
+      ...(s.scannerVersion ? { scannerVersion: String(s.scannerVersion) } : {}),
+    };
+  });
+
+  // Step 3: Reuse core buildMerkleTree engine
+  const treeResult = buildMerkleTree(normalizedComponents, options);
+
+  return {
+    batchRoot: treeResult.root,
+    batchRootHex: '0x' + treeResult.root,
+    scans: sortedScans,
+    leaves: treeResult.leaves,
+    tree: treeResult.tree,
+  };
+}
+
+/**
+ * Generates an audit proof for a specific scanId within a batch Merkle tree.
+ *
+ * @param {object} batchResult - Result object from buildBatchMerkleTree.
+ * @param {string} scanId - The scanId to generate proof for.
+ * @returns {{
+ *   scanId: string,
+ *   leaf: string,
+ *   leafIndex: number,
+ *   batchRoot: string,
+ *   proof: Array<{ sibling: string, position: 'left' | 'right' }>
+ * }}
+ */
+function getBatchProof(batchResult, scanId) {
+  if (!batchResult || !Array.isArray(batchResult.scans) || !Array.isArray(batchResult.tree)) {
+    throw new TypeError('Invalid batchResult object: must be returned from buildBatchMerkleTree');
+  }
+  if (typeof scanId !== 'string' || !scanId) {
+    throw new TypeError('scanId must be a non-empty string');
+  }
+
+  const index = batchResult.scans.findIndex((s) => s.scanId === scanId);
+  if (index === -1) {
+    throw new Error(`scanId '${scanId}' not found in batch tree`);
+  }
+
+  const proof = getProof(batchResult.tree, index);
+  return {
+    scanId,
+    leaf: batchResult.leaves[index],
+    leafIndex: index,
+    batchRoot: batchResult.batchRoot,
+    proof,
+  };
+}
+
+/**
+ * Independently verifies whether a scan record belongs to a batch Merkle root.
+ *
+ * @param {object} scan - The scan record { scanId, merkleRoot, [orgId], [scannerVersion] }.
+ * @param {Array<{ sibling: string, position: 'left' | 'right' }>} proof - Merkle proof path.
+ * @param {string} batchRoot - 64-character lowercase hex (or 0x + 64 hex) batch root.
+ * @returns {boolean} True if membership is mathematically proven.
+ */
+function verifyBatchProof(scan, proof, batchRoot) {
+  const cleanBatchRoot = (batchRoot || '').replace(/^0x/i, '').toLowerCase();
+  const leaf = computeScanLeaf(scan);
+  return verifyProof(leaf, proof, cleanBatchRoot);
+}
+
 module.exports = {
   buildMerkleTree,
   canonicalize,
@@ -315,4 +470,11 @@ module.exports = {
   hashPair,
   getProof,
   verifyProof,
+  isValidSha256Hex,
+  computeScanLeaf,
+  sortScanBatch,
+  buildBatchMerkleTree,
+  getBatchProof,
+  verifyBatchProof,
 };
+

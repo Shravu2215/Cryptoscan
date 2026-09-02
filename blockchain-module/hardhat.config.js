@@ -21,11 +21,15 @@ module.exports = {
   networks: {
     hardhat: {},
     localhost: {
-      url: 'http://127.0.0.1:8545',
+      url: process.env.PERMISSIONED_RPC_URL || 'http://127.0.0.1:8545',
     },
     sepolia: {
-      url: process.env.SEPOLIA_RPC_URL || '',
+      url: process.env.PUBLIC_RPC_URL || process.env.SEPOLIA_RPC_URL || process.env.RPC_URL || '',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY || '',
+  },
 };
+

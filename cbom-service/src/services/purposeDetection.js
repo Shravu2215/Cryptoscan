@@ -51,15 +51,19 @@ const USAGE_TYPE_TO_PURPOSE = {
   key_exchange: 'key_exchange',
   signature: 'digital_signature',
   encryption: 'data_encryption',
+  decryption: 'data_encryption',
   password_hashing: 'password_hashing',
   mac: 'mac',
   random: 'random_generation',
+  token_key_generation: 'random_generation',
+  hash: 'integrity_hashing',
   hashing: 'integrity_hashing',
 };
 
 function detectPurpose(finding) {
   const declared = finding.context && finding.context.usageType;
-  const mapped = declared && USAGE_TYPE_TO_PURPOSE[declared];
+  const normalized = declared && declared.toLowerCase().replace(/[\s\/]+/g, '_').replace(/-/g, '_');
+  const mapped = normalized && USAGE_TYPE_TO_PURPOSE[normalized];
 
   if (mapped) {
     return { purpose: mapped, confidence: 'declared', source: 'scanner usageType' };

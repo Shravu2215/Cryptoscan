@@ -46,12 +46,14 @@ CryptoScan is an end-to-end cryptographic discovery, vulnerability remediation, 
 
 ---
 
-## ⚡ Live Ethereum Sepolia Deployment
+## ⚡ Live Ethereum Sepolia & Local Deployment
 
 - **Smart Contract:** `CryptoAnchor`
-- **Network:** `sepolia`
-- **Contract Address:** [`0x52B9D527e47066F6Fa8B90A6E389478c447D4C89`](https://sepolia.etherscan.io/address/0x52B9D527e47066F6Fa8B90A6E389478c447D4C89)
-- **Deployment Artifact:** [`blockchain-module/deployed-contract.json`](file:///c:/Users/Shravani/Downloads/Cryptoscan-main/blockchain-module/deployed-contract.json)
+- **Sepolia Network:** `sepolia` (Chain ID `11155111`)
+- **Sepolia Address:** [`0x6BD080EfF2E516B6F02d87Cc2D11dCf8A7c86898`](https://sepolia.etherscan.io/address/0x6BD080EfF2E516B6F02d87Cc2D11dCf8A7c86898)
+- **Local Network:** `localhost` (Chain ID `31337`)
+- **Local Address:** `0x610178dA211FEF7D417bC0e6FeD39F05609AD788`
+- **Deployment Artifacts:** [`blockchain-module/deployed-sepolia.json`](file:///c:/Users/Shravani/Downloads/Cryptoscan-main/blockchain-module/deployed-sepolia.json), [`blockchain-module/deployed-localhost.json`](file:///c:/Users/Shravani/Downloads/Cryptoscan-main/blockchain-module/deployed-localhost.json)
 
 > [!CAUTION]
 > **SECURITY WARNING:** Never commit `.env` files, private keys, or credentials to version control. All `.env` files are strictly gitignored. Real private keys must only reside in your local `.env`.
@@ -163,33 +165,34 @@ npx serve . -l 8080
 ---
 
 ## 🧪 Regression Test Suites
-
+ 
 CryptoScan includes comprehensive automated tests covering all modules:
-
+ 
 ```bash
-# 1. Integrity Service (Merkle, KMS, RFC 3161 Timestamp, Hybrid Signatures)
+# 1. Integrity Service (Merkle, Batch Merkle, KMS, RFC 3161 Timestamp, Hybrid Signatures)
 cd integrity-service
 node hybrid-signature.test.js    # 24 tests
 node merkle.test.js              # 23 tests
+node batch-merkle.test.js        # 9 tests
 node timestamp.test.js           # 19 tests
 node kms.test.js                 # 8 tests
 
-# 2. Blockchain Smart Contract Suite
+# 2. Blockchain Smart Contract & Anchoring Suite (Hardhat)
 cd ../blockchain-module
-npm test                         # 5 tests
+npm test                         # 52 tests (Batch, Sepolia, IPFS, History, Security, E2E)
 
 # 3. Backend Core Integration Suite
 cd ../backend-core
-node test/scans.test.js          # 7 checks
+node test/scans.test.js          # Smoke & integration checks
 
 # 4. Scanner AST Analysis Suite
 cd ../scanner
-.\.venv\Scripts\python tests/test_scanner.py  # 5 tests
+.\.venv\Scripts\python -m pytest tests  # 79 tests
 
 # 5. CBOM & Findings Suite
 cd ../cbom-service
 node test/run.js                 # 16 checks
 ```
 
-### ✅ Test Results Summary: **107 / 107 PASSED (100%)**
+### ✅ Test Results Summary: **All test suites 100% PASSED**
 All unit, integration, live Sepolia, and regression suites are green.
