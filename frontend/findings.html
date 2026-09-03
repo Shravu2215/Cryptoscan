@@ -860,6 +860,7 @@ function handleFilterChange() {
   });
   
   currentPage = 1;
+  updateSummaryStats();
   renderChips(search, risk, algo);
   renderTable();
 }

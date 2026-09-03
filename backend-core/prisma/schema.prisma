@@ -27,29 +27,33 @@ model User {
 }
 
 model Repo {
-  id         String   @id @default(uuid())
-  name       String
-  filePath   String   // path on disk where uploaded repo/zip is stored
-  uploadedBy String
-  user       User     @relation(fields: [uploadedBy], references: [id])
-  createdAt  DateTime @default(now())
+  id              String        @id @default(uuid())
+  name            String
+  filePath        String        // path on disk where uploaded repo/zip is stored
+  uploadedBy      String
+  user            User          @relation(fields: [uploadedBy], references: [id])
+  businessContext String?       @default("STANDARD") // CRITICAL, IMPORTANT, STANDARD
+  createdAt       DateTime      @default(now())
 
-  scans      Scan[]
+  scans        Scan[]
+  cbomVersions CbomVersion[]
 }
 
 model Scan {
-  id          String   @id @default(uuid())
-  repoId      String
-  repo        Repo     @relation(fields: [repoId], references: [id])
-  status      String   @default("PENDING")
-  createdAt   DateTime @default(now())
-  completedAt DateTime?
+  id             String   @id @default(uuid())
+  repoId         String
+  repo           Repo     @relation(fields: [repoId], references: [id])
+  status         String   @default("PENDING")
+  commitHash     String?
+  scannerVersion String?  @default("2.0.0")
+  createdAt      DateTime @default(now())
+  completedAt    DateTime?
 
   findings    Finding[]
   cbom        Cbom?
   anchor      Anchor?
+  cbomVersion CbomVersion?
 }
-
 
 model Finding {
   id             String   @id @default(uuid())
@@ -90,4 +94,16 @@ model Anchor {
   signature   String   // real digital signature
   network     String   // e.g. sepolia
   createdAt   DateTime @default(now())
+}
+
+model CbomVersion {
+  id            String   @id @default(uuid())
+  repoId        String
+  repo          Repo     @relation(fields: [repoId], references: [id])
+  scanId        String   @unique
+  scan          Scan     @relation(fields: [scanId], references: [id])
+  versionNumber Int
+  versionLabel  String   // e.g. CBOM-v1, CBOM-v2
+  content       String   // full CycloneDX 1.6 CBOM document JSON
+  createdAt     DateTime @default(now())
 }

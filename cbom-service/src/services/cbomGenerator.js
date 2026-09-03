@@ -111,7 +111,22 @@ function buildCbom(scan) {
         { name: 'findingCount', value: String(enriched.length) },
       ],
     },
+    provenance: {
+      commitHash: scan.commitHash || scan.commit || 'uncommitted',
+      scanTimestamp: scan.receivedAt || scan.createdAt || new Date().toISOString(),
+      scannerVersion: scan.scannerVersion || '2.0.0',
+    },
     components,
+    dependencies: [
+      {
+        ref: scan.repoId || scan.scanId,
+        dependsOn: components.map((c) => c['bom-ref']),
+      },
+      ...components.map((c) => ({
+        ref: c['bom-ref'],
+        dependsOn: [],
+      })),
+    ],
     summary: {
       totalCryptoAssets: components.length,
       totalFindings: enriched.length,
@@ -120,4 +135,17 @@ function buildCbom(scan) {
   };
 }
 
-module.exports = { enrichFinding, buildFindingsResponse, buildCbom };
+/**
+ * Signed CBOM export — wraps standard CycloneDX payload with a signature interface.
+ * Signature is stubbed as null pending integrity-service release.
+ */
+function buildSignedCbom(scan) {
+  const cbom = buildCbom(scan);
+  return {
+    ...cbom,
+    signature: null, // TODO: wire once integrity-service ships Merkle root + hybrid signature format
+  };
+}
+
+module.exports = { enrichFinding, buildFindingsResponse, buildCbom, buildSignedCbom };
+

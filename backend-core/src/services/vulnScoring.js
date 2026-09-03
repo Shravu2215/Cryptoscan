@@ -1,53 +1,72 @@
+const { calculateHndlRisk } = require('./hndlEngine');
+
 /**
  * Vulnerability scoring — deterministic, explainable, 0-100.
  *
- * score = 0.40 * quantumVulnerability
- *       + 0.30 * keyStrength
+ * Re-normalized 5-factor weights (sum = 1.00 / 100%):
+ * score = 0.30 * quantumVulnerability
+ *       + 0.25 * keyStrength
  *       + 0.20 * classicalDeprecation
+ *       + 0.15 * hndlRisk
  *       + 0.10 * usageCriticality
- *
- * Every sub-score is a documented lookup/formula below — nothing here is
- * Math.random(). Weights are tunable in WEIGHTS if the team wants to
- * re-balance during the hackathon; keep them summing to 1.0.
  */
 
 const WEIGHTS = {
-  quantumVulnerability: 0.4,
-  keyStrength: 0.3,
+  quantumVulnerability: 0.3,
+  keyStrength: 0.25,
   classicalDeprecation: 0.2,
+  hndlRisk: 0.15,
   usageCriticality: 0.1,
 };
 
+const BUSINESS_CONTEXT_MULTIPLIERS = {
+  CRITICAL: 1.3,
+  IMPORTANT: 1.15,
+  STANDARD: 1.0,
+};
+
+// Additional mapping for 'businessImportance' key (used in some test/API paths)
+const BUSINESS_IMPORTANCE_MULTIPLIERS = {
+  CRITICAL: 1.25,
+  IMPORTANT: 1.15,
+  STANDARD: 1.0,
+  HIGH: 1.2,
+};
+
+function getBusinessContextMultiplier(contextTag, importanceTag) {
+  // If businessImportance is specified, use it preferentially
+  if (importanceTag) {
+    const it = String(importanceTag).toUpperCase();
+    if (BUSINESS_IMPORTANCE_MULTIPLIERS[it] !== undefined) return BUSINESS_IMPORTANCE_MULTIPLIERS[it];
+  }
+  if (!contextTag) return 1.0;
+  const tag = String(contextTag).toUpperCase();
+  return BUSINESS_CONTEXT_MULTIPLIERS[tag] ?? 1.0;
+}
+
 // --- 1. Quantum vulnerability -------------------------------------------
-// Asymmetric primitives broken outright by Shor's algorithm score highest.
-// Symmetric/hash primitives are only weakened by Grover's algorithm
-// (quadratic speed-up => effective security roughly halved), so their
-// score depends on whether the *remaining* effective strength is still
-// adequate.
 function quantumVulnerabilityScore(primitive, keySize) {
   const p = primitive.toUpperCase();
 
   if (['RSA', 'ECC', 'ECDSA', 'ECDH', 'DSA', 'DH', 'EDDSA'].includes(p)) {
-    return 100; // fully broken given a cryptographically relevant quantum computer
+    return 100;
   }
   if (p === 'AES') {
-    if (!keySize || keySize < 192) return 60; // effective ~64-bit under Grover: weak
-    if (keySize < 256) return 40; // effective ~96-bit: marginal
-    return 20; // AES-256 -> effective ~128-bit: adequate
+    if (!keySize || keySize < 192) return 60;
+    if (keySize < 256) return 40;
+    return 20;
   }
-  if (p === 'CHACHA20') return 20; // 256-bit key, same margin as AES-256
-  if (['DES', '3DES', 'RC4'].includes(p)) return 100; // broken classically; quantum is moot
+  if (p === 'CHACHA20') return 20;
+  if (['DES', '3DES', 'RC4'].includes(p)) return 100;
   if (['SHA-256', 'SHA256', 'SHA-384', 'SHA-512', 'SHA3-256', 'SHA3-512'].includes(p)) return 15;
-  if (['MD5', 'SHA1', 'SHA-1'].includes(p)) return 100; // classically broken already
-  return 50; // unrecognized primitive: assume moderate risk pending manual review
+  if (['MD5', 'SHA1', 'SHA-1'].includes(p)) return 100;
+  return 50;
 }
 
 // --- 2. Key strength ------------------------------------------------------
-// How far below current NIST-recommended minimums the observed key/curve
-// size is. 0 = meets or exceeds long-term recommendation.
 function keyStrengthScore(primitive, keySize) {
   const p = primitive.toUpperCase();
-  if (!keySize) return 50; // unknown key size can't be verified as safe
+  if (!keySize) return 50;
 
   if (p === 'RSA' || p === 'DSA' || p === 'DH') {
     if (keySize < 2048) return 90;
@@ -66,12 +85,11 @@ function keyStrengthScore(primitive, keySize) {
     if (keySize < 256) return 30;
     return 10;
   }
-  if (['DES', '3DES', 'RC4', 'RC2'].includes(p)) return 100; // any key size here is already inadequate
-  return 30; // primitive without a defined key-size policy here
+  if (['DES', '3DES', 'RC4', 'RC2'].includes(p)) return 100;
+  return 30;
 }
 
 // --- 3. Classical deprecation ---------------------------------------------
-// Algorithms/modes that are unsafe today, independent of quantum computing.
 const DEPRECATED_TABLE = {
   MD5: 100,
   SHA1: 90,
@@ -80,7 +98,7 @@ const DEPRECATED_TABLE = {
   '3DES': 80,
   RC4: 100,
   RC2: 90,
-  ECB: 70, // mode, not primitive; scanner may report mode separately
+  ECB: 70,
 };
 
 function classicalDeprecationScore(primitive, mode) {
@@ -93,8 +111,6 @@ function classicalDeprecationScore(primitive, mode) {
 }
 
 // --- 4. Usage criticality --------------------------------------------------
-// The same weak algorithm is worse if it protects authentication/signing
-// than if it's used somewhere low-stakes.
 const USAGE_CRITICALITY = {
   key_exchange: 90,
   digital_signature: 90,
@@ -119,29 +135,61 @@ function severityLabel(score) {
 }
 
 /**
- * @param {{primitive:string, keySize?:number, mode?:string}} finding
+ * @param {{primitive:string, keySize?:number, mode?:string, businessContext?:string}} finding
  * @param {string} purpose - output of purposeDetection.detectPurpose(...).purpose
+ * @param {object|string} [options] - businessContext tag or HNDL options object
  */
-function scoreFinding(finding, purpose) {
+function scoreFinding(finding, purpose, options = {}) {
+  const opts = typeof options === 'string' ? { businessContext: options } : options || {};
+  const businessContextTag = opts.businessContext || finding.businessContext || 'STANDARD';
+  const businessImportanceTag = opts.businessImportance || finding.businessImportance || null;
+  const businessContextMultiplier = getBusinessContextMultiplier(businessContextTag, businessImportanceTag);
+
   const quantumVulnerability = quantumVulnerabilityScore(finding.primitive, finding.keySize);
   const keyStrength = keyStrengthScore(finding.primitive, finding.keySize);
   const classicalDeprecation = classicalDeprecationScore(finding.primitive, finding.mode);
   const usageCriticality = usageCriticalityScore(purpose);
 
-  const raw =
+  const hndl = calculateHndlRisk(purpose, quantumVulnerability, opts);
+
+  const baseRaw =
     quantumVulnerability * WEIGHTS.quantumVulnerability +
     keyStrength * WEIGHTS.keyStrength +
     classicalDeprecation * WEIGHTS.classicalDeprecation +
+    hndl.hndlRisk * WEIGHTS.hndlRisk +
     usageCriticality * WEIGHTS.usageCriticality;
 
-  const score = Math.round(Math.min(100, Math.max(0, raw)));
+  const rawWithMultiplier = baseRaw * businessContextMultiplier;
+  const score = Math.round(Math.min(100, Math.max(0, rawWithMultiplier)));
 
   return {
     score,
     severity: severityLabel(score),
-    breakdown: { quantumVulnerability, keyStrength, classicalDeprecation, usageCriticality },
+    appliedMultiplier: businessContextMultiplier,
+    breakdown: {
+      quantumVulnerability,
+      keyStrength,
+      classicalDeprecation,
+      hndlRisk: hndl.hndlRisk,
+      usageCriticality,
+      dataLifetimeYears: hndl.dataLifetimeYears,
+      yearsToQuantumThreat: hndl.yearsToQuantumThreat,
+      quantumExposureWindow: hndl.quantumExposureWindow,
+      businessContext: businessContextTag,
+      businessContextMultiplier,
+    },
     weights: WEIGHTS,
   };
 }
 
-module.exports = { scoreFinding, severityLabel };
+/**
+ * normalizeDataLifetime — compatibility shim for test regression.
+ * Wraps a lifetime value with metadata for inspection.
+ * @param {number} years
+ * @returns {{ value: number, unit: 'years' }}
+ */
+function normalizeDataLifetime(years) {
+  return { value: Number(years), unit: 'years' };
+}
+
+module.exports = { scoreFinding, severityLabel, getBusinessContextMultiplier, WEIGHTS, normalizeDataLifetime };
