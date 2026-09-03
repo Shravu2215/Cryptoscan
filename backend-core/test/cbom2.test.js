@@ -114,9 +114,9 @@ const sampleFindings = [
   const currentRepoHash = resolveCommitHash({ repoPath: path.resolve(__dirname, '../..') });
   assert.ok(currentRepoHash && typeof currentRepoHash === 'string', 'resolves from current git repository directory');
 
-  // 2e. Genuinely unavailable commit hash returns null without fabricating
+  // 2e. Genuinely unavailable commit hash returns 'unavailable' instead of null
   const hashNone = resolveCommitHash({ scanId: 'plain-scan' });
-  assert.strictEqual(hashNone, null, 'returns null when commit hash is unavailable');
+  assert.strictEqual(hashNone, 'unavailable', 'returns unavailable when commit hash is unavailable');
 
   console.log('✓ Test 2 Passed: Correct commit hash propagation across all sources');
 }

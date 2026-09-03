@@ -1,6 +1,7 @@
 {
   "name": "cbom-findings-service",
   "version": "1.0.0",
+  "engines": { "node": ">=24.7.0" },
   "description": "CBOM + Findings module — serves scanner findings, generates a CycloneDX-style Cryptographic Bill of Materials with real purpose detection and vulnerability scoring (no hardcoded RSA->ML-KEM mapping, no random scores).",
   "main": "src/server.js",
   "type": "commonjs",

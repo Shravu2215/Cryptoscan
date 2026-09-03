@@ -1,6 +1,7 @@
 {
   "name": "cryptoscan-backend-core",
   "version": "1.0.0",
+  "engines": { "node": ">=24.7.0" },
   "description": "Backend Core: Auth + Repo Upload + DB schema for CryptoScan (ECDAT)",
   "main": "src/server.js",
   "scripts": {
