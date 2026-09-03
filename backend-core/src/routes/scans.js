@@ -318,8 +318,8 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
     }
 
     // Call blockchain-module anchor script
-    const { anchorCBOM } = require('../../../blockchain-module/scripts/anchor');
-    const result = await anchorCBOM(contentBuffer, {
+    const { anchorScan } = require('../../../blockchain-module/scripts/anchor');
+    const result = await anchorScan(contentBuffer, {
       scanId: scan.id,
       orgId: 'cryptoscan-core'
     });
@@ -408,14 +408,14 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
     const storedHash = anchor.contentHash.toLowerCase();
     let hashMatches = recomputedHash.toLowerCase() === storedHash;
 
-    // Best-effort on-chain verification — 3 s timeout so route stays fast
-    // when Hardhat node is down (ethers v6 retries indefinitely otherwise)
+    // Best-effort on-chain verification — 10s timeout
     let onChainHash = anchor.contentHash; // default to DB value if chain unavailable
     let signatureValid = !!anchor.signature;
+    let blockchainError = null;
     try {
       if (process.env.USE_MOCK !== 'true') {
         const chainTimeout = new Promise((_, rej) =>
-          setTimeout(() => rej(new Error('chain-timeout')), 3000)
+          setTimeout(() => rej(new Error('chain-timeout')), 10000)
         );
         const chainResult = await Promise.race([
           verifyScan(scanId, Buffer.from(cbomJson), anchor.signature),
@@ -429,7 +429,8 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
         }
       }
     } catch (e) {
-      console.warn('Blockchain read skipped:', e.message);
+      console.warn('Blockchain read failed:', e.message);
+      blockchainError = e.message;
     }
 
     return res.json({
@@ -439,6 +440,7 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
       signatureValid,
       txHash: anchor.txHash,
       network: anchor.network,
+      error: blockchainError
     });
   } catch (err) {
     console.error('Verify error:', err);
