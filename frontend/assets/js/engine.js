@@ -150,7 +150,7 @@ const CryptoEngine = {
   ],
 
   processRealBackendFindings: function(repo, scanId, dbFindings) {
-    const findings = dbFindings.map(f => ({
+    const allMappedFindings = dbFindings.map(f => ({
       id: f.id,
       title: f.algorithm + ' ' + (f.usage || ''),
       category: f.library || 'Standard API',
@@ -170,8 +170,12 @@ const CryptoEngine = {
       suppressionReason: f.suppressionReason || null
     }));
 
+    const activeDbFindings = dbFindings.filter(f => !f.suppressed);
+    const activeFindings = allMappedFindings.filter(f => !f.suppressed);
+    const suppressedFindings = allMappedFindings.filter(f => f.suppressed);
+
     const componentMap = {};
-    for (const f of dbFindings) {
+    for (const f of activeDbFindings) {
       const algo = f.algorithm || 'Unknown Component';
       if (!componentMap[algo]) {
         componentMap[algo] = {
@@ -212,15 +216,15 @@ const CryptoEngine = {
 
     const cbomMetrics = {
       totalComponents: cbomAssets.length,
-      totalUsages: dbFindings.length,
+      totalUsages: activeDbFindings.length,
       quantumVulnerable: cbomAssets.filter(c => c.quantumRisk === 'Vulnerable').length,
       quantumReady: cbomAssets.filter(c => c.quantumRisk === 'Quantum-Ready').length,
       unknownPotential: cbomAssets.filter(c => c.name.toLowerCase().includes('unknown') || c.name.toLowerCase().includes('potential')).length,
       highRisk: cbomAssets.filter(c => c.severity === 'Critical' || c.severity === 'High').length
     };
 
-    const criticalCount = findings.filter(f => f.severity === 'critical' && !f.suppressed).length;
-    const quantumCount = findings.filter(f => f.quantum === 'yes' && !f.suppressed).length;
+    const criticalCount = activeFindings.filter(f => f.severity === 'critical').length;
+    const quantumCount = activeFindings.filter(f => f.quantum === 'yes').length;
 
     const scanResult = {
       scanId: scanId,
@@ -228,13 +232,15 @@ const CryptoEngine = {
       repoName: repo.name,
       fileSize: 0,
       timestamp: new Date().toLocaleString(),
-      durationSeconds: 1, // Optional: Calculate real duration
-      filesDiscovered: findings.length, // Can't easily know total files without scanner returning it, fallback to finding count
-      filesScanned: findings.length,
+      durationSeconds: 1,
+      filesDiscovered: activeFindings.length,
+      filesScanned: activeFindings.length,
       assetsFound: cbomAssets.length,
       criticalCount: criticalCount,
       quantumCount: quantumCount,
-      findings: findings,
+      findings: activeFindings,
+      suppressedFindings: suppressedFindings,
+      suppressedCount: suppressedFindings.length,
       cbom: cbomAssets,
       cbomMetrics: cbomMetrics,
       status: 'complete'
@@ -249,7 +255,7 @@ const CryptoEngine = {
       lastScan: 'Just now',
       status: 'completed',
       filesCount: 0,
-      findingsCount: findings.length,
+      findingsCount: activeFindings.length,
       criticalCount: criticalCount,
       quantumCount: quantumCount
     };
@@ -264,9 +270,9 @@ const CryptoEngine = {
     currentData.activeScan = scanResult;
     
     currentData.totalScans = currentData.scans.length;
-    currentData.totalFindings = currentData.scans.reduce((acc, s) => acc + s.findings.length, 0);
-    currentData.criticalFindings = currentData.scans.reduce((acc, s) => acc + s.criticalCount, 0);
-    currentData.quantumVulnerable = currentData.scans.reduce((acc, s) => acc + s.quantumCount, 0);
+    currentData.totalFindings = currentData.scans.reduce((acc, s) => acc + (s.findings ? s.findings.length : 0), 0);
+    currentData.criticalFindings = currentData.scans.reduce((acc, s) => acc + (s.criticalCount || 0), 0);
+    currentData.quantumVulnerable = currentData.scans.reduce((acc, s) => acc + (s.quantumCount || 0), 0);
 
     this.saveData(currentData);
     return scanResult;

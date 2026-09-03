@@ -34,7 +34,8 @@ function enrichFinding(raw, businessImportance) {
  */
 function buildFindingsResponse(scan) {
   const biz = getRepoBusinessImportance(scan.repoId);
-  const findings = scan.rawFindings.map(f => enrichFinding(f, biz));
+  const rawFindings = (scan.rawFindings || []).filter(f => !f.suppressed);
+  const findings = rawFindings.map(f => enrichFinding(f, biz));
   return {
     scanId: scan.scanId,
     repoId: scan.repoId,
@@ -65,7 +66,7 @@ const SEVERITY_WEIGHT = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25, INFORMAT
 function buildCbom(scan) {
   scan = scan || {};
   const biz = require('./repoContext').getRepoBusinessImportance(scan.repoId);
-  const rawFindings = scan.rawFindings || [];
+  const rawFindings = (scan.rawFindings || []).filter(f => !f.suppressed);
   // Ensure we have enriched findings if they aren't pre-enriched (either flat from mocks or nested from /findings API)
   const findings = rawFindings.map(f => (f.severity || f.vulnerability) ? f : enrichFinding(f, biz));
 

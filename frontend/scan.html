@@ -775,7 +775,8 @@ async function startRealScan() {
   }
 }
 
-function populateCompletionState(findings) {
+function populateCompletionState(rawFindings) {
+  const findings = (rawFindings || []).filter(f => !f.suppressed);
   document.getElementById('res-total').textContent = findings.length;
   
   let c = 0, h = 0, m = 0, l = 0, q = 0;
@@ -784,7 +785,7 @@ function populateCompletionState(findings) {
     if (f.severity === 'HIGH') h++;
     if (f.severity === 'MEDIUM') m++;
     if (f.severity === 'LOW') l++;
-    if (f.isQuantumVulnerable) q++;
+    if (f.isQuantumVulnerable || (f.quantumStatus && f.quantumStatus.toLowerCase().includes('vulnerable'))) q++;
   });
 
   document.getElementById('res-crit').textContent = c;
