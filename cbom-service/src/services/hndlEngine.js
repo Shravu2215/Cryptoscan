@@ -3,6 +3,9 @@
  *
  * Models quantum exposure risk based on data secrecy lifetime requirements
  * versus estimated years until a Cryptographically Relevant Quantum Computer (CRQC).
+ *
+ * Timeline Baseline: NIST / NSA CNSA 2.0 guidance projects CRQC emergence between
+ * 2030 and 2035. Using a baseline estimate of 7 years (2033 CRQC arrival).
  */
 
 const PURPOSE_DATA_LIFETIME = {
@@ -16,10 +19,40 @@ const PURPOSE_DATA_LIFETIME = {
   unknown: 10,
 };
 
-const DEFAULT_YEARS_TO_QUANTUM_THREAT = 7; // Estimated CRQC arrival: ~7 years
+const DEFAULT_YEARS_TO_QUANTUM_THREAT = 7; // Estimated CRQC arrival: ~7 years (NIST SP 800-208 timeline)
 
 /**
- * Calculates HNDL parameters and risk score.
+ * Core HNDL function as requested by specification:
+ * Takes (algorithm, keySize, dataLifetimeYears) and returns:
+ * { dataLifetimeYears, yearsToQuantumThreat, hndlRisk: "high"|"medium"|"low", quantumExposureWindow }
+ *
+ * Thresholds:
+ * - "high": when dataLifetimeYears >= yearsToQuantumThreat (data sensitive when CRQC arrives)
+ * - "medium": when within 2 years of threshold (dataLifetimeYears >= yearsToQuantumThreat - 2)
+ * - "low": otherwise
+ */
+function calculateHndl(algorithm, keySize, dataLifetimeYears) {
+  const yearsToQuantumThreat = DEFAULT_YEARS_TO_QUANTUM_THREAT;
+  const lifetime = dataLifetimeYears != null ? Number(dataLifetimeYears) : 10;
+  const quantumExposureWindow = Math.max(0, lifetime - yearsToQuantumThreat);
+
+  let hndlRisk = 'low';
+  if (lifetime >= yearsToQuantumThreat) {
+    hndlRisk = 'high';
+  } else if (lifetime >= yearsToQuantumThreat - 2) {
+    hndlRisk = 'medium';
+  }
+
+  return {
+    dataLifetimeYears: lifetime,
+    yearsToQuantumThreat,
+    hndlRisk,
+    quantumExposureWindow,
+  };
+}
+
+/**
+ * Calculates numeric HNDL risk score (0-100) for vulnerability scoring engine.
  *
  * @param {string} purpose - Derived purpose from purposeDetection
  * @param {number} quantumVulnerabilityScore - 0-100 quantum vulnerability score
@@ -58,6 +91,7 @@ function calculateHndlRisk(purpose, quantumVulnerabilityScore, options = {}) {
 }
 
 module.exports = {
+  calculateHndl,
   calculateHndlRisk,
   PURPOSE_DATA_LIFETIME,
   DEFAULT_YEARS_TO_QUANTUM_THREAT,

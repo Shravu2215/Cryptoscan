@@ -1,8 +1,8 @@
 'use strict';
 
 const assert = require('assert');
-const { assessFinding, assessMigration } = require('../src/services/migrationAssessment');
-const { normalizeDataLifetime, HNDL_CONFIG } = require('../src/services/vulnScoring');
+const { assessFinding, assessMigration } = require('../../cbom-service/src/services/migrationAssessment');
+const { normalizeDataLifetime, HNDL_CONFIG } = require('../../cbom-service/src/services/vulnScoring');
 
 function runTests() {
   console.log('Running Migration Assessment (Phase 8 Production) Test Suite...');

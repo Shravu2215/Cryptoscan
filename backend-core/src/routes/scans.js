@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const prisma = require('../utils/prismaClient');
-const { buildCbom } = require('../services/cbomGenerator');
+const { buildCbom } = require('../../../cbom-service/src/services/cbomGenerator');
 const { anchorScan } = require('../../../blockchain-module/scripts/anchor');
 const { verifyScan } = require('../../../blockchain-module/scripts/verify');
 
@@ -169,7 +169,7 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
     });
 
     if (req.query.signed === 'true') {
-      const { exportSignedCbom } = require('../services/signedCbomExport');
+      const { exportSignedCbom } = require('../../../cbom-service/src/services/signedCbomExport');
       const signed = await exportSignedCbom(cbom);
       return res.json(signed);
     }
@@ -249,7 +249,7 @@ router.get('/:scanId/diff', requireAuth, async (req, res) => {
       }
     }
 
-    const { computeCbomDiff } = require('../services/cbomDiff');
+    const { computeCbomDiff } = require('../../../cbom-service/src/services/cbomDiff');
     const diff = computeCbomDiff(currentCbom, previousCbom);
     return res.json(diff);
   } catch (err) {
@@ -456,7 +456,7 @@ router.get('/:scanId/migration-assessment', requireAuth, async (req, res) => {
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
 
     const rawFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
-    const { assessMigration } = require('../services/migrationAssessment');
+    const { assessMigration } = require('../../../cbom-service/src/services/migrationAssessment');
     
     // Pass raw findings for assessment
     const result = assessMigration(scan, rawFindings);

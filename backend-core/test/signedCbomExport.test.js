@@ -47,15 +47,15 @@ const {
   resetPqcRegistry,
   getPqcPublicKey,
   ALGORITHM_IDENTIFIER,
-} = require('../src/services/signedCbomExport');
+} = require('../../cbom-service/src/services/signedCbomExport');
 
 // Reuse existing CBOM generator (Phase 1-2)
-const { buildCbom } = require('../src/services/cbomGenerator');
+const { buildCbom } = require('../../cbom-service/src/services/cbomGenerator');
 
 // Phase 4–7 services for regression
-const { scoreFinding } = require('../src/services/vulnScoring');
-const { getMigrationGuidance } = require('../src/services/purposeDetection');
-const { assessFinding } = require('../src/services/migrationAssessment');
+const { scoreFinding } = require('../../cbom-service/src/services/vulnScoring');
+const { getMigrationGuidance } = require('../../cbom-service/src/services/purposeDetection');
+const { assessFinding } = require('../../cbom-service/src/services/migrationAssessment');
 
 console.log('Running Signed CBOM Export (Phase 8) Test Suite...');
 
