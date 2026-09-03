@@ -1,3 +1,4 @@
+require('../../shared/preflight'); // ML-DSA Node version check — must be first
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

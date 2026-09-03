@@ -35,13 +35,26 @@ router.get('/scan/:scanId/findings', (req, res) => {
 });
 
 // GET /scan/:scanId/cbom — full Cryptographic Bill of Materials.
-router.get('/scan/:scanId/cbom', (req, res) => {
-  const scan = store.getScan(req.params.scanId);
-  if (!scan) {
-    return res.status(404).json({ error: `No findings ingested yet for scanId "${req.params.scanId}"` });
+router.get('/scan/:scanId/cbom', async (req, res) => {
+  try {
+    const scan = store.getScan(req.params.scanId);
+    if (!scan) {
+      return res.status(404).json({ error: `No findings ingested yet for scanId "${req.params.scanId}"` });
+    }
+    const repoScans = store.getRepoScans ? store.getRepoScans(scan.repoId) : [];
+    const cbom = buildCbom({ ...scan, repoScans });
+
+    if (req.query.signed === 'true') {
+      const { exportSignedCbom } = require('../services/signedCbomExport');
+      const signed = await exportSignedCbom(cbom);
+      return res.json(signed);
+    }
+
+    res.json(cbom);
+  } catch (err) {
+    console.error('CBOM fetch error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-  const repoScans = store.getRepoScans ? store.getRepoScans(scan.repoId) : [];
-  res.json(buildCbom({ ...scan, repoScans }));
 });
 
 // GET /scan/:scanId/diff — compare with previous scan of same repository
@@ -66,39 +79,16 @@ router.get('/scan/:scanId/diff', (req, res) => {
   res.json(computeCbomDiff(currentCbom, previousCbom));
 });
 
-// POST /simulate/migration
-// Simulation-only endpoint — evaluates PQC migration for a single crypto component.
-// NEVER mutates source code, scan state, CBOM, or any stored data.
-router.post('/simulate/migration', (req, res) => {
+// GET /scan/:scanId/migration-assessment
+// Production-grade endpoint — evaluates PQC migration for a full scan.
+router.get('/scan/:scanId/migration-assessment', (req, res) => {
   try {
-    const { simulateMigration } = require('../services/migrationSimulation');
-    const component = req.body;
-    if (!component || typeof component !== 'object' || Array.isArray(component)) {
-      return res.status(400).json({ error: 'Request body must be a single crypto component object.' });
+    const scan = store.getScan(req.params.scanId);
+    if (!scan) {
+      return res.status(404).json({ error: `No findings ingested yet for scanId "${req.params.scanId}"` });
     }
-    const result = simulateMigration(component);
-    if (!result.simulationValid) {
-      return res.status(400).json(result);
-    }
-    return res.json(result);
-  } catch (err) {
-    return res.status(500).json({ error: 'Internal server error', details: err.message });
-  }
-});
-
-// POST /simulate/migration/batch
-// Simulation-only endpoint — evaluates PQC migration for multiple components at once.
-router.post('/simulate/migration/batch', (req, res) => {
-  try {
-    const { simulateMigrationBatch } = require('../services/migrationSimulation');
-    const components = req.body;
-    if (!Array.isArray(components)) {
-      return res.status(400).json({ error: 'Request body must be an array of crypto component objects.' });
-    }
-    const result = simulateMigrationBatch(components);
-    if (!result.simulationValid) {
-      return res.status(400).json(result);
-    }
+    const { assessMigration } = require('../services/migrationAssessment');
+    const result = assessMigration(scan, scan.rawFindings || []);
     return res.json(result);
   } catch (err) {
     return res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -106,3 +96,4 @@ router.post('/simulate/migration/batch', (req, res) => {
 });
 
 module.exports = router;
+

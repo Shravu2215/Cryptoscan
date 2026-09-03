@@ -1,6 +1,7 @@
 {
   "name": "cryptoscan-blockchain",
   "version": "1.0.0",
+  "engines": { "node": ">=24.7.0" },
   "description": "Blockchain/Smart Contract module — anchors scan content hashes on-chain (real hash + real signature + real tx, never a dummy tx id)",
   "scripts": {
     "node": "hardhat node",

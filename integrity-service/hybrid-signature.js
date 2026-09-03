@@ -3,13 +3,8 @@
 const crypto = require('node:crypto');
 const path = require('path');
 
-// Resolve ethers safely across submodules
-let ethers;
-try {
-  ethers = require('ethers');
-} catch (err) {
-  ethers = require('../blockchain-module/node_modules/ethers');
-}
+// ethers is declared as a direct dependency in integrity-service/package.json
+const { ethers } = require('ethers');
 
 const { getSigningKey } = require('./kms');
 

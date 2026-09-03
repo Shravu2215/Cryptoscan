@@ -168,6 +168,12 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
       rawFindings
     });
 
+    if (req.query.signed === 'true') {
+      const { exportSignedCbom } = require('../services/signedCbomExport');
+      const signed = await exportSignedCbom(cbom);
+      return res.json(signed);
+    }
+
     return res.json(cbom);
   } catch (err) {
     console.error('CBOM fetch error:', err);
@@ -301,12 +307,14 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
     // Check if we use mock (from frontend or env)
     const useMock = process.env.USE_MOCK === 'true';
     if (useMock) {
-      return res.json({
-        txHash: "0x7f3a9a14b51c881249b6d9e034abc88d92bc9f201a9f14",
-        onChainHash: "8f4c7a91d2938f45a6b7e8d9c102b3a4f5c6e7d8a9b0c1d2e3f4a5b6c7d8e91a",
-        network: "mock",
-        verified: true
+      const mockHash = '8f4c7a91d2938f45a6b7e8d9c102b3a4f5c6e7d8a9b0c1d2e3f4a5b6c7d8e91a';
+      const mockTxHash = '0x7f3a9a14b51c881249b6d9e034abc88d92bc9f201a9f14';
+      await prisma.anchor.upsert({
+        where: { scanId: scan.id },
+        update: { contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' },
+        create: { scanId: scan.id, contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' }
       });
+      return res.json({ txHash: mockTxHash, onChainHash: mockHash, network: 'mocknet', verified: true });
     }
 
     // Call blockchain-module anchor script
@@ -438,44 +446,22 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
   }
 });
 
-// POST /simulate/migration
-// Simulation-only endpoint — evaluates PQC migration for a single crypto component.
-// NEVER mutates source code, scan data, CBOM, database, or blockchain/IPFS.
-router.post('/simulate/migration', requireAuth, (req, res) => {
+// GET /:scanId/migration-assessment
+// Production-grade endpoint — evaluates PQC migration for a full scan.
+router.get('/:scanId/migration-assessment', requireAuth, async (req, res) => {
   try {
-    const { simulateMigration } = require('../services/migrationSimulation');
-    const component = req.body;
-    if (!component || typeof component !== 'object' || Array.isArray(component)) {
-      return res.status(400).json({ error: 'Request body must be a single crypto component object.' });
-    }
-    const result = simulateMigration(component);
-    if (!result.simulationValid) {
-      return res.status(400).json(result);
-    }
-    return res.json(result);
-  } catch (err) {
-    console.error('Migration simulation error:', err);
-    return res.status(500).json({ error: 'Internal server error', details: err.message });
-  }
-});
+    const { scanId } = req.params;
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
+    if (!scan) return res.status(404).json({ error: 'Scan not found' });
 
-// POST /simulate/migration/batch
-// Simulation-only endpoint — evaluates PQC migration for multiple components at once.
-// NEVER mutates source code, scan data, CBOM, database, or blockchain/IPFS.
-router.post('/simulate/migration/batch', requireAuth, (req, res) => {
-  try {
-    const { simulateMigrationBatch } = require('../services/migrationSimulation');
-    const components = req.body;
-    if (!Array.isArray(components)) {
-      return res.status(400).json({ error: 'Request body must be an array of crypto component objects.' });
-    }
-    const result = simulateMigrationBatch(components);
-    if (!result.simulationValid) {
-      return res.status(400).json(result);
-    }
+    const rawFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
+    const { assessMigration } = require('../services/migrationAssessment');
+    
+    // Pass raw findings for assessment
+    const result = assessMigration(scan, rawFindings);
     return res.json(result);
   } catch (err) {
-    console.error('Batch migration simulation error:', err);
+    console.error('Migration assessment error:', err);
     return res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
