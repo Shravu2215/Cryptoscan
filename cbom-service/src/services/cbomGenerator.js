@@ -106,10 +106,18 @@ function buildCbom(scan) {
         type: 'application',
         name: scan.repoId || scan.scanId,
       },
-      properties: [
-        { name: 'scanId', value: scan.scanId },
-        { name: 'findingCount', value: String(enriched.length) },
-      ],
+      properties: (() => {
+        const props = [
+          { name: 'scanId', value: scan.scanId },
+          { name: 'findingCount', value: String(enriched.length) },
+        ];
+        try {
+          const { assessMigration } = require('./migrationAssessment');
+          const mp = assessMigration(scan, scan.rawFindings || []);
+          props.push({ name: 'pqcMigrationAssessment', value: JSON.stringify(mp) });
+        } catch(e) {}
+        return props;
+      })(),
     },
     components,
     summary: {

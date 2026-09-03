@@ -1,17 +1,19 @@
 const { detectPurpose, getMigrationGuidance } = require('./purposeDetection');
 const { scoreFinding } = require('./vulnScoring');
 const { normalizeFamily } = require('./primitiveFamily');
+const { getRepoBusinessImportance } = require('./repoContext');
 
 /**
  * Enriches one raw scanner finding with purpose, migration guidance, and
  * a vulnerability score. Used by both /findings (lighter view) and
  * /cbom (full CycloneDX-style view).
  */
-function enrichFinding(raw) {
+function enrichFinding(raw, businessImportance) {
+  raw.primitive = raw.primitive || raw.algorithm;
   const family = normalizeFamily(raw.primitive);
   const { purpose, confidence, source } = detectPurpose(raw);
-  const migration = getMigrationGuidance(family, purpose);
-  const vulnerability = scoreFinding(raw, purpose);
+  const migration = getMigrationGuidance(family, purpose, raw);
+  const vulnerability = scoreFinding(raw, purpose, { businessImportance });
 
   return {
     id: raw.id,
@@ -31,7 +33,8 @@ function enrichFinding(raw) {
  * GET /scan/:scanId/findings payload — the enriched-but-flat list.
  */
 function buildFindingsResponse(scan) {
-  const findings = scan.rawFindings.map(enrichFinding);
+  const biz = getRepoBusinessImportance(scan.repoId);
+  const findings = scan.rawFindings.map(f => enrichFinding(f, biz));
   return {
     scanId: scan.scanId,
     repoId: scan.repoId,
@@ -60,7 +63,8 @@ const SEVERITY_WEIGHT = { CRITICAL: 100, HIGH: 75, MEDIUM: 50, LOW: 25, INFORMAT
  * component type, assetType "algorithm".
  */
 function buildCbom(scan) {
-  const findings = scan.rawFindings;
+  scan = scan || {};
+  const findings = scan.rawFindings || [];
 
   const componentsByKey = new Map();
   for (const f of findings) {
@@ -98,30 +102,44 @@ function buildCbom(scan) {
 
   const components = Array.from(componentsByKey.values());
 
-  const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+    const severityCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
   for (const f of findings) {
     const sev = (f.severity || 'INFO').toLowerCase();
     const bucket = sev === 'informational' ? 'info' : sev;
     if (severityCounts[bucket] !== undefined) severityCounts[bucket]++;
   }
 
+  const { assessMigration } = require('./migrationAssessment');
+  const migrationPlan = assessMigration(scan, findings);
+
   return {
     bomFormat: 'CycloneDX',
     specVersion: '1.6',
     serialNumber: `urn:uuid:cbom-${scan.scanId}`,
-    version: 1,
+    version: resolveCbomVersion(scan),
+    businessImportance: getRepoBusinessImportance(scan.repoId),
+    cbomVersion: `CBOM-v${resolveCbomVersion(scan)}`,
+    provenance: { scanTimestamp: resolveScanTimestamp(scan), scannerVersion: resolveScannerVersion(scan), cbomVersion: `CBOM-v${resolveCbomVersion(scan)}`, version: resolveCbomVersion(scan) },
     metadata: {
-      timestamp: scan.createdAt ? new Date(scan.createdAt).toISOString() : new Date(0).toISOString(),
+      timestamp: resolveScanTimestamp(scan),
+      tools: { components: [{ type: 'application', name: 'CryptoScan Scanner', version: resolveScannerVersion(scan) }] },
+      provenance: { scanTimestamp: resolveScanTimestamp(scan), scannerVersion: resolveScannerVersion(scan), cbomVersion: `CBOM-v${resolveCbomVersion(scan)}`,
+        version: resolveCbomVersion(scan) },
       component: {
         type: 'application',
         name: scan.repoId || scan.scanId,
+        'bom-ref': `urn:uuid:cbom-${scan.scanId}`
       },
       properties: [
         { name: 'scanId', value: scan.scanId },
         { name: 'findingCount', value: String(findings.length) },
+        { name: 'commitHash', value: resolveCommitHash(scan) },
+        { name: 'cbomVersion', value: `CBOM-v${resolveCbomVersion(scan)}` },
+        { name: 'pqcMigrationAssessment', value: JSON.stringify(migrationPlan) }
       ],
     },
     components,
+    dependencies: buildDependencies(scan),
     summary: {
       totalCryptoAssets: components.length,
       totalFindings: findings.length,
@@ -130,4 +148,61 @@ function buildCbom(scan) {
   };
 }
 
-module.exports = { enrichFinding, buildFindingsResponse, buildCbom };
+
+function resolveCommitHash(s) { 
+  if (s && s.commitHash) return s.commitHash;
+  if (s && s.repo && s.repo.commitHash) return s.repo.commitHash;
+  if (s && s.revision) return s.revision;
+  if (s && s.repoPath) {
+    try { return require('child_process').execSync('git rev-parse HEAD', { cwd: s.repoPath, stdio: 'pipe' }).toString().trim(); } catch(e) {}
+  }
+  return null;
+}
+
+function resolveCbomVersion(scan) {
+  if (scan && scan.version) return parseInt(scan.version);
+  if (scan && scan.cbomVersion) return parseInt(scan.cbomVersion.replace('CBOM-v', ''));
+  if (!scan || !scan.repoScans || !scan.createdAt) return 1;
+  const scans = scan.repoScans.filter(s => s.repoId === scan.repoId);
+  scans.sort((a,b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const idx = scans.findIndex(s => s.id === scan.scanId || s.scanId === scan.scanId);
+  return idx >= 0 ? idx + 1 : 1;
+}
+function resolveScanTimestamp(s) { 
+  if (s && s.scanTimestamp) return new Date(s.scanTimestamp).toISOString();
+  if (s && s.createdAt) { try { return new Date(s.createdAt).toISOString(); } catch(e) {} }
+  if (s && s.receivedAt) return new Date(s.receivedAt).toISOString();
+  return new Date().toISOString();
+}
+function resolveScannerVersion(s) { 
+  if (s && s.scannerVersion) return s.scannerVersion;
+  return process.env.SCANNER_VERSION || '2.4.0';
+}
+function buildDependencies(scan) {
+  const root = `urn:uuid:cbom-${scan.scanId}`;
+  const deps = [];
+  const compMap = new Map();
+  if (scan.rawFindings) {
+    for (const f of scan.rawFindings) {
+      const ref = `crypto-asset/${(f.algorithm || 'UNKNOWN').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+      if (!compMap.has(ref)) compMap.set(ref, new Set());
+      if (f.dependsOn && Array.isArray(f.dependsOn)) {
+        for (const d of f.dependsOn) {
+          compMap.get(ref).add(`crypto-asset/${d.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`);
+        }
+      }
+    }
+  }
+  deps.push({ ref: root, dependsOn: Array.from(compMap.keys()) });
+  for (const [ref, dependsOnSet] of compMap.entries()) {
+    deps.push({ ref: ref, dependsOn: Array.from(dependsOnSet) });
+  }
+  return deps;
+}
+module.exports = { enrichFinding, buildFindingsResponse, buildCbom, resolveCommitHash, resolveScanTimestamp, resolveScannerVersion, buildDependencies, resolveCbomVersion };
+
+
+
+
+
+

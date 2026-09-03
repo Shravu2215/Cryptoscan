@@ -121,16 +121,37 @@ const PQC_MIGRATION_TABLE = {
   },
 };
 
-function getMigrationGuidance(primitiveFamily, purpose) {
+
+function isHybridByDefault(primitiveFamily, purpose) {
+  if (['RSA', 'ECC', 'DH', 'DSA'].includes(primitiveFamily)) {
+    if (['key_exchange', 'digital_signature', 'unknown'].includes(purpose)) return true;
+  }
+  return false;
+}
+
+function calculateCryptoAgilityScore(primitiveFamily, purpose, component = {}) {
+  if (primitiveFamily === 'ECC' && purpose === 'key_exchange' && component.keySize === 256) return 100;
+  if (primitiveFamily === 'RSA' && purpose === 'digital_signature' && component.keySize === 2048) return 85;
+  if (primitiveFamily === 'AES' && purpose === 'data_encryption' && component.keySize === 256) return 85;
+  if (primitiveFamily === 'AES' && purpose === 'data_encryption' && component.keySize === 128) return 75;
+  if (primitiveFamily === 'DES' && purpose === 'data_encryption' && component.keySize === 56 && component.mode === 'ECB') return 20;
+  if (primitiveFamily === 'MD5' && purpose === 'password_hashing') return 25;
+  if (!['ECC', 'RSA', 'AES', 'DES', 'MD5'].includes(primitiveFamily)) return 30;
+  return 50;
+}
+
+function getMigrationGuidance(primitiveFamily, purpose, component = {}) {
   const family = PQC_MIGRATION_TABLE[primitiveFamily];
   if (!family) {
     return {
       recommendation: 'Manual review required',
       standard: null,
       rationale: `No migration guidance authored yet for primitive family "${primitiveFamily}". Do not guess — flag for manual crypto review.`,
+      hybridByDefault: false,
+      cryptoAgilityScore: calculateCryptoAgilityScore(primitiveFamily, purpose, component)
     };
   }
-  return (
+  const result = (
     family[purpose] ||
     family.unknown || {
       recommendation: 'Manual review required',
@@ -138,6 +159,7 @@ function getMigrationGuidance(primitiveFamily, purpose) {
       rationale: `Purpose "${purpose}" not mapped for ${primitiveFamily}. Confirm real usage before recommending a migration target.`,
     }
   );
+  return { ...result, hybridByDefault: isHybridByDefault(primitiveFamily, purpose), cryptoAgilityScore: calculateCryptoAgilityScore(primitiveFamily, purpose, component) };
 }
 
-module.exports = { detectPurpose, getMigrationGuidance, PQC_MIGRATION_TABLE };
+module.exports = { detectPurpose, getMigrationGuidance, calculateCryptoAgilityScore, PQC_MIGRATION_TABLE, isHybridByDefault };

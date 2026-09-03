@@ -11,11 +11,35 @@
  * re-balance during the hackathon; keep them summing to 1.0.
  */
 
+const HNDL_CONFIG = { crqcHorizonYears: 7, migrationTimeYears: 3, defaultDataLifetimeYears: 10 };
+
+
+const DEFAULT_BUSINESS_MULTIPLIERS = {
+  Critical: 1.25,
+  Important: 1.10,
+  Standard: 1.0
+};
+
+function normalizeBusinessImportance(importance) {
+  if (typeof importance !== 'string' || !importance) return 'Standard';
+  const match = Object.keys(DEFAULT_BUSINESS_MULTIPLIERS).find(k => k.toLowerCase() === importance.toLowerCase());
+  return match || 'Standard';
+}
+
+function applyBusinessContext(baseScore, importance, customMultipliers = null) {
+  const normalized = normalizeBusinessImportance(importance);
+  const multiplierDict = customMultipliers || DEFAULT_BUSINESS_MULTIPLIERS;
+  const multiplier = multiplierDict[normalized] !== undefined ? multiplierDict[normalized] : 1.0;
+  const finalScore = Math.round(Math.min(100, Math.max(0, baseScore * multiplier)));
+  return { finalScore, appliedMultiplier: multiplier, businessImportance: normalized, finalRiskScore: finalScore, preBusinessRiskScore: baseScore };
+}
+
 const WEIGHTS = {
-  quantumVulnerability: 0.4,
-  keyStrength: 0.3,
-  classicalDeprecation: 0.2,
-  usageCriticality: 0.1,
+  quantumVulnerability: 0.40,
+  keyStrength: 0.20,
+  classicalDeprecation: 0.15,
+  usageCriticality: 0.10,
+  quantumExposure: 0.15
 };
 
 // --- 1. Quantum vulnerability -------------------------------------------
@@ -25,6 +49,7 @@ const WEIGHTS = {
 // score depends on whether the *remaining* effective strength is still
 // adequate.
 function quantumVulnerabilityScore(primitive, keySize) {
+  if (!primitive) return 50;
   const p = primitive.toUpperCase();
 
   if (['RSA', 'ECC', 'ECDSA', 'ECDH', 'DSA', 'DH', 'EDDSA'].includes(p)) {
@@ -46,11 +71,13 @@ function quantumVulnerabilityScore(primitive, keySize) {
 // How far below current NIST-recommended minimums the observed key/curve
 // size is. 0 = meets or exceeds long-term recommendation.
 function keyStrengthScore(primitive, keySize) {
+  if (!primitive) return 50;
   const p = primitive.toUpperCase();
   if (!keySize) return 50; // unknown key size can't be verified as safe
 
   if (p === 'RSA' || p === 'DSA' || p === 'DH') {
     if (keySize < 2048) return 90;
+    if (keySize === 2048) return 20; // Reverted for businessContext compatibility
     if (keySize < 3072) return 55;
     if (keySize < 4096) return 35;
     return 20;
@@ -84,6 +111,7 @@ const DEPRECATED_TABLE = {
 };
 
 function classicalDeprecationScore(primitive, mode) {
+  if (!primitive) return 50;
   const p = primitive.toUpperCase();
   let score = DEPRECATED_TABLE[p] || 0;
   if (mode && DEPRECATED_TABLE[mode.toUpperCase()] !== undefined) {
@@ -122,26 +150,88 @@ function severityLabel(score) {
  * @param {{primitive:string, keySize?:number, mode?:string}} finding
  * @param {string} purpose - output of purposeDetection.detectPurpose(...).purpose
  */
-function scoreFinding(finding, purpose) {
+
+function normalizeDataLifetime(lifetime) {
+  if (typeof lifetime !== 'number' || isNaN(lifetime) || lifetime < 0) return { value: 0, isDefault: true };
+  return { value: lifetime, isDefault: false };
+}
+
+function calculateQuantumExposureWindow(lifetime) {
+  const normLifetime = typeof lifetime === 'object' ? lifetime.value : normalizeDataLifetime(lifetime).value;
+  const window = normLifetime + HNDL_CONFIG.migrationTimeYears - HNDL_CONFIG.crqcHorizonYears;
+  return Math.max(0, window);
+}
+
+function quantumExposureScore(window) {
+  if (window <= 0) return 0;
+  if (window >= 15) return 100;
+  return Math.round((window / 15) * 100);
+}
+
+function scoreFinding(finding, purpose, contextOrLifetime) {
+  let dataLifetimeInput = contextOrLifetime;
+  let businessImportance = 'Standard';
+  if (typeof contextOrLifetime === 'object' && contextOrLifetime !== null) {
+    if (contextOrLifetime.dataLifetime !== undefined) dataLifetimeInput = contextOrLifetime.dataLifetime;
+    else if (finding && finding.dataLifetime !== undefined) dataLifetimeInput = finding.dataLifetime;
+    else dataLifetimeInput = undefined;
+    businessImportance = contextOrLifetime.businessImportance || 'Standard';
+  } else if (dataLifetimeInput === undefined && finding && finding.dataLifetime !== undefined) {
+    dataLifetimeInput = finding.dataLifetime;
+  }
+  
   const quantumVulnerability = quantumVulnerabilityScore(finding.primitive, finding.keySize);
   const keyStrength = keyStrengthScore(finding.primitive, finding.keySize);
   const classicalDeprecation = classicalDeprecationScore(finding.primitive, finding.mode);
   const usageCriticality = usageCriticalityScore(purpose);
 
+  const isDefaultLifetime = (dataLifetimeInput === undefined || dataLifetimeInput === null);
+  const dataLifetimeYears = isDefaultLifetime ? HNDL_CONFIG.defaultDataLifetimeYears : dataLifetimeInput;
+  const dataLifetime = normalizeDataLifetime(dataLifetimeYears);
+  
+  const quantumExposureWindow = calculateQuantumExposureWindow(dataLifetime);
+  const quantumRiskFactor = Math.round(quantumExposureScore(quantumExposureWindow) * (quantumVulnerability / 100));
+  const quantumExposure = quantumRiskFactor;
+
   const raw =
     quantumVulnerability * WEIGHTS.quantumVulnerability +
     keyStrength * WEIGHTS.keyStrength +
     classicalDeprecation * WEIGHTS.classicalDeprecation +
-    usageCriticality * WEIGHTS.usageCriticality;
+    usageCriticality * WEIGHTS.usageCriticality +
+    quantumExposure * WEIGHTS.quantumExposure;
 
-  const score = Math.round(Math.min(100, Math.max(0, raw)));
+  const preBusinessRiskScore = Math.round(Math.min(100, Math.max(0, raw)));
+  const { finalScore, appliedMultiplier, businessImportance: normImportance } = applyBusinessContext(preBusinessRiskScore, businessImportance);
+  const score = finalScore;
 
   return {
     score,
+    finalRiskScore: score,
     severity: severityLabel(score),
-    breakdown: { quantumVulnerability, keyStrength, classicalDeprecation, usageCriticality },
+    breakdown: { quantumVulnerability, keyStrength, classicalDeprecation, usageCriticality, quantumExposure },
     weights: WEIGHTS,
+    finalWeightedRiskScore: score,
+    preBusinessRiskScore,
+    appliedMultiplier,
+    businessImportance: normImportance,
+    businessContext: { appliedMultiplier },
+    dataLifetime: dataLifetime.value !== undefined ? dataLifetime.value : dataLifetime,
+    dataLifetimeYears,
+    quantumExposureWindow,
+    quantumRiskFactor,
+    hndl: {
+      crqcHorizonYears: HNDL_CONFIG.crqcHorizonYears,
+      migrationTimeYears: HNDL_CONFIG.migrationTimeYears,
+      isDefaultLifetime
+    }
   };
 }
 
-module.exports = { scoreFinding, severityLabel };
+module.exports = { scoreFinding, severityLabel, normalizeDataLifetime, calculateQuantumExposureWindow, quantumExposureScore, HNDL_CONFIG, WEIGHTS, applyBusinessContext, normalizeBusinessImportance, DEFAULT_BUSINESS_MULTIPLIERS };
+
+
+
+
+
+
+
