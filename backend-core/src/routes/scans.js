@@ -319,8 +319,7 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
 
     // Call blockchain-module anchor script
     const { anchorScan } = require('../../../blockchain-module/scripts/anchor');
-    const result = await anchorScan(contentBuffer, {
-      scanId: scan.id,
+    const result = await anchorScan(scan.id, contentBuffer, {
       orgId: 'cryptoscan-core'
     });
 
