@@ -312,7 +312,7 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
       await prisma.anchor.upsert({
         where: { scanId: scan.id },
         update: { contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' },
-        create: { scanId: scan.id, contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' }
+        create: { scan: { connect: { id: scan.id } }, contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' }
       });
       return res.json({ txHash: mockTxHash, onChainHash: mockHash, network: 'mocknet', verified: true });
     }
@@ -333,7 +333,7 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
         network: result.network
       },
       create: {
-        scanId: scan.id,
+        scan: { connect: { id: scan.id } },
         contentHash: result.merkleRoot,
         txHash: result.txHash,
         signature: result.signature,
