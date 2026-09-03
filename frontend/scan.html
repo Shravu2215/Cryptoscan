@@ -752,8 +752,8 @@ async function startRealScan() {
       }
     }
 
-    if (scanStatus === 'FAILED') {
-      addLog('<span style="color:var(--red)">Scan failed! Check backend logs.</span>');
+    if (scanStatus === 'FAILED' || !finalData || finalData.error || !finalData.findings) {
+      addLog(`<span style="color:var(--red)">Scan failed or encountered an error! ${finalData?.error || 'Check backend logs.'}</span>`);
       return;
     }
 
