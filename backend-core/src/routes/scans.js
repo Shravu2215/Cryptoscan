@@ -311,8 +311,8 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
       const mockTxHash = '0x7f3a9a14b51c881249b6d9e034abc88d92bc9f201a9f14';
       await prisma.anchor.upsert({
         where: { scanId: scan.id },
-        update: { contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' },
-        create: { scan: { connect: { id: scan.id } }, contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' }
+        update: { contentHash: mockHash, txHash: mockTxHash, signature: 'mock-signature-not-verifiable', network: 'mocknet' },
+        create: { scan: { connect: { id: scan.id } }, contentHash: mockHash, txHash: mockTxHash, signature: 'mock-signature-not-verifiable', network: 'mocknet' }
       });
       return res.json({ txHash: mockTxHash, onChainHash: mockHash, network: 'mocknet', verified: true });
     }
