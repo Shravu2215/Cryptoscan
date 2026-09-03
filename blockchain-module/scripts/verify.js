@@ -60,7 +60,7 @@ function extractComponents(contentInput) {
 }
 
 async function verifyScan(scanId, currentContentBuffer, signature, options = {}) {
-  const chainMode = (options && options.chainMode) || process.env.CHAIN_MODE || (process.env.RPC_URL || process.env.SEPOLIA_RPC_URL || process.env.PUBLIC_RPC_URL ? 'public' : 'permissioned');
+  const chainMode = (options && options.chainMode) || process.env.CHAIN_MODE || 'permissioned';
   const isPermissioned = chainMode === 'permissioned';
   const targetNetwork = isPermissioned ? 'localhost' : 'sepolia';
 
