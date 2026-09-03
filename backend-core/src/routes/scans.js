@@ -307,12 +307,14 @@ router.post('/:scanId/anchor', requireAuth, async (req, res) => {
     // Check if we use mock (from frontend or env)
     const useMock = process.env.USE_MOCK === 'true';
     if (useMock) {
-      return res.json({
-        txHash: "0x7f3a9a14b51c881249b6d9e034abc88d92bc9f201a9f14",
-        onChainHash: "8f4c7a91d2938f45a6b7e8d9c102b3a4f5c6e7d8a9b0c1d2e3f4a5b6c7d8e91a",
-        network: "mock",
-        verified: true
+      const mockHash = '8f4c7a91d2938f45a6b7e8d9c102b3a4f5c6e7d8a9b0c1d2e3f4a5b6c7d8e91a';
+      const mockTxHash = '0x7f3a9a14b51c881249b6d9e034abc88d92bc9f201a9f14';
+      await prisma.anchor.upsert({
+        where: { scanId: scan.id },
+        update: { contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' },
+        create: { scanId: scan.id, contentHash: mockHash, txHash: mockTxHash, signature: null, network: 'mocknet' }
       });
+      return res.json({ txHash: mockTxHash, onChainHash: mockHash, network: 'mocknet', verified: true });
     }
 
     // Call blockchain-module anchor script
