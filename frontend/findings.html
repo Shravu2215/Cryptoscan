@@ -8,21 +8,30 @@
     function initTheme() {
       if (localStorage.getItem('cs_theme') === 'light') {
         document.documentElement.classList.add('light-mode');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Findings — CryptoScan</title>
+  <script>
+    function initTheme() {
+      if (localStorage.getItem('cs_theme') === 'light') {
+        document.documentElement.classList.add('light-mode');
       }
     }
     initTheme();
   </script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}:root{
     /* Dark theme variables */
   --bg-main: #0b0f19;
   --bg-sidebar: #0b0f19;
-  --bg-card: #111827;
-  --bg-card-hover: #1f2937;
-  --border-color: #1f2937;
-  --border-light: #1f2937;
+  --bg-card: rgba(17,24,39,0.6); /* semi‑transparent for glass */
+  --bg-card-hover: rgba(31,41,55,0.6);
+  --border-color: rgba(31,41,55,0.8);
+  --border-light: rgba(31,41,55,0.8);
   
   --text-h: #f8fafc; /* Headers text */
   --text-b: #cbd5e1; /* Body text */
@@ -43,6 +52,11 @@
   
   --purple: #8b5cf6; /* Quantum */
   --purple-bg: rgba(139, 92, 246, 0.1);
+
+  /* Accent Colors for premium look */
+  --accent-violet: #7c3aed;
+  --accent-cyan: #06b6d4;
+  --accent-pink: #ec4899;
 
   --r-sm: 8px;
   --r-md: 12px;
@@ -168,11 +182,21 @@ body {
 
 /* Cards */
 .gcard {
-  background: var(--bg-card); border: 1px solid var(--border-color);
-  border-radius: var(--r-lg); padding: 24px; position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--r-lg);
+    padding: 24px;
+    position: relative;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: transform var(--t), box-shadow var(--t);
+}
+.gcard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 .gc-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
-.gc-ttl { font-size: 14px; font-weight: 600; color: var(--text-h); }
+.gc-ttl { font-size: 14px; font-weight: 600; color: var(--accent-pink); }
 .gc-sub { font-size: 12px; color: var(--text-m); margin-top: 4px; }
 
 /* Stats Grid */
@@ -182,11 +206,12 @@ body {
   border-radius: var(--r-md); padding: 16px;
 }
 .scard-primary {
-  background: linear-gradient(135deg, #166534, #15803d);
-  color: #ffffff;
-  border: none;
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+    color: #ffffff;
+    border: none;
+    backdrop-filter: blur(8px);
 }
-.scard-primary .sc-lbl, .scard-primary .empty-sub { color: rgba(255,255,255,0.8); }
+.scard-primary .sc-lbl, .scard-primary .empty-sub { color: rgba(255,255,255,0.85); }
 .scard-primary .sc-val, .scard-primary .empty-val { color: #ffffff; }
 
 .sc-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; }
@@ -319,16 +344,18 @@ tbody tr:hover { background: var(--bg-card-hover); }
 </style>
 <style>
   /* Findings Page Specific Layout additions */
-  .filter-bar {
+.filter-bar {
     display: flex; gap: 12px; align-items: center;
-    padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card);
-  }
-  .inp-search, .filter-sel {
+    padding: 16px 24px; border-bottom: 1px solid var(--border-color); background: rgba(17,24,39,0.6);
+    backdrop-filter: blur(8px);
+}
+.inp-search, .filter-sel {
     background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm);
     padding: 8px 12px; color: var(--text-h); font-size: 13px; font-family: inherit; transition: all var(--t);
-  }
-  .inp-search { flex: 1; max-width: 300px; }
-  .inp-search:focus, .filter-sel:focus { outline: none; border-color: var(--green); }
+    backdrop-filter: blur(4px);
+}
+.inp-search { flex: 1; max-width: 300px; }
+.inp-search:focus, .filter-sel:focus { outline: none; border-color: var(--accent-cyan); } }
   
   .chips-area {
     display: flex; gap: 8px; padding: 12px 24px; background: var(--bg-main);
@@ -358,9 +385,11 @@ tbody tr:hover { background: var(--bg-card-hover); }
   .btn-page {
     background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-h); border-radius: var(--r-sm);
     padding: 6px 12px; font-size: 13px; cursor: pointer; transition: 0.2s;
-  }
-  .btn-page:hover:not(:disabled) { border-color: var(--text-m); }
-  .btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+    color: #ffffff;
+}
+.btn-page:hover:not(:disabled) { border-color: var(--accent-pink); }
+.btn-page:disabled { opacity: 0.5; cursor: not-allowed; }
   
   .drawer-overlay {
     position: fixed; inset: 0; background: rgba(12, 26, 46, 0.6); backdrop-filter: blur(4px);
@@ -391,7 +420,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
   .flow-arrow { color: var(--text-s); margin-left: 8px; font-size:12px; }
   .drawer-ft { padding: 24px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; background: var(--bg-card); }
 </style>
-  <link rel="stylesheet" href="assets/css/global.css">
+   <link rel="stylesheet" href="assets/css/global.css">
 </head>
 <body>
 <div class="app-layout">
@@ -400,15 +429,6 @@ tbody tr:hover { background: var(--bg-card-hover); }
 
 <div class="app-main">
   <header class="app-topbar" id="app-topbar"></header>
-  <main class="app-page-container">
-  
-
-  <div class="content">
-    
-    <!-- Empty State -->
-    <div id="view-no-data" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
-      <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--text-s);margin-bottom:8px"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         <div style="font-size:18px; font-weight:600; color:var(--text-h);">No scan results yet</div>
         <div class="empty-msg">Run a repository scan to discover cryptographic findings.</div>
         <button class="btn-p" style="margin-top:16px;" onclick="window.location.href='scan.html'">Start Scan</button>
