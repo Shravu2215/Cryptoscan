@@ -104,10 +104,14 @@ class CryptoDashboard {
     this.renderTrendChart('chart-trend', data.scans);
     this.renderDonutChart('chart-donut', { crit: critCount, high: highCount, med: medCount, low: lowCount }, totalFindings);
     
-    // Quantum Readiness (assuming 100 components for percentage mock, or use real data)
-    let totalAssets = data.scans.reduce((acc, s) => acc + (s.assetsFound || 0), 0) || 10;
-    let qReady = Math.max(0, totalAssets - quantumVuln);
-    this.renderQuantumChart('chart-quantum', (qReady / totalAssets) * 100);
+    // Quantum Readiness (use real data)
+    let totalAssets = data.scans.reduce((acc, s) => acc + (s.assetsFound || 0), 0);
+    let percentage = 100;
+    if (totalAssets > 0) {
+      let qReady = Math.max(0, totalAssets - quantumVuln);
+      percentage = (qReady / totalAssets) * 100;
+    }
+    this.renderQuantumChart('chart-quantum', percentage);
     
     this.renderAlgosChart('chart-algos', algos);
 
@@ -165,8 +169,8 @@ class CryptoDashboard {
     let dataPoints = sorted.map(s => s.findings ? s.findings.length : 0);
     
     if (dataPoints.length === 1) {
-      // Mock historical data if only 1 scan exists for visual purposes
-      dataPoints = [0, 2, 5, 3, dataPoints[0]]; 
+      // Ensure we plot a flat line leading up to the single scan if there's no history
+      dataPoints = [0, 0, 0, 0, dataPoints[0]]; 
     } else if (dataPoints.length === 0) {
       dataPoints = [0,0,0,0,0];
     }
