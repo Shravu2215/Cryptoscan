@@ -49,6 +49,10 @@
   --r-lg: 16px;
   --sb-w: 240px;
   --t: .2s ease;
+  /* Premium accent colors */
+  --accent-violet: #9d4edd;
+  --accent-cyan: #22d3ee;
+  --accent-pink: #f472b6;
 }
     :root.light-mode {
       --bg-main: #f8fafc;
@@ -132,7 +136,7 @@ body {
 
 .content { padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
 
-.card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 24px; }
+.card { background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 24px; backdrop-filter: blur(8px); transition: transform var(--t), box-shadow var(--t); }
 .card-hd { font-size: 16px; font-weight: 600; color: var(--text-h); margin-bottom: 16px; }
 
 /* Grid specific to states */
