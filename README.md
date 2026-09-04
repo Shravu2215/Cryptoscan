@@ -1,3 +1,6 @@
+JOSHIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII PHONE VAR YE PLEASEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+
 # CryptoScan (ECDAT) — Enterprise Cryptographic Discovery & Assurance Tool
 
 CryptoScan is an end-to-end cryptographic discovery, vulnerability remediation, and on-chain tamper-evidence assurance platform. It scans source code repositories for cryptographic assets (classical and post-quantum), detects vulnerabilities, generates standard CycloneDX Cryptographic Bill of Materials (CBOM), and anchors cryptographic audit proofs immutably to the Ethereum Sepolia blockchain with RFC 3161 trusted timestamps and NIST FIPS 204 post-quantum hybrid signatures.
