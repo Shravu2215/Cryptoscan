@@ -1,8 +1,4 @@
 // CryptoScan / ECDAT - Prisma Schema
-// Owned by: Backend Core
-// Note: findings/cbom/anchor tables are here so Scanner, CBOM, and Blockchain
-// modules all write against the SAME schema from hour 1. Don't fork this file
-// — if you need a field added, ask Backend Core to add it centrally.
 
 generator client {
   provider = "prisma-client-js"
@@ -14,16 +10,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String?   // hashed with bcrypt, optional for oauth
-  name      String?
-  provider  String   @default("local")
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String?   // hashed with bcrypt, optional for oauth
+  name       String?
+  provider   String   @default("local")
   providerId String?
-  avatar    String?
-  createdAt DateTime @default(now())
+  avatar     String?
+  role       String   @default("Developer")
+  createdAt  DateTime @default(now())
 
   repos     Repo[]
+  auditLogs AuditLog[]
 }
 
 model Repo {
@@ -56,34 +54,52 @@ model Scan {
 }
 
 model Finding {
-  id             String   @id @default(uuid())
-  scanId         String
-  scan           Scan     @relation(fields: [scanId], references: [id])
-  filePath       String   
-  lineNumber     Int?
-  algorithm      String   
-  library        String?  
-  usage          String?  
-  keySize        Int?
-  quantumStatus  String?  
-  severity       String   
-  description    String   
-  recommendation String?
-  confidence     String   @default("Likely")
-  suppressed     Boolean  @default(false)
+  id                String   @id @default(uuid())
+  scanId            String
+  scan              Scan     @relation(fields: [scanId], references: [id])
+  filePath          String   
+  lineNumber        Int?
+  algorithm         String   
+  library           String?  
+  usage             String?  
+  keySize           Int?
+  quantumStatus     String?  
+  severity          String   
+  description       String   
+  recommendation    String?
+  confidence        String   @default("Likely")
+  suppressed        Boolean  @default(false)
   suppressionReason String?
-  status         String   @default("ACTIVE") // ACTIVE, RESOLVED
-  createdAt      DateTime @default(now())
+  status            String   @default("ACTIVE") // ACTIVE, RESOLVED
+  createdAt         DateTime @default(now())
 }
 
 model Cbom {
-  id         String   @id @default(uuid())
-  scanId     String   @unique
-  scan       Scan     @relation(fields: [scanId], references: [id])
-  format     String   @default("CycloneDX-lite")
-  content    String   // full CBOM document (CycloneDX-lite JSON)
-  quantumRisk String? // overall quantum risk rating
-  createdAt  DateTime @default(now())
+  id          String   @id @default(uuid())
+  scanId      String   @unique
+  scan        Scan     @relation(fields: [scanId], references: [id])
+  format      String   @default("CycloneDX-lite")
+  content     String   // full CBOM document (CycloneDX-lite JSON)
+  quantumRisk String?  // overall quantum risk rating
+  createdAt   DateTime @default(now())
+}
+
+// Append-only evidence of security-relevant actions. `entryHash` commits to
+// this record and the preceding one, making deletion/reordering detectable.
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  action       String
+  method       String
+  path         String
+  statusCode   Int
+  requestHash  String?
+  previousHash String?
+  entryHash    String   @unique
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Anchor {

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { ethers } = require('ethers');
 const { buildMerkleTree } = require('../../integrity-service/merkle');
-const { getSigningKey } = require('../../integrity-service/kms');
+const { getSigner } = require('../../integrity-service/kms');
 const { requestTimestamp } = require('../../integrity-service/timestamp');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 require('dotenv').config();
@@ -100,10 +100,9 @@ async function anchorScan(scanId, contentBuffer, options = {}) {
       : (process.env.PUBLIC_CONTRACT_ADDRESS || deployedAddress));
 
   const network = isPermissioned ? 'localhost' : 'sepolia';
-  const signingKey = getSigningKey();
 
   const provider = new ethers.JsonRpcProvider(rpcUrl);
-  const wallet = new ethers.Wallet(signingKey.privateKey, provider);
+  const wallet = await getSigner(provider);
 
   // Step 1: Merkle tree root commitment (replaces whole-blob hashing)
   const components = extractComponents(contentBuffer);
@@ -184,4 +183,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { anchorScan, sha256Hex, scanIdToBytes32 };
+module.exports = { anchorScan, anchorCBOM: anchorScan, sha256Hex, scanIdToBytes32 };

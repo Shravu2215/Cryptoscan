@@ -3,10 +3,15 @@
 const crypto = require('node:crypto');
 const path = require('path');
 
-// ethers is declared as a direct dependency in integrity-service/package.json
-const { ethers } = require('ethers');
+// Resolve ethers safely across submodules
+let ethers;
+try {
+  ethers = require('ethers');
+} catch (err) {
+  ethers = require('../blockchain-module/node_modules/ethers');
+}
 
-const { getSigningKey } = require('./kms');
+const { getSigningKey, getSigner } = require('./kms');
 
 /**
  * Exact algorithm identifier for the hybrid dual-signature scheme.
@@ -158,10 +163,9 @@ function resetPqcRegistry() {
 async function signHybrid(message, options = {}) {
   const preparedMessage = prepareMessage(message);
 
-  // 1. Classical signature via existing KMS abstraction
-  const classicalSigningKey = getSigningKey();
-  const wallet = new ethers.Wallet(classicalSigningKey.privateKey);
-  const classicalSig = await wallet.signMessage(preparedMessage);
+  // 1. Classical signature via KMS abstraction (env key today, pluggable KMS/HSM via KMS_PROVIDER)
+  const signer = await getSigner();
+  const classicalSig = await signer.signMessage(preparedMessage);
 
   // 2. Post-quantum signature via native ML-DSA-65
   let pqcKeyEntry;
