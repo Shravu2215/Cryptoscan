@@ -3,7 +3,7 @@
 // Backend-core also serves the frontend statically (same-origin), so CORS
 // only matters when the frontend is hosted separately (e.g. a CDN) or during
 // local dev when the frontend is served from a different port.
-const DEFAULT_DEV_ORIGINS = ['http://localhost:8080', 'http://127.0.0.1:8080'];
+const DEFAULT_DEV_ORIGINS = ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:8000', 'http://127.0.0.1:8000'];
 
 function buildAllowedOrigins() {
   const fromEnv = (process.env.ALLOWED_ORIGINS || '')
