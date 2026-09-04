@@ -16,6 +16,7 @@
   pointer-events: none;
   z-index: -1;
   overflow: hidden;
+  background: radial-gradient(circle at 50% 10%, rgba(34, 211, 238, 0.03), transparent 70%);
 }
 
 /* Cyber Grid */
@@ -26,75 +27,81 @@
   width: 200%;
   height: 200%;
   background-image: 
-    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(rgba(139, 92, 246, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
   transform-origin: center top;
   transform: perspective(1000px) rotateX(60deg) translateY(-100px) translateZ(-200px);
   animation: gridMove 20s linear infinite;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 @keyframes gridMove {
   0% { transform: perspective(1000px) rotateX(60deg) translateY(0) translateZ(-200px); }
-  100% { transform: perspective(1000px) rotateX(60deg) translateY(40px) translateZ(-200px); }
+  100% { transform: perspective(1000px) rotateX(60deg) translateY(60px) translateZ(-200px); }
 }
 
 /* Glow Orbs */
 .glow-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.15;
+  filter: blur(100px);
+  opacity: 0.25;
   animation: floatOrb 15s ease-in-out infinite alternate;
 }
 
 .glow-orb.cyan {
-  background: radial-gradient(circle, var(--cs-cyan) 0%, transparent 70%);
-  width: 600px;
-  height: 600px;
-  top: -100px;
-  right: -100px;
+  background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
+  width: 700px;
+  height: 700px;
+  top: -150px;
+  right: -150px;
 }
 
 .glow-orb.violet {
-  background: radial-gradient(circle, var(--cs-violet) 0%, transparent 70%);
-  width: 500px;
-  height: 500px;
-  bottom: -100px;
-  left: -100px;
+  background: radial-gradient(circle, var(--accent-violet) 0%, transparent 70%);
+  width: 600px;
+  height: 600px;
+  bottom: -150px;
+  left: -150px;
   animation-delay: -5s;
 }
 
 .glow-orb.magenta {
-  background: radial-gradient(circle, var(--cs-magenta) 0%, transparent 70%);
-  width: 400px;
-  height: 400px;
+  background: radial-gradient(circle, var(--accent-magenta) 0%, transparent 70%);
+  width: 500px;
+  height: 500px;
   top: 40%;
-  left: 40%;
+  left: 30%;
   animation-delay: -10s;
-  opacity: 0.1;
+  opacity: 0.2;
 }
 
 @keyframes floatOrb {
   0% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, -30px) scale(1.1); }
-  100% { transform: translate(-20px, 40px) scale(0.95); }
+  50% { transform: translate(40px, -40px) scale(1.1); }
+  100% { transform: translate(-30px, 50px) scale(0.95); }
 }
 
 /* Particles */
 .particle {
   position: absolute;
-  background: var(--cs-cyan);
+  background: var(--accent-cyan);
   border-radius: 50%;
   opacity: 0;
   animation: particleFloat 8s infinite linear;
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.particle:nth-child(even) {
+  background: var(--accent-pink);
+  box-shadow: 0 0 10px var(--accent-pink);
 }
 
 @keyframes particleFloat {
   0% { transform: translateY(0) scale(0); opacity: 0; }
-  20% { transform: translateY(-20px) scale(1); opacity: 0.5; }
-  80% { transform: translateY(-80px) scale(1); opacity: 0.5; }
+  20% { transform: translateY(-20px) scale(1); opacity: 0.7; }
+  80% { transform: translateY(-80px) scale(1); opacity: 0.7; }
   100% { transform: translateY(-100px) scale(0); opacity: 0; }
 }
 
@@ -106,21 +113,21 @@
   position: relative;
   width: 100%;
   min-height: 300px;
-  background: var(--cs-surface-hover);
-  border: 1px solid var(--cs-border-subtle);
-  border-radius: var(--cs-radius-lg);
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.3);
 }
 
 .visual-container::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: radial-gradient(circle at center, transparent 0%, var(--cs-bg) 100%);
+  background: radial-gradient(circle at center, transparent 0%, var(--bg-surface) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -131,27 +138,28 @@
 
 /* Network Graph */
 .node-circle {
-  fill: var(--cs-surface-hover);
-  stroke: var(--cs-border);
+  fill: var(--bg-surface-active);
+  stroke: var(--accent-cyan);
   stroke-width: 2;
   transition: all 0.3s ease;
 }
 
 .node-icon {
-  fill: var(--cs-text-muted);
+  fill: var(--text-muted);
 }
 
 .edge-line {
-  stroke: var(--cs-border-subtle);
+  stroke: var(--accent-violet);
   stroke-width: 1.5;
   stroke-dasharray: 4;
+  opacity: 0.5;
   animation: dashFlow 20s linear infinite;
 }
 
 .edge-glow {
-  stroke: var(--cs-cyan);
+  stroke: var(--accent-cyan);
   stroke-width: 3;
-  opacity: 0.3;
+  opacity: 0.4;
   filter: blur(4px);
 }
 
@@ -166,18 +174,19 @@
 }
 
 @keyframes nodePulse {
-  0% { filter: drop-shadow(0 0 0 rgba(139, 92, 246, 0.8)); }
-  70% { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0)); }
-  100% { filter: drop-shadow(0 0 0 rgba(139, 92, 246, 0)); }
+  0% { filter: drop-shadow(0 0 0 rgba(236, 72, 153, 0.8)); stroke: var(--accent-pink); }
+  70% { filter: drop-shadow(0 0 20px rgba(236, 72, 153, 0)); stroke: var(--accent-cyan); }
+  100% { filter: drop-shadow(0 0 0 rgba(236, 72, 153, 0)); stroke: var(--accent-pink); }
 }
 
 /* Scan Pipeline Progress */
 .scan-line {
-  stroke: var(--cs-violet);
-  stroke-width: 2;
+  stroke: var(--accent-cyan);
+  stroke-width: 3;
   stroke-dasharray: 1000;
   stroke-dashoffset: 1000;
   animation: scanProgress 4s ease-in-out forwards;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.5));
 }
 
 @keyframes scanProgress {
@@ -186,22 +195,22 @@
 
 /* Blockchain Blocks */
 .bc-block {
-  fill: rgba(255, 255, 255, 0.02);
-  stroke: var(--cs-border);
-  stroke-width: 1;
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: var(--accent-blue);
+  stroke-width: 1.5;
   transition: all 0.3s ease;
 }
 
 .bc-block.verified {
-  stroke: var(--cs-success);
-  fill: rgba(16, 185, 129, 0.05);
-  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.2));
+  stroke: var(--status-success);
+  fill: rgba(34, 197, 94, 0.1);
+  filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.3));
 }
 
 .bc-hash {
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
-  fill: var(--cs-text-subtle);
+  fill: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {
