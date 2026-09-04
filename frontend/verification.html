@@ -408,92 +408,17 @@ tbody tr:hover { background: var(--bg-card-hover); }
   }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
+  <link rel="stylesheet" href="assets/css/global.css">
 </head>
 <body>
+<div class="app-layout">
 
-<aside class="sb">
-  <div class="sb-brand">
-    <div class="sb-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-    </div>
-    <div class="sb-name">CRYPTO<span>SCAN</span></div>
-  </div>
+<aside class="app-sidebar" id="app-sidebar"></aside>
+
+<div class="app-main">
+  <header class="app-topbar" id="app-topbar"></header>
+  <main class="app-page-container">
   
-  <nav class="sb-nav">
-    <a class="nav-item" href="dashboard.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-      Dashboard
-    </a>
-    <a class="nav-item" href="repositories.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-      Repositories
-    </a>
-    <a class="nav-item" href="scan.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-      Scan Repository
-    </a>
-    <a class="nav-item" href="findings.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      Findings
-    </a>
-    <a class="nav-item" href="cbom.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      CBOM
-    </a>
-    <a class="nav-item" href="risk-migration.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-      Risk & Migration
-    </a>
-    <a class="nav-item active" href="verification.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      Verify
-    </a>
-      <a class="nav-item" href="profile.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-      Profile
-    </a>
-  </nav>
-</aside>
-
-<main class="main">
-  <header class="topbar">
-    <div class="tb-left">
-      <h1 class="tb-title">Verify</h1>
-      <p class="tb-sub">Verify the integrity and authenticity of your cryptographic inventory.</p>
-    </div>
-    <div class="tb-right" id="header-actions" style="display:none;">
-      <button class="btn-sec" onclick="window.location.href='cbom.html'" style="margin-right:8px;">View CBOM</button>
-      <button class="btn-p" id="btn-verify" onclick="startVerification()">Verify CBOM</button>
-    <!-- Profile Avatar -->
-    <div class="profile-avatar-wrap">
-      
-        <button class="theme-toggle" id="theme-btn" title="Toggle Theme" style="background:transparent;border:none;color:var(--text-m);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px;border-radius:var(--r-sm);transition:all 0.2s;margin-right:16px;">
-          <svg id="theme-icon-moon" style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
-          <svg id="theme-icon-sun" style="width:20px;height:20px;display:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        </button>
-        <button class="profile-avatar" id="profile-btn" title="Account">
-        <span class="profile-initials" id="profile-initials">U</span>
-      </button>
-      <div class="profile-dropdown" id="profile-dropdown">
-        <div class="pd-header">
-          <div class="pd-avatar"><span id="pd-initials">U</span></div>
-          <div class="pd-info">
-            <div class="pd-name" id="pd-name">User</div>
-            <div class="pd-email" id="pd-email">user@email.com</div>
-          </div>
-        </div>
-        <div class="pd-divider"></div>
-        <a class="pd-item" href="settings.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-          Settings
-        </a>
-        <a class="pd-item pd-logout" href="javascript:void(0)" onclick="if(typeof Auth !== 'undefined'){Auth.logout();}else{localStorage.clear();window.location.href='login.html';}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          Logout
-        </a>
-      </div>
-    </div>
-      </div></header>
 
   <div class="content">
     
@@ -641,6 +566,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
     </div>
   </div>
 </main>
+</div>
 
 <script src="assets/js/engine.js"></script>
 <script>
@@ -929,5 +855,7 @@ function copyHash() {
 window.addEventListener('load', init);
 window.addEventListener('cryptoscan_data_updated', init);
 </script>
+</div>
+<script src="assets/js/shell.js"></script>
 </body>
 </html>

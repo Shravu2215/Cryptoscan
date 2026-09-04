@@ -270,8 +270,10 @@ body {
 .pd-logout:hover { background: var(--red-bg); color: #f87171; }
 
 </style>
+  <link rel="stylesheet" href="assets/css/global.css">
 </head>
 <body>
+<div class="app-layout">
 
 <aside class="sidebar">
   <div class="sb-header">
@@ -312,44 +314,10 @@ body {
   </nav>
 </aside>
 
-<main class="main">
-  <header class="topbar">
-    <div class="tb-left">
-      <div class="tb-title">Scan Repository</div>
-      <div class="tb-sub">Analyze your repository for cryptographic risks, vulnerable algorithms, and quantum readiness.</div>
-    </div>
-    <div class="tb-right">
-      <button class="btn-sec" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
-    <!-- Profile Avatar -->
-    <div class="profile-avatar-wrap">
-      
-        <button class="theme-toggle" id="theme-btn" title="Toggle Theme" style="background:transparent;border:none;color:var(--text-m);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px;border-radius:var(--r-sm);transition:all 0.2s;margin-right:16px;">
-          <svg id="theme-icon-moon" style="width:20px;height:20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
-          <svg id="theme-icon-sun" style="width:20px;height:20px;display:none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-        </button>
-        <button class="profile-avatar" id="profile-btn" title="Account">
-        <span class="profile-initials" id="profile-initials">U</span>
-      </button>
-      <div class="profile-dropdown" id="profile-dropdown">
-        <div class="pd-header">
-          <div class="pd-avatar"><span id="pd-initials">U</span></div>
-          <div class="pd-info">
-            <div class="pd-name" id="pd-name">User</div>
-            <div class="pd-email" id="pd-email">user@email.com</div>
-          </div>
-        </div>
-        <div class="pd-divider"></div>
-        <a class="pd-item" href="settings.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-          Settings
-        </a>
-        <a class="pd-item pd-logout" href="javascript:void(0)" onclick="if(typeof Auth !== 'undefined'){Auth.logout();}else{localStorage.clear();window.location.href='login.html';}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          Logout
-        </a>
-      </div>
-    </div>
-      </div></header>
+<div class="app-main">
+  <header class="app-topbar" id="app-topbar"></header>
+  <main class="app-page-container">
+  
 
   <div class="content">
     
@@ -540,6 +508,7 @@ body {
 
   </div>
 </main>
+</div>
 
 <script src="assets/js/engine.js"></script>
 <script>
@@ -823,5 +792,7 @@ function viewCBOM() {
   window.location.href = `cbom.html?repo=${encodeURIComponent(currentRepoName)}`;
 }
 </script>
+</div>
+<script src="assets/js/shell.js"></script>
 </body>
 </html>
