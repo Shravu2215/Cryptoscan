@@ -84,8 +84,9 @@ class CryptoDashboard {
 
     // 1. Hero
     this.renderHeroScore(score);
-    if (window.Visuals) {
-      window.Visuals.renderSecurityNetwork('hero-network-container');
+    const heroRight = document.getElementById('hero-network-container');
+    if (heroRight) {
+      heroRight.innerHTML = `<img src="assets/images/hero-network.png" alt="Security Network" style="width: 100%; height: 100%; object-fit: contain; padding: 20px; mix-blend-mode: lighten;" />`;
     }
 
     // 2. Metrics
