@@ -43,7 +43,25 @@ class CryptoDashboard {
     const algos = {};
     const events = [];
 
+    // Group to find latest scan per repo
+    const latestScansByRepo = {};
     data.scans.forEach(scan => {
+      if (!latestScansByRepo[scan.repoId]) {
+        latestScansByRepo[scan.repoId] = scan;
+      }
+      
+      // Events should still show history of all scans
+      events.push({
+        type: 'scan_complete',
+        repo: scan.repoName,
+        time: scan.timestamp,
+        findings: scan.findings ? scan.findings.length : 0
+      });
+    });
+
+    const latestScans = Object.values(latestScansByRepo);
+
+    latestScans.forEach(scan => {
       totalFindings += (scan.findings ? scan.findings.length : 0);
       critCount += (scan.criticalCount || 0);
       quantumVuln += (scan.quantumCount || 0);
@@ -59,13 +77,6 @@ class CryptoDashboard {
           algos[algo] = (algos[algo] || 0) + 1;
         });
       }
-
-      events.push({
-        type: 'scan_complete',
-        repo: scan.repoName,
-        time: scan.timestamp,
-        findings: scan.findings ? scan.findings.length : 0
-      });
     });
 
     const latestScan = data.scans[0];

@@ -72,6 +72,7 @@ model Finding {
   confidence     String   @default("Likely")
   suppressed     Boolean  @default(false)
   suppressionReason String?
+  status         String   @default("ACTIVE") // ACTIVE, RESOLVED
   createdAt      DateTime @default(now())
 }
 

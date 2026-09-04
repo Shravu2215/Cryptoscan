@@ -167,12 +167,14 @@ const CryptoEngine = {
       quantumStatus: f.quantumStatus,
       confidence: f.confidence || 'Likely',
       suppressed: Boolean(f.suppressed),
-      suppressionReason: f.suppressionReason || null
+      suppressionReason: f.suppressionReason || null,
+      status: f.status || 'ACTIVE'
     }));
 
-    const activeDbFindings = dbFindings.filter(f => !f.suppressed);
-    const activeFindings = allMappedFindings.filter(f => !f.suppressed);
+    const activeDbFindings = dbFindings.filter(f => !f.suppressed && f.status !== 'RESOLVED');
+    const activeFindings = allMappedFindings.filter(f => !f.suppressed && f.status !== 'RESOLVED');
     const suppressedFindings = allMappedFindings.filter(f => f.suppressed);
+    const resolvedFindings = allMappedFindings.filter(f => f.status === 'RESOLVED');
 
     const componentMap = {};
     for (const f of activeDbFindings) {
@@ -240,7 +242,9 @@ const CryptoEngine = {
       quantumCount: quantumCount,
       findings: activeFindings,
       suppressedFindings: suppressedFindings,
+      resolvedFindings: resolvedFindings,
       suppressedCount: suppressedFindings.length,
+      resolvedCount: resolvedFindings.length,
       cbom: cbomAssets,
       cbomMetrics: cbomMetrics,
       status: 'complete'
@@ -269,10 +273,19 @@ const CryptoEngine = {
     currentData.scans.unshift(scanResult);
     currentData.activeScan = scanResult;
     
+    // Group scans by repo to calculate global metrics based ONLY on the latest scan of each repo
+    const latestScansByRepo = {};
+    currentData.scans.forEach(s => {
+      if (!latestScansByRepo[s.repoId]) {
+        latestScansByRepo[s.repoId] = s;
+      }
+    });
+    const latestScans = Object.values(latestScansByRepo);
+
     currentData.totalScans = currentData.scans.length;
-    currentData.totalFindings = currentData.scans.reduce((acc, s) => acc + (s.findings ? s.findings.length : 0), 0);
-    currentData.criticalFindings = currentData.scans.reduce((acc, s) => acc + (s.criticalCount || 0), 0);
-    currentData.quantumVulnerable = currentData.scans.reduce((acc, s) => acc + (s.quantumCount || 0), 0);
+    currentData.totalFindings = latestScans.reduce((acc, s) => acc + (s.findings ? s.findings.length : 0), 0);
+    currentData.criticalFindings = latestScans.reduce((acc, s) => acc + (s.criticalCount || 0), 0);
+    currentData.quantumVulnerable = latestScans.reduce((acc, s) => acc + (s.quantumCount || 0), 0);
 
     this.saveData(currentData);
     return scanResult;

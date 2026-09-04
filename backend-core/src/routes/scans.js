@@ -147,7 +147,8 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
       severity: f.severity,
       quantumStatus: f.quantumStatus,
       usage: f.usage,
-      recommendation: f.recommendation
+      recommendation: f.recommendation,
+      status: f.status
     }));
 
     let repoScans = [];
@@ -207,7 +208,8 @@ router.get('/:scanId/diff', requireAuth, async (req, res) => {
       severity: f.severity,
       quantumStatus: f.quantumStatus,
       usage: f.usage,
-      recommendation: f.recommendation
+      recommendation: f.recommendation,
+      status: f.status
     }));
 
     const currentCbom = buildCbom({
@@ -464,6 +466,30 @@ router.get('/:scanId/migration-assessment', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Migration assessment error:', err);
     return res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+// PUT /:scanId/findings/:findingId/resolve
+// Marks a historical finding as resolved without removing it from the scan context.
+router.put('/:scanId/findings/:findingId/resolve', requireAuth, async (req, res) => {
+  try {
+    const { scanId, findingId } = req.params;
+    
+    // Verify finding belongs to scan
+    const finding = await prisma.finding.findUnique({ where: { id: findingId } });
+    if (!finding || finding.scanId !== scanId) {
+      return res.status(404).json({ error: 'Finding not found in this scan' });
+    }
+
+    const updated = await prisma.finding.update({
+      where: { id: findingId },
+      data: { status: 'RESOLVED' }
+    });
+
+    return res.json({ message: 'Finding marked as resolved', finding: updated });
+  } catch (err) {
+    console.error('Finding resolve error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
