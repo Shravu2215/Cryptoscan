@@ -1,0 +1,24 @@
+# Fixture repo_a — clean YAML (negative control)
+# This file must produce ZERO findings.
+
+app:
+  name: my-web-app
+  version: 1.2.3
+  debug: false
+
+server:
+  host: localhost
+  port: 8080
+  tls: true
+  verify: true
+
+database:
+  host: db.example.com
+  port: 5432
+  name: mydb
+  # password is loaded from env, not hardcoded
+  password: ${DB_PASSWORD}
+
+logging:
+  level: info
+  author: admin

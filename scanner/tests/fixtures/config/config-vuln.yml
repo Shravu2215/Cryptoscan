@@ -1,0 +1,16 @@
+# Vulnerable YAML config — contains a plaintext database password and disabled TLS
+database:
+  host: db.internal.example.com
+  port: 5432
+  # Plaintext password — should trigger config-plaintext-secret
+  database_password: S3cur3P@ssw0rd!xK9mNq2Rp4vBn7tLw
+
+http_client:
+  timeout: 30
+  # TLS disabled — should trigger tls-verification-disabled
+  verify: false
+  pool_size: 10
+
+cache:
+  backend: redis
+  url: redis://localhost:6379

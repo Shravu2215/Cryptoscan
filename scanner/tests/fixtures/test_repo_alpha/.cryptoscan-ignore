@@ -1,0 +1,2 @@
+# Suppress weak TLS protocol in server.conf for legacy client compatibility
+infra-weak-tls-protocol|infra/server.conf

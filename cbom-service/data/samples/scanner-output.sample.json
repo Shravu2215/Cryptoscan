@@ -1,0 +1,90 @@
+{
+  "repoId": "repo_demo_1",
+  "language": "python",
+  "findings": [
+    {
+      "id": "finding_1",
+      "file": "src/auth/jwt.py",
+      "line": 42,
+      "primitive": "RSA",
+      "keySize": 2048,
+      "mode": null,
+      "context": {
+        "functionName": "sign_jwt_token",
+        "surroundingCode": "signature = private_key.sign(payload, padding.PKCS1v15(), hashes.SHA256())",
+        "imports": ["cryptography.hazmat.primitives.asymmetric.rsa"],
+        "usageType": "signature"
+      }
+    },
+    {
+      "id": "finding_2",
+      "file": "src/network/handshake.py",
+      "line": 88,
+      "primitive": "ECDH",
+      "keySize": 256,
+      "mode": null,
+      "context": {
+        "functionName": "perform_key_exchange",
+        "surroundingCode": "shared_secret = private_key.exchange(ec.ECDH(), peer_public_key)",
+        "imports": ["cryptography.hazmat.primitives.asymmetric.ec"],
+        "usageType": "key_exchange"
+      }
+    },
+    {
+      "id": "finding_3",
+      "file": "src/storage/vault.py",
+      "line": 15,
+      "primitive": "AES",
+      "keySize": 128,
+      "mode": "CBC",
+      "context": {
+        "functionName": "encrypt_secret_blob",
+        "surroundingCode": "cipher = Cipher(algorithms.AES(key), modes.CBC(iv))",
+        "imports": ["cryptography.hazmat.primitives.ciphers"],
+        "usageType": "encryption"
+      }
+    },
+    {
+      "id": "finding_4",
+      "file": "src/users/passwords.py",
+      "line": 30,
+      "primitive": "MD5",
+      "keySize": null,
+      "mode": null,
+      "context": {
+        "functionName": "hash_password",
+        "surroundingCode": "hashed = hashlib.md5(password.encode()).hexdigest()",
+        "imports": ["hashlib"],
+        "usageType": "password_hashing"
+      }
+    },
+    {
+      "id": "finding_5",
+      "file": "src/integrity/checksum.py",
+      "line": 9,
+      "primitive": "SHA-256",
+      "keySize": null,
+      "mode": null,
+      "context": {
+        "functionName": "verify_download_integrity",
+        "surroundingCode": "digest = hashlib.sha256(data).hexdigest()",
+        "imports": ["hashlib"],
+        "usageType": "hashing"
+      }
+    },
+    {
+      "id": "finding_6",
+      "file": "src/legacy/old_transport.py",
+      "line": 61,
+      "primitive": "DES",
+      "keySize": 56,
+      "mode": "ECB",
+      "context": {
+        "functionName": "legacy_encrypt",
+        "surroundingCode": "cipher = DES.new(key, DES.MODE_ECB)",
+        "imports": ["Crypto.Cipher.DES"],
+        "usageType": "encryption"
+      }
+    }
+  ]
+}

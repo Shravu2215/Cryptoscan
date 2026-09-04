@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CryptoScan — Intelligent Information</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; scroll-behavior: smooth; }
+      body { overscroll-behavior: none; }
+    }
+    ::-webkit-scrollbar { display: none; }
+
+    /* Ambient pulse & drift keyframes */
+    @keyframes ambient-drift {
+      0%, 100% {
+        transform: translate(-50%, 0) scale(1);
+        opacity: 0.85;
+      }
+      50% {
+        transform: translate(-48%, 18px) scale(1.06);
+        opacity: 1;
+      }
+    }
+
+    @keyframes ambient-pulse-slow {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 0.7;
+      }
+      50% {
+        transform: scale(1.12);
+        opacity: 0.95;
+      }
+    }
+
+    .ambient-glow-hero {
+      animation: ambient-drift 14s ease-in-out infinite;
+      will-change: transform, opacity;
+    }
+
+    .ambient-glow-pulse {
+      animation: ambient-pulse-slow 10s ease-in-out infinite;
+      will-change: transform, opacity;
+    }
+
+    /* Initial Reveal Base Styles */
+    .reveal-on-scroll {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .reveal-on-scroll.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Page load hero sequence */
+    .hero-load-reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: heroFadeUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes heroFadeUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Accordion transitions */
+    .faq-accordion-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .faq-accordion-body.open {
+      grid-template-rows: 1fr;
+    }
+
+    .faq-accordion-inner {
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .faq-accordion-body.open .faq-accordion-inner {
+      opacity: 1;
+    }
+
+    /* Reduced motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .reveal-on-scroll,
+      .hero-load-reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .ambient-glow-hero,
+      .ambient-glow-pulse {
+        animation: none !important;
+      }
+    }
+  
+    /* Landing-page interaction refinements */
+    .nav-link.is-active { color: #f3eff2 !important; }
+    .nav-link { position: relative; }
+    .nav-link::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -7px;
+      height: 1px;
+      transform: scaleX(0);
+      transform-origin: center;
+      background: #ff6b2b;
+      transition: transform .25s ease;
+    }
+    .nav-link:hover::after,
+    .nav-link.is-active::after { transform: scaleX(1); }
+
+    .hero-visual-float {
+      animation: heroFloat 7s ease-in-out infinite;
+      will-change: transform;
+    }
+    @keyframes heroFloat {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-visual-float { animation: none !important; }
+    }
+
+    /* Mobile navigation */
+    .mobile-nav { display: none; }
+    .mobile-menu-button { display: none; }
+    @media (max-width: 767px) {
+      .mobile-menu-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        margin-right: 8px;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 999px;
+        background: rgba(255,255,255,.03);
+        color: #f3eff2;
+        cursor: pointer;
+      }
+      .mobile-nav {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 16px;
+        right: 16px;
+        display: grid;
+        gap: 4px;
+        padding: 10px;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 18px;
+        background: rgba(12,12,14,.96);
+        backdrop-filter: blur(22px);
+        box-shadow: 0 24px 60px rgba(0,0,0,.5);
+        opacity: 0;
+        transform: translateY(-8px);
+        pointer-events: none;
+        transition: opacity .25s ease, transform .25s ease;
+      }
+      .mobile-nav.is-open {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .mobile-nav a {
+        padding: 13px 14px;
+        border-radius: 12px;
+        color: #bfaaa2;
+        text-decoration: none;
+        font: 500 14px "Plus Jakarta Sans", sans-serif;
+      }
+      .mobile-nav a:hover { color: #f3eff2; background: rgba(255,255,255,.05); }
+      #main-header .h-20,
+      #main-header .h-16 { height: 68px; }
+      #main-header .max-w-7xl { padding-left: 16px; padding-right: 16px; }
+    }
+</style>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-dim": "#0c0c0e",
+            "surface-container-high": "#222125",
+            "surface-container-lowest": "#08080a",
+            "outline-variant": "#4d3931",
+            "on-tertiary-fixed": "#001e2c",
+            "on-background": "#e5e1e4",
+            "on-secondary-fixed": "#2a1700",
+            "secondary-fixed": "#ffddb8",
+            "tertiary-fixed-dim": "#7bd0ff",
+            "surface-tint": "#ffb59a",
+            "secondary": "#ffb95f",
+            "on-surface": "#f3eff2",
+            "on-surface-variant": "#bfaaa2",
+            "secondary-container": "#ee9800",
+            "surface-container": "#18171a",
+            "primary-container": "#ff6b2b",
+            "on-primary-container": "#451200",
+            "primary": "#ffb59a",
+            "outline": "#8a736a",
+            "tertiary": "#7bd0ff",
+            "on-primary": "#451200",
+            "surface-container-low": "#121114",
+            "surface": "#0c0c0e",
+            "inverse-primary": "#ff6b2b",
+            "surface-variant": "#28272b",
+            "inverse-surface": "#f5f3f4",
+            "inverse-on-surface": "#1d1b1e",
+            "background": "#08080a",
+            "surface-container-highest": "#2d2c30",
+            "surface-bright": "#363539"
+          },
+          fontFamily: {
+            "space-grotesk": ["Space Grotesk", "sans-serif"],
+            "jakarta": ["Plus Jakarta Sans", "sans-serif"],
+            "mono": ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-surface-container-lowest font-jakarta text-on-surface antialiased selection:bg-primary-container/30 selection:text-primary">
+<!-- ========================================================================= -->
+<!-- 1. NAVIGATION -->
+<!-- ========================================================================= -->
+<header class="fixed top-0 left-0 right-0 z-50 w-full bg-surface-container-lowest/80 backdrop-blur-2xl border-b border-white/[0.04] transition-all duration-300" id="main-header">
+<div class="h-20 max-w-7xl mx-auto px-6 lg:px-12 flex items-center justify-between transition-all duration-300" id="nav-container">
+<!-- Brand Logo Mark & Text -->
+<a class="flex items-center gap-3.5 group" href="#">
+<img alt="CryptoScan Logo Mark" class="h-8 w-8 object-contain transition-transform duration-300 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida/AEtjO1W_vTrnHQe183Vsy0OKIhSJPQZCkNCRQHjHdGfjhyElBms8nBmBrHzQrIhVxBP0H2PRUrkU4U-TmKVvdnBh-rPJzvuhh7KW7JQx6mOO2O5C7uLcvFFgewsiVyW-flS4xDKyt_hea8F0OrkTAj3RoGUlYrf_aCg6do__2E5Dmr7YFWkeZjy-pApcQIFujTobLgUEDw88SL1hfs6AcSUUo6xV1Zi3VQkydTARaeXU9DZtsMeJ_k4PCu3Riw"/>
+<span class="font-space-grotesk font-bold text-xl tracking-tight text-on-surface transition-colors duration-200 group-hover:text-primary">CryptoScan</span>
+</a>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="nav-link text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#product">Product</a>
+<a class="nav-link text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#features">Features</a>
+<a class="nav-link text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#how-it-works">How It Works</a>
+<a class="nav-link text-sm font-medium text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#faq">FAQ</a>
+</nav>
+<div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <a href="#product">Product</a>
+  <a href="#features">Features</a>
+  <a href="#how-it-works">How It Works</a>
+  <a href="#faq">FAQ</a>
+</div>
+<!-- Mobile menu + Action Button -->
+<div class="flex items-center">
+<button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-label="Open navigation" aria-expanded="false">
+  <span class="material-symbols-outlined">menu</span>
+</button>
+<a class="relative inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-primary-container text-white font-space-grotesk font-semibold text-xs tracking-wider uppercase shadow-[0_0_24px_rgba(255,107,43,0.35)] hover:shadow-[0_0_36px_rgba(255,107,43,0.6)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300" href="login.html">
+          Start Scanning
+        </a>
+</div>
+</div>
+</header>
+<main class="w-full pt-20">
+<!-- ========================================================================= -->
+<!-- 2. HERO SECTION -->
+<!-- ========================================================================= -->
+<section class="relative w-full overflow-hidden pt-16 md:pt-24 pb-24 md:pb-36">
+<!-- Ambient Glow Overlays -->
+<div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-primary-container/15 via-secondary/10 to-transparent blur-[140px] rounded-full ambient-glow-hero"></div>
+<div class="max-w-7xl mx-auto px-6 lg:px-12 relative z-10 flex flex-col items-center text-center">
+<!-- Eyebrow -->
+<div class="hero-load-reveal inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md mb-8 hover:border-primary/30 transition-colors duration-300 cursor-default" style="animation-delay: 0.1s;">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container shadow-[0_0_8px_#ff6b2b]"></span>
+<span class="font-mono text-xs tracking-[0.2em] uppercase text-primary font-medium">AI-POWERED INTELLIGENCE</span>
+</div>
+<!-- Heading -->
+<h1 class="hero-load-reveal font-space-grotesk text-4xl sm:text-6xl lg:text-7xl font-bold text-on-surface max-w-5xl tracking-tight leading-[1.08] mb-8" style="animation-delay: 0.25s;">
+          Scan smarter.<br/>
+<span class="bg-gradient-to-r from-on-surface via-primary to-secondary bg-clip-text text-transparent">Understand deeper.</span>
+</h1>
+<!-- Description -->
+<p class="hero-load-reveal font-jakarta text-lg sm:text-xl text-on-surface-variant max-w-2xl mx-auto leading-relaxed mb-10" style="animation-delay: 0.4s;">
+          CryptoScan brings complex information into one clear, intelligent experience.
+        </p>
+<!-- CTA Buttons -->
+<div class="hero-load-reveal flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md mb-20" style="animation-delay: 0.55s;">
+<a class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-primary-container text-white font-space-grotesk font-semibold text-sm tracking-wide shadow-[0_0_24px_rgba(255,107,43,0.4)] hover:shadow-[0_0_38px_rgba(255,107,43,0.65)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-300" href="login.html">
+            Start Scanning
+          </a>
+<a class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-full bg-white/[0.03] border border-white/[0.1] text-on-surface font-space-grotesk font-medium text-sm hover:bg-white/[0.08] hover:border-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300" href="#features">
+            Explore Platform
+          </a>
+</div>
+<!-- Hero Visual: Cinematic Sleek Viewport with 3D Tilt container -->
+<div class="hero-load-reveal w-full max-w-5xl [perspective:1200px]" id="product" style="animation-delay: 0.7s;">
+<div class="relative rounded-2xl p-2 bg-gradient-to-b from-white/[0.12] via-white/[0.03] to-white/[0.01] shadow-[0_32px_96px_rgba(0,0,0,0.8)] transition-transform duration-300 ease-out will-change-transform hero-visual-float" id="hero-tilt-card">
+<div class="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-surface-container-low border border-white/[0.06] group">
+<img alt="Intelligent complex information visualization" class="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]" src="https://lh3.googleusercontent.com/aida/AEtjO1WIsZ_dYZZg-rISxug9cyRtbX0hJs_zLd500xKmTRcEkLps3YQFwtO-76O6pILjQE9Cn8LZxDxg-XSjz7tA1-zc_EoTazjnh1WBwytMtKGCH5BvTGxV4PK1979bZ26UEaF8FnYy_Whe-wsICuRJZWEhYKiDT3y8QzwvIg7ewcN8xpVAltDtmpUDu2jULxQsQpZyk7KSEOszfSzDCMnE9GDFM2G3Z41C1LRj6bfshObSebSIX3U1b7ZL_IY"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest/80 via-transparent to-transparent pointer-events-none"></div>
+<div class="absolute inset-0 ring-1 ring-inset ring-white/[0.08] rounded-xl pointer-events-none transition-opacity duration-300 group-hover:ring-primary/20"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 3. STATEMENT SECTION -->
+<!-- ========================================================================= -->
+<section class="relative w-full bg-surface-container-lowest py-32 md:py-44 overflow-hidden border-t border-white/[0.03]">
+<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+<div class="w-[600px] h-[300px] bg-primary-container/[0.06] rounded-full blur-[130px] ambient-glow-pulse"></div>
+</div>
+<div class="max-w-5xl mx-auto px-6 lg:px-12 relative z-10 text-center reveal-on-scroll">
+<h2 class="font-space-grotesk text-3xl sm:text-5xl lg:text-6xl font-bold text-on-surface tracking-tight leading-[1.15] mb-8">
+          Stop searching. Start understanding.
+        </h2>
+<p class="font-jakarta text-lg sm:text-xl text-on-surface-variant max-w-2xl mx-auto leading-relaxed font-light">
+          One intelligent platform designed to turn complexity into clarity.
+        </p>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 4. FEATURES SECTION -->
+<!-- ========================================================================= -->
+<section class="w-full bg-surface-container-lowest pb-32 md:pb-44" id="features">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<!-- Eyebrow / Section Title -->
+<div class="text-center max-w-2xl mx-auto mb-20 reveal-on-scroll">
+<p class="font-mono text-xs tracking-[0.2em] uppercase text-primary mb-3">AI-POWERED CLARITY</p>
+<h2 class="font-space-grotesk text-3xl sm:text-4xl font-bold text-on-surface tracking-tight">
+            Everything you need. Nothing you don't.
+          </h2>
+</div>
+<!-- 4-Feature Showcase Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+<!-- Feature 01: Discover -->
+<div class="reveal-on-scroll group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-primary/40 p-8 sm:p-10 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(255,107,43,0.08)] flex flex-col justify-between overflow-hidden">
+<div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-primary-container/[0.06] blur-2xl rounded-full group-hover:bg-primary-container/[0.16] transition-all duration-500"></div>
+<div>
+<div class="font-mono text-xs text-primary font-medium tracking-wider mb-6">01</div>
+<h3 class="font-space-grotesk text-2xl sm:text-3xl font-semibold text-on-surface mb-3 transition-colors duration-200 group-hover:text-primary">
+                Discover
+              </h3>
+<p class="font-jakarta text-base text-on-surface-variant leading-relaxed">
+                Find the information that matters without digging through noise.
+              </p>
+</div>
+<div class="mt-12 h-0.5 w-12 bg-primary/40 group-hover:w-20 group-hover:bg-primary transition-all duration-300"></div>
+</div>
+<!-- Feature 02: Analyze -->
+<div class="reveal-on-scroll group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-secondary/40 p-8 sm:p-10 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(238,152,0,0.08)] flex flex-col justify-between overflow-hidden" style="transition-delay: 100ms;">
+<div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-secondary/[0.06] blur-2xl rounded-full group-hover:bg-secondary/[0.16] transition-all duration-500"></div>
+<div>
+<div class="font-mono text-xs text-secondary font-medium tracking-wider mb-6">02</div>
+<h3 class="font-space-grotesk text-2xl sm:text-3xl font-semibold text-on-surface mb-3 transition-colors duration-200 group-hover:text-secondary">
+                Analyze
+              </h3>
+<p class="font-jakarta text-base text-on-surface-variant leading-relaxed">
+                Understand complex information through a clear and focused experience.
+              </p>
+</div>
+<div class="mt-12 h-0.5 w-12 bg-secondary/40 group-hover:w-20 group-hover:bg-secondary transition-all duration-300"></div>
+</div>
+<!-- Feature 03: Connect -->
+<div class="reveal-on-scroll group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-primary/40 p-8 sm:p-10 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(255,107,43,0.08)] flex flex-col justify-between overflow-hidden">
+<div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-primary/[0.06] blur-2xl rounded-full group-hover:bg-primary/[0.16] transition-all duration-500"></div>
+<div>
+<div class="font-mono text-xs text-primary font-medium tracking-wider mb-6">03</div>
+<h3 class="font-space-grotesk text-2xl sm:text-3xl font-semibold text-on-surface mb-3 transition-colors duration-200 group-hover:text-primary">
+                Connect
+              </h3>
+<p class="font-jakarta text-base text-on-surface-variant leading-relaxed">
+                Bring related information together and see the bigger picture.
+              </p>
+</div>
+<div class="mt-12 h-0.5 w-12 bg-primary/40 group-hover:w-20 group-hover:bg-primary transition-all duration-300"></div>
+</div>
+<!-- Feature 04: Understand -->
+<div class="reveal-on-scroll group relative rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-secondary/40 p-8 sm:p-10 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(238,152,0,0.08)] flex flex-col justify-between overflow-hidden" style="transition-delay: 100ms;">
+<div class="pointer-events-none absolute -top-16 -right-16 w-48 h-48 bg-secondary-container/[0.06] blur-2xl rounded-full group-hover:bg-secondary-container/[0.16] transition-all duration-500"></div>
+<div>
+<div class="font-mono text-xs text-secondary font-medium tracking-wider mb-6">04</div>
+<h3 class="font-space-grotesk text-2xl sm:text-3xl font-semibold text-on-surface mb-3 transition-colors duration-200 group-hover:text-secondary">
+                Understand
+              </h3>
+<p class="font-jakarta text-base text-on-surface-variant leading-relaxed">
+                Turn information into useful, meaningful insights.
+              </p>
+</div>
+<div class="mt-12 h-0.5 w-12 bg-secondary-container/40 group-hover:w-20 group-hover:bg-secondary-container transition-all duration-300"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 5. TRANSITION SECTION -->
+<!-- ========================================================================= -->
+<div class="w-full py-24 sm:py-32 bg-gradient-to-b from-surface-container-lowest via-surface-container-lowest/60 to-inverse-surface relative overflow-hidden flex items-center justify-center">
+<div class="max-w-4xl mx-auto px-6 text-center reveal-on-scroll">
+<p class="font-space-grotesk text-2xl sm:text-3xl md:text-4xl font-medium tracking-tight text-on-surface/90">
+          Complex information. Made simple.
+        </p>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- 6. USE CASES SECTION (LIGHT CANVAS) -->
+<!-- ========================================================================= -->
+<section class="w-full bg-inverse-surface py-28 md:py-36 text-inverse-on-surface relative">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="max-w-3xl mb-16 sm:mb-20 reveal-on-scroll">
+<p class="font-mono text-xs tracking-[0.2em] uppercase text-primary-container font-semibold mb-3">
+            BUILT FOR BETTER DECISIONS.
+          </p>
+<h2 class="font-space-grotesk text-3xl sm:text-5xl font-bold text-inverse-on-surface tracking-tight">
+            Built for better decisions.
+          </h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Card 1: Explore -->
+<div class="reveal-on-scroll group bg-white rounded-2xl p-8 sm:p-10 shadow-[0_12px_32px_rgba(0,0,0,0.04)] border border-black/[0.04] flex flex-col justify-between hover:shadow-[0_24px_48px_rgba(255,107,43,0.12)] hover:border-primary-container/30 hover:-translate-y-2 transition-all duration-300">
+<div>
+<div class="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center mb-8 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary-container/15">
+<span class="material-symbols-outlined text-primary-container text-[22px]">explore</span>
+</div>
+<h3 class="font-space-grotesk text-2xl font-bold text-inverse-on-surface mb-3 transition-colors duration-200 group-hover:text-primary-container">
+                Explore
+              </h3>
+<p class="font-jakarta text-base text-inverse-on-surface/75 leading-relaxed">
+                Discover important information quickly.
+              </p>
+</div>
+</div>
+<!-- Card 2: Analyze -->
+<div class="reveal-on-scroll group bg-white rounded-2xl p-8 sm:p-10 shadow-[0_12px_32px_rgba(0,0,0,0.04)] border border-black/[0.04] flex flex-col justify-between hover:shadow-[0_24px_48px_rgba(238,152,0,0.12)] hover:border-secondary-container/30 hover:-translate-y-2 transition-all duration-300" style="transition-delay: 100ms;">
+<div>
+<div class="w-10 h-10 rounded-xl bg-secondary-container/15 flex items-center justify-center mb-8 transition-transform duration-300 group-hover:scale-110 group-hover:bg-secondary-container/25">
+<span class="material-symbols-outlined text-secondary-container text-[22px]">insights</span>
+</div>
+<h3 class="font-space-grotesk text-2xl font-bold text-inverse-on-surface mb-3 transition-colors duration-200 group-hover:text-secondary-container">
+                Analyze
+              </h3>
+<p class="font-jakarta text-base text-inverse-on-surface/75 leading-relaxed">
+                Go deeper when the details matter.
+              </p>
+</div>
+</div>
+<!-- Card 3: Decide -->
+<div class="reveal-on-scroll group bg-white rounded-2xl p-8 sm:p-10 shadow-[0_12px_32px_rgba(0,0,0,0.04)] border border-black/[0.04] flex flex-col justify-between hover:shadow-[0_24px_48px_rgba(255,107,43,0.12)] hover:border-primary-container/30 hover:-translate-y-2 transition-all duration-300" style="transition-delay: 200ms;">
+<div>
+<div class="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center mb-8 transition-transform duration-300 group-hover:scale-110 group-hover:bg-primary-container/15">
+<span class="material-symbols-outlined text-primary-container text-[22px]">done_all</span>
+</div>
+<h3 class="font-space-grotesk text-2xl font-bold text-inverse-on-surface mb-3 transition-colors duration-200 group-hover:text-primary-container">
+                Decide
+              </h3>
+<p class="font-jakarta text-base text-inverse-on-surface/75 leading-relaxed">
+                Move forward with greater clarity.
+              </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 7. HOW IT WORKS SECTION -->
+<!-- ========================================================================= -->
+<section class="w-full bg-surface-container-lowest py-32 md:py-44 text-on-surface relative border-t border-white/[0.04]" id="how-it-works">
+<div class="max-w-7xl mx-auto px-6 lg:px-12">
+<div class="text-center max-w-2xl mx-auto mb-20 reveal-on-scroll">
+<p class="font-mono text-xs tracking-[0.2em] uppercase text-primary mb-3">WORKFLOW</p>
+<h2 class="font-space-grotesk text-3xl sm:text-5xl font-bold text-on-surface tracking-tight">
+            Discover. Analyze. Understand.
+          </h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+<!-- Step 1 -->
+<div class="reveal-on-scroll group rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-primary/40 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(255,107,43,0.08)] p-8 sm:p-10 flex flex-col transition-all duration-300">
+<span class="font-space-grotesk text-xl font-bold text-primary mb-6 transition-transform duration-300 group-hover:translate-x-1">01 — Discover</span>
+<p class="font-jakarta text-lg text-on-surface-variant leading-relaxed">
+              Find what matters.
+            </p>
+</div>
+<!-- Step 2 -->
+<div class="reveal-on-scroll group rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-secondary/40 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(238,152,0,0.08)] p-8 sm:p-10 flex flex-col transition-all duration-300" style="transition-delay: 100ms;">
+<span class="font-space-grotesk text-xl font-bold text-secondary mb-6 transition-transform duration-300 group-hover:translate-x-1">02 — Analyze</span>
+<p class="font-jakarta text-lg text-on-surface-variant leading-relaxed">
+              Explore the information in depth.
+            </p>
+</div>
+<!-- Step 3 -->
+<div class="reveal-on-scroll group rounded-2xl bg-white/[0.02] border border-white/[0.06] hover:border-primary/40 hover:-translate-y-1.5 hover:shadow-[0_16px_36px_rgba(255,107,43,0.08)] p-8 sm:p-10 flex flex-col transition-all duration-300" style="transition-delay: 200ms;">
+<span class="font-space-grotesk text-xl font-bold text-primary mb-6 transition-transform duration-300 group-hover:translate-x-1">03 — Understand</span>
+<p class="font-jakarta text-lg text-on-surface-variant leading-relaxed">
+              Get a clearer picture and make better decisions.
+            </p>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 8. FAQ SECTION -->
+<!-- ========================================================================= -->
+<section class="w-full bg-surface-container-lowest pb-32 md:pb-44 text-on-surface relative" id="faq">
+<div class="max-w-4xl mx-auto px-6 lg:px-12">
+<div class="text-center mb-16 sm:mb-20 reveal-on-scroll">
+<h2 class="font-space-grotesk text-3xl sm:text-5xl font-bold text-on-surface tracking-tight">
+            Frequently asked questions.
+          </h2>
+</div>
+<!-- Hairline Accordion Cards with smooth CSS grid expansion -->
+<div class="space-y-4">
+<!-- Item 1 -->
+<div class="faq-item reveal-on-scroll rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] overflow-hidden transition-all duration-300">
+<button aria-expanded="false" class="faq-toggle w-full p-6 sm:p-7 flex items-center justify-between text-left text-on-surface hover:text-primary transition-colors duration-200" type="button">
+<span class="font-space-grotesk text-lg sm:text-xl font-semibold">What is CryptoScan?</span>
+<span class="material-symbols-outlined faq-icon text-on-surface-variant transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-accordion-body">
+<div class="faq-accordion-inner px-6 sm:px-7 pb-6 sm:pb-7 font-jakarta text-base text-on-surface-variant leading-relaxed">
+              CryptoScan is an intelligent platform designed to make complex information easier to explore and understand.
+            </div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="faq-item reveal-on-scroll rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] overflow-hidden transition-all duration-300" style="transition-delay: 80ms;">
+<button aria-expanded="false" class="faq-toggle w-full p-6 sm:p-7 flex items-center justify-between text-left text-on-surface hover:text-primary transition-colors duration-200" type="button">
+<span class="font-space-grotesk text-lg sm:text-xl font-semibold">How does CryptoScan work?</span>
+<span class="material-symbols-outlined faq-icon text-on-surface-variant transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-accordion-body">
+<div class="faq-accordion-inner px-6 sm:px-7 pb-6 sm:pb-7 font-jakarta text-base text-on-surface-variant leading-relaxed">
+              CryptoScan organizes information into a clear experience so users can discover, analyze, and understand what matters.
+            </div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="faq-item reveal-on-scroll rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] overflow-hidden transition-all duration-300" style="transition-delay: 160ms;">
+<button aria-expanded="false" class="faq-toggle w-full p-6 sm:p-7 flex items-center justify-between text-left text-on-surface hover:text-primary transition-colors duration-200" type="button">
+<span class="font-space-grotesk text-lg sm:text-xl font-semibold">Who is CryptoScan for?</span>
+<span class="material-symbols-outlined faq-icon text-on-surface-variant transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-accordion-body">
+<div class="faq-accordion-inner px-6 sm:px-7 pb-6 sm:pb-7 font-jakarta text-base text-on-surface-variant leading-relaxed">
+              CryptoScan is built for anyone who needs a faster and clearer way to explore complex information.
+            </div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="faq-item reveal-on-scroll rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.14] overflow-hidden transition-all duration-300" style="transition-delay: 240ms;">
+<button aria-expanded="false" class="faq-toggle w-full p-6 sm:p-7 flex items-center justify-between text-left text-on-surface hover:text-primary transition-colors duration-200" type="button">
+<span class="font-space-grotesk text-lg sm:text-xl font-semibold">What makes CryptoScan different?</span>
+<span class="material-symbols-outlined faq-icon text-on-surface-variant transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-accordion-body">
+<div class="faq-accordion-inner px-6 sm:px-7 pb-6 sm:pb-7 font-jakarta text-base text-on-surface-variant leading-relaxed">
+              CryptoScan focuses on clarity, intelligent organization, and a simple experience instead of overwhelming users with unnecessary information.
+            </div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ========================================================================= -->
+<!-- 9. FINAL CTA SECTION -->
+<!-- ========================================================================= -->
+<section class="relative w-full bg-surface-container-lowest py-32 md:py-44 overflow-hidden border-t border-white/[0.04]" id="start">
+<!-- Ambient Glow -->
+<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+<div class="w-[700px] h-[350px] bg-gradient-to-tr from-primary-container/20 via-secondary/10 to-transparent blur-[140px] rounded-full ambient-glow-pulse"></div>
+</div>
+<div class="max-w-5xl mx-auto px-6 lg:px-12 relative z-10 text-center reveal-on-scroll">
+<h2 class="font-space-grotesk text-4xl sm:text-6xl font-bold text-on-surface tracking-tight mb-6">
+          See information differently.
+        </h2>
+<p class="font-jakarta text-lg sm:text-xl text-on-surface-variant max-w-xl mx-auto mb-10 leading-relaxed font-light">
+          Explore a smarter way to discover, analyze, and understand.
+        </p>
+<div>
+<a class="inline-flex items-center justify-center px-10 py-4 rounded-full bg-primary-container text-white font-space-grotesk font-semibold text-sm tracking-wide shadow-[0_0_32px_rgba(255,107,43,0.45)] hover:shadow-[0_0_52px_rgba(255,107,43,0.75)] hover:scale-[1.04] active:scale-[0.98] transition-all duration-300" href="login.html">
+            Start Scanning
+          </a>
+</div>
+</div>
+</section>
+</main>
+<!-- ========================================================================= -->
+<!-- 10. FOOTER -->
+<!-- ========================================================================= -->
+<footer class="w-full bg-surface-container-lowest border-t border-white/[0.06] py-16">
+<div class="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col gap-12">
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<img alt="CryptoScan Logo Mark" class="h-6 w-6 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1W_vTrnHQe183Vsy0OKIhSJPQZCkNCRQHjHdGfjhyElBms8nBmBrHzQrIhVxBP0H2PRUrkU4U-TmKVvdnBh-rPJzvuhh7KW7JQx6mOO2O5C7uLcvFFgewsiVyW-flS4xDKyt_hea8F0OrkTAj3RoGUlYrf_aCg6do__2E5Dmr7YFWkeZjy-pApcQIFujTobLgUEDw88SL1hfs6AcSUUo6xV1Zi3VQkydTARaeXU9DZtsMeJ_k4PCu3Riw"/>
+<span class="font-space-grotesk font-bold text-lg tracking-tight text-on-surface">CryptoScan</span>
+</div>
+<p class="font-jakarta text-sm text-on-surface-variant">
+            Intelligent information. Clearer understanding.
+          </p>
+</div>
+<nav class="flex flex-wrap items-center gap-8">
+<a class="text-sm text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#product">Product</a>
+<a class="text-sm text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#features">Features</a>
+<a class="text-sm text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#how-it-works">How It Works</a>
+<a class="text-sm text-on-surface-variant hover:text-on-surface transition-colors duration-200" href="#faq">FAQ</a>
+</nav>
+</div>
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.04]">
+<p class="font-mono text-xs text-on-surface-variant/70">
+          © 2026 CryptoScan. All rights reserved.
+        </p>
+</div>
+</div>
+</footer>
+<!-- Interactive Scripts -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // 1. Sticky Navbar Dynamic Scroll State
+      const header = document.getElementById('main-header');
+      const navContainer = document.getElementById('nav-container');
+
+      function updateNavbar() {
+        if (window.scrollY > 30) {
+          header.classList.add('bg-surface-container-lowest/95', 'shadow-lg', 'shadow-black/40', 'border-white/[0.08]');
+          header.classList.remove('bg-surface-container-lowest/80', 'border-white/[0.04]');
+          navContainer.classList.remove('h-20');
+          navContainer.classList.add('h-16');
+        } else {
+          header.classList.remove('bg-surface-container-lowest/95', 'shadow-lg', 'shadow-black/40', 'border-white/[0.08]');
+          header.classList.add('bg-surface-container-lowest/80', 'border-white/[0.04]');
+          navContainer.classList.remove('h-16');
+          navContainer.classList.add('h-20');
+        }
+      }
+      window.addEventListener('scroll', updateNavbar, { passive: true });
+      updateNavbar();
+
+      // 2. IntersectionObserver for Scroll-Triggered Reveals
+      const revealElements = document.querySelectorAll('.reveal-on-scroll');
+      if ('IntersectionObserver' in window && !prefersReducedMotion) {
+        const observer = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              obs.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.12,
+          rootMargin: '0px 0px -40px 0px'
+        });
+
+        revealElements.forEach(el => observer.observe(el));
+      } else {
+        revealElements.forEach(el => el.classList.add('is-visible'));
+      }
+
+      // 3. Hero Visual Tilt / Parallax Mouse-Follow
+      const tiltCard = document.getElementById('hero-tilt-card');
+      const tiltWrapper = tiltCard ? tiltCard.parentElement : null;
+
+      if (tiltCard && tiltWrapper && !prefersReducedMotion && window.matchMedia('(pointer: fine)').matches) {
+        let rafId = null;
+        let targetX = 0;
+        let targetY = 0;
+        let currentX = 0;
+        let currentY = 0;
+
+        function updateTilt() {
+          currentX += (targetX - currentX) * 0.1;
+          currentY += (targetY - currentY) * 0.1;
+          tiltCard.style.transform = `rotateX(${currentY.toFixed(2)}deg) rotateY(${currentX.toFixed(2)}deg)`;
+
+          if (Math.abs(targetX - currentX) > 0.01 || Math.abs(targetY - currentY) > 0.01) {
+            rafId = requestAnimationFrame(updateTilt);
+          } else {
+            rafId = null;
+          }
+        }
+
+        tiltWrapper.addEventListener('mousemove', (e) => {
+          const rect = tiltWrapper.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const percentX = (x / rect.width) * 2 - 1;
+          const percentY = (y / rect.height) * 2 - 1;
+
+          targetX = percentX * 4; // Max 4 deg Y rotation
+          targetY = -percentY * 4; // Max 4 deg X rotation
+
+          if (!rafId) {
+            rafId = requestAnimationFrame(updateTilt);
+          }
+        });
+
+        tiltWrapper.addEventListener('mouseleave', () => {
+          targetX = 0;
+          targetY = 0;
+          if (!rafId) {
+            rafId = requestAnimationFrame(updateTilt);
+          }
+        });
+      }
+
+      // 4. Smooth FAQ Accordion
+      const faqItems = document.querySelectorAll('.faq-item');
+      faqItems.forEach(item => {
+        const toggle = item.querySelector('.faq-toggle');
+        const body = item.querySelector('.faq-accordion-body');
+        const icon = item.querySelector('.faq-icon');
+
+        toggle.addEventListener('click', () => {
+          const isOpen = body.classList.contains('open');
+
+          if (isOpen) {
+            body.classList.remove('open');
+            icon.classList.remove('rotate-180');
+            toggle.setAttribute('aria-expanded', 'false');
+            item.classList.remove('border-primary/40');
+          } else {
+            body.classList.add('open');
+            icon.classList.add('rotate-180');
+            toggle.setAttribute('aria-expanded', 'true');
+            item.classList.add('border-primary/40');
+          }
+        });
+      });
+
+      // 5. Mobile navigation
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileNav = document.getElementById('mobile-nav');
+
+      if (mobileMenuButton && mobileNav) {
+        const closeMobileNav = () => {
+          mobileNav.classList.remove('is-open');
+          mobileNav.setAttribute('aria-hidden', 'true');
+          mobileMenuButton.setAttribute('aria-expanded', 'false');
+          mobileMenuButton.setAttribute('aria-label', 'Open navigation');
+          const icon = mobileMenuButton.querySelector('.material-symbols-outlined');
+          if (icon) icon.textContent = 'menu';
+        };
+
+        mobileMenuButton.addEventListener('click', () => {
+          const open = mobileNav.classList.toggle('is-open');
+          mobileNav.setAttribute('aria-hidden', String(!open));
+          mobileMenuButton.setAttribute('aria-expanded', String(open));
+          mobileMenuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+          const icon = mobileMenuButton.querySelector('.material-symbols-outlined');
+          if (icon) icon.textContent = open ? 'close' : 'menu';
+        });
+
+        mobileNav.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', closeMobileNav);
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!mobileNav.contains(event.target) && !mobileMenuButton.contains(event.target)) {
+            closeMobileNav();
+          }
+        });
+      }
+
+      // 6. Active navigation section
+      const sectionLinks = [...document.querySelectorAll('.nav-link')];
+      const trackedSections = sectionLinks
+        .map(link => document.querySelector(link.getAttribute('href')))
+        .filter(Boolean);
+
+      if ('IntersectionObserver' in window && trackedSections.length) {
+        const navObserver = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter(entry => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+          if (!visible) return;
+          sectionLinks.forEach(link => {
+            link.classList.toggle('is-active', link.getAttribute('href') === `#${visible.target.id}`);
+          });
+        }, { rootMargin: '-35% 0px -55% 0px', threshold: [0.05, 0.2, 0.5] });
+
+        trackedSections.forEach(section => navObserver.observe(section));
+      }
+
+      // 7. Close FAQ with Escape and close mobile menu with Escape
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          document.querySelectorAll('.faq-item').forEach(item => {
+            const toggle = item.querySelector('.faq-toggle');
+            const body = item.querySelector('.faq-accordion-body');
+            const icon = item.querySelector('.faq-icon');
+            body.classList.remove('open');
+            icon.classList.remove('rotate-180');
+            toggle.setAttribute('aria-expanded', 'false');
+            item.classList.remove('border-primary/40');
+          });
+          if (mobileNav) {
+            mobileNav.classList.remove('is-open');
+            mobileNav.setAttribute('aria-hidden', 'true');
+            if (mobileMenuButton) mobileMenuButton.setAttribute('aria-expanded', 'false');
+          }
+        }
+      });
+    });
+  </script>
+</body></html>

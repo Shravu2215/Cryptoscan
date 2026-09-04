@@ -1,0 +1,1 @@
+# CryptoScan scanner package

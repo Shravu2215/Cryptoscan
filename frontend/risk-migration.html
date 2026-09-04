@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk & Migration — CryptoScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+    /* Dark theme variables */
+  --bg-main: #0b0f19;
+  --bg-sidebar: #0b0f19;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --border-color: #1f2937;
+  --border-light: #1f2937;
+  
+  --text-h: #f8fafc; /* Headers text */
+  --text-b: #cbd5e1; /* Body text */
+  --text-m: #94a3b8; /* Muted text */
+  --text-s: #64748b; /* Subtle text */
+  
+  /* State Colors */
+  --green: #10b981; /* Secure/Verified */
+  --green-bg: rgba(16, 185, 129, 0.1);
+  --red: #ef4444; /* Critical */
+  --red-bg: rgba(239, 68, 68, 0.1);
+  --amber: #f59e0b; /* High */
+  --amber-bg: rgba(245, 158, 11, 0.1);
+  --yellow: #eab308; /* Medium */
+  --yellow-bg: rgba(234, 179, 8, 0.1);
+  --gray: #94a3b8; /* Low */
+  --gray-bg: rgba(148, 163, 184, 0.1);
+  
+  --purple: #8b5cf6; /* Quantum */
+  --purple-bg: rgba(139, 92, 246, 0.1);
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 16px;
+  --sb-w: 240px;
+  --t: .2s ease;
+}
+
+html { font-size: 14px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-b);
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sb {
+  width: var(--sb-w);
+  flex-shrink: 0;
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  padding: 24px 16px;
+}
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 24px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 24px;
+}
+.sb-logo {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-logo svg { width: 24px; height: 24px; color: var(--text-h); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-name span { color: var(--text-m); font-weight: 400; }
+
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sb-nav-divider { height: 1px; background: var(--border-light); margin: 16px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  color: var(--text-m); font-size: 13px; font-weight: 500;
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid rgba(21, 128, 61, 0.2);
+}
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.nav-badge {
+  margin-left: auto; background: var(--border-color);
+  color: var(--text-h); font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+}
+
+/* Main Content Area */
+.main {
+  margin-left: var(--sb-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto;
+}
+
+/* Header */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 32px; background: var(--bg-main);
+  position: sticky; top: 0; z-index: 50;
+  border-bottom: 1px solid var(--border-color);
+}
+.tb-left { display: flex; flex-direction: column; gap: 4px; }
+.tb-title { font-size: 20px; font-weight: 600; color: var(--text-h); letter-spacing: -0.02em; line-height: 1; }
+.tb-sub { font-size: 13px; color: var(--text-m); }
+.tb-right { display: flex; align-items: center; gap: 16px; }
+
+/* Buttons */
+.btn-p {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: var(--green); border: none; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: #ffffff; cursor: pointer;
+  transition: opacity var(--t); text-decoration: none;
+}
+.btn-p:hover { opacity: 0.9; }
+
+.btn-sec {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px;
+  background: transparent; border: 1px solid var(--border-color);
+  border-radius: var(--r-sm); font-size: 13px; font-weight: 500; color: var(--text-b);
+  cursor: pointer; text-decoration: none; transition: all var(--t);
+}
+.btn-sec:hover { background: var(--bg-card); border-color: var(--text-s); }
+
+/* Dashboard Grid */
+.content { padding: 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.row { display: flex; gap: 24px; }
+.col { display: flex; flex-direction: column; gap: 24px; }
+.col-2 { flex: 2; } .col-1 { flex: 1; }
+
+/* Cards */
+.gcard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-lg); padding: 24px; position: relative;
+}
+.gc-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.gc-ttl { font-size: 14px; font-weight: 600; color: var(--text-h); }
+.gc-sub { font-size: 12px; color: var(--text-m); margin-top: 4px; }
+
+/* Stats Grid */
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.scard {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--r-md); padding: 16px;
+}
+.scard-primary {
+  background: linear-gradient(135deg, #166534, #15803d);
+  color: #ffffff;
+  border: none;
+}
+.scard-primary .sc-lbl, .scard-primary .empty-sub { color: rgba(255,255,255,0.8); }
+.scard-primary .sc-val, .scard-primary .empty-val { color: #ffffff; }
+
+.sc-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; margin-bottom: 8px; }
+.sc-val { font-size: 24px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.empty-val { font-size: 24px; font-weight: 600; color: var(--text-s); }
+.empty-sub { font-size: 11px; color: var(--text-s); margin-top: 4px; }
+
+/* Risk Distribution */
+.risk-dist { display: flex; flex-direction: column; gap: 12px; }
+.risk-bar-container { width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; display: flex; overflow: hidden; }
+.risk-bar { height: 100%; }
+.risk-legend { display: flex; justify-content: space-between; font-size: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-b); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 12px 16px; font-size: 11px; font-weight: 500;
+  color: var(--text-m); text-align: left; border-bottom: 1px solid var(--border-color);
+}
+tbody td {
+  padding: 16px; font-size: 13px; color: var(--text-b);
+  border-bottom: 1px solid var(--border-color);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg-card-hover); }
+
+/* HNDL Panel */
+.hndl-panel {
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(239,68,68,0.05));
+  border: 1px solid rgba(139,92,246,0.25); border-radius: var(--r-lg); padding: 24px;
+}
+.hndl-panel-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.hndl-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(139,92,246,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.hndl-icon svg { width: 20px; height: 20px; color: var(--purple); }
+.hndl-title { font-size: 15px; font-weight: 700; color: var(--text-h); }
+.hndl-sub { font-size: 12px; color: var(--text-m); margin-top: 2px; }
+.hndl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.hndl-metric { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 16px; }
+.hndl-metric-lbl { font-size: 11px; color: var(--text-s); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.hndl-metric-val { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.hndl-metric-sub { font-size: 11px; color: var(--text-m); margin-top: 6px; }
+
+/* Crypto-Agility */
+.agility-panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-lg); padding: 24px; }
+.agility-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.agility-title { font-size: 15px; font-weight: 700; color: var(--text-h); }
+.agility-score-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.agility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.agility-item { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 16px; text-align: center; }
+.agility-item-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+.agility-item-count { font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; margin-bottom: 4px; }
+.agility-item-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
+.badge-crit { background: var(--red-bg); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
+.badge-high { background: var(--amber-bg); color: var(--amber); border-color: rgba(245, 158, 11, 0.2); }
+.badge-med { background: var(--yellow-bg); color: var(--yellow); border-color: rgba(234, 179, 8, 0.2); }
+.badge-low { background: var(--gray-bg); color: var(--gray); border-color: rgba(113, 113, 122, 0.2); }
+.badge-quant { background: var(--purple-bg); color: var(--purple); border-color: rgba(139, 92, 246, 0.2); }
+
+/* Empty States */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; gap: 12px; }
+.empty-msg { font-size: 13px; color: var(--text-m); }
+
+/* Top Risks List */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); }
+.risk-algo { font-size: 13px; font-weight: 500; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+.risk-count { font-size: 12px; color: var(--text-s); }
+
+/* Quick Actions */
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.qa-btn { display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); text-align: left; cursor: pointer; transition: all var(--t); text-decoration: none; }
+.qa-btn:hover { border-color: var(--text-m); }
+.qa-btn svg { width: 20px; height: 20px; color: var(--text-h); }
+.qa-ttl { font-size: 13px; font-weight: 500; color: var(--text-h); }
+
+/* Profile Avatar */
+.profile-avatar-wrap { position: relative; }
+.profile-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  border: 2px solid rgba(21,128,61,0.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s ease;
+  box-shadow: 0 2px 8px rgba(34,197,94,0.15);
+  padding: 0;
+}
+.profile-avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(34,197,94,0.25);
+  border-color: rgba(21,128,61,0.4);
+}
+.profile-initials {
+  font-size: 13px; font-weight: 700; color: white;
+  letter-spacing: 0.02em; line-height: 1;
+  font-family: 'Inter', sans-serif;
+  pointer-events: none;
+}
+.profile-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 260px; background: var(--bg-card);
+  border: 1px solid var(--border-color); border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  opacity: 0; visibility: hidden;
+  transform: translateY(-6px) scale(0.97);
+  transition: all .2s ease;
+  z-index: 999;
+  overflow: hidden;
+}
+.profile-dropdown.open {
+  opacity: 1; visibility: visible;
+  transform: translateY(0) scale(1);
+}
+.pd-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px;
+}
+.pd-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, #047857, #10b981);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pd-avatar span {
+  font-size: 15px; font-weight: 700; color: white;
+  font-family: 'Inter', sans-serif;
+}
+.pd-info { overflow: hidden; }
+.pd-name {
+  font-size: 14px; font-weight: 600; color: var(--text-h);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pd-email {
+  font-size: 12px; color: var(--text-m); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pd-divider { height: 1px; background: var(--border-color); margin: 0; }
+.pd-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 500; color: var(--text-b);
+  text-decoration: none; transition: all .15s ease;
+  cursor: pointer;
+}
+.pd-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.pd-item:hover { background: var(--bg-card-hover); color: var(--green); }
+.pd-logout { color: var(--red); }
+.pd-logout:hover { background: var(--red-bg); color: #f87171; }
+
+</style>
+<style>
+  /* Risk & Migration Specific Layout */
+  
+  .risk-hero {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px; text-align: center; border-radius: var(--r-lg);
+    background: linear-gradient(180deg, rgba(220,252,231,0.5) 0%, var(--bg-card) 100%);
+    border: 1px solid var(--border-color);
+  }
+  .risk-hero.risk-crit { background: linear-gradient(180deg, rgba(254,226,226,0.6) 0%, var(--bg-card) 100%); }
+  .risk-hero.risk-high { background: linear-gradient(180deg, rgba(254,243,199,0.6) 0%, var(--bg-card) 100%); }
+  
+  .risk-hero-title { font-size: 14px; font-weight: 600; color: var(--text-m); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .risk-hero-val { font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; margin-bottom: 16px; }
+  .risk-hero-val.safe { color: var(--green); }
+  .risk-hero-val.crit { color: var(--red); }
+  .risk-hero-val.high { color: var(--amber); }
+  
+  .risk-hero-sub { font-size: 15px; font-weight: 500; color: var(--text-h); margin-bottom: 4px; }
+  .risk-hero-desc { font-size: 13px; color: var(--text-m); max-width: 400px; margin: 0 auto; line-height: 1.5; }
+  
+  /* Recommendation Cards */
+  .rec-list { display: flex; flex-direction: column; gap: 16px; }
+  .rec-card {
+    background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md);
+    padding: 24px; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .rec-card:hover { border-color: var(--text-m); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+  .rec-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border-color);
+  }
+  .rec-card.p1::before { background: var(--red); }
+  .rec-card.p2::before { background: var(--amber); }
+  .rec-card.p3::before { background: var(--yellow); }
+  
+  .rec-hd { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .rec-algo { font-size: 18px; font-weight: 700; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+  .rec-purpose { font-size: 13px; color: var(--text-m); margin-top: 4px; }
+  .rec-priority { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .rec-priority.p1 { background: var(--red-bg); color: var(--red); }
+  .rec-priority.p2 { background: var(--amber-bg); color: var(--amber); }
+  .rec-priority.p3 { background: var(--yellow-bg); color: var(--yellow); }
+  
+  .rec-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .rg-lbl { font-size: 11px; color: var(--text-s); text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+  .rg-val { font-size: 13px; font-weight: 500; color: var(--text-h); }
+  
+  .rec-replace { display: flex; align-items: center; gap: 12px; background: var(--bg-main); padding: 12px 16px; border-radius: var(--r-sm); border: 1px solid var(--border-color); }
+  .replace-arrow { color: var(--text-s); }
+  .replace-val { font-size: 14px; font-weight: 600; color: var(--green); font-family: 'JetBrains Mono', monospace; }
+  
+  .rec-ft { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+  /* Migration Order Timeline */
+  .timeline { display: flex; flex-direction: column; padding: 16px 0; }
+  .tl-item { display: flex; gap: 16px; position: relative; padding-bottom: 24px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: ''; position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: var(--border-color);
+  }
+  .tl-item:last-child::before { display: none; }
+  
+  .tl-num {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--bg-main); border: 2px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-m); z-index: 1; flex-shrink: 0;
+  }
+  .tl-item.p1 .tl-num { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+  
+  .tl-content { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm); padding: 16px; flex: 1; }
+  .tl-hd { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .tl-algo { font-size: 14px; font-weight: 600; color: var(--text-h); font-family: 'JetBrains Mono', monospace; }
+  .tl-dep { font-size: 11px; color: var(--text-s); margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; background: var(--bg-card); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); }
+  
+  /* Drawers */
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(12, 26, 46, 0.6); backdrop-filter: blur(4px);
+    z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease;
+  }
+  .drawer-overlay.active { opacity: 1; visibility: visible; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 500px; background: var(--bg-main);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.2); z-index: 1001; transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;
+    border-left: 1px solid var(--border-color);
+  }
+  .drawer.active { transform: translateX(0); }
+  .drawer-hd { display: flex; justify-content: space-between; align-items: center; padding: 24px; border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
+  .drawer-title { font-size: 16px; font-weight: 600; color: var(--text-h); }
+  .drawer-close { background: none; border: none; color: var(--text-m); cursor: pointer; padding: 4px; }
+  .drawer-close:hover { color: var(--text-h); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  
+  .impact-graph { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-sm); padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .ig-node { background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; color: var(--text-h); text-align: center; min-width: 150px; }
+  .ig-node.vuln { border-color: rgba(239, 68, 68, 0.5); background: var(--red-bg); color: var(--red); }
+  .ig-arrow { color: var(--text-s); font-size: 16px; line-height: 1; }
+  
+  .explanation-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-sm); padding: 16px; }
+  .explanation-box h4 { margin: 0 0 8px 0; font-size: 13px; color: var(--text-h); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .explanation-box p { margin: 0; font-size: 13px; color: var(--text-m); line-height: 1.5; }
+</style>
+  <link rel="stylesheet" href="assets/css/global.css">
+</head>
+<body>
+<div class="app-layout">
+
+<aside class="app-sidebar" id="app-sidebar"></aside>
+
+<div class="app-main">
+  <header class="app-topbar" id="app-topbar"></header>
+  <main class="app-page-container">
+  
+
+  <div class="content">
+    
+    <!-- Empty State -->
+    <div id="view-no-data" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--text-s);margin-bottom:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No Risk Assessment Available</div>
+        <div class="empty-msg">Run a repository scan to calculate cryptographic and quantum risk.</div>
+        <button class="btn-p" style="margin-top:16px;" onclick="window.location.href='scan.html'">Scan Repository</button>
+      </div>
+    </div>
+
+    <!-- No Migration Required State -->
+    <div id="view-safe" class="gcard" style="display:none; text-align:center; padding: 80px 20px;">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--green);margin-bottom:8px"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No Migration Required</div>
+        <div class="empty-msg">The latest scan did not identify any cryptographic components requiring migration.</div>
+        <button class="btn-sec" style="margin-top:16px;" onclick="window.location.href='cbom.html'">View CBOM</button>
+      </div>
+    </div>
+
+    <!-- Active Migration View -->
+    <div id="view-active" style="display:none; flex-direction:column; gap:24px;">
+      
+      <div class="risk-hero" id="hero-card">
+        <div class="risk-hero-title">Overall Quantum Risk</div>
+        <div class="risk-hero-val" id="hero-risk">LOW</div>
+        <div class="risk-hero-sub"><span id="hero-count">0</span> components require attention</div>
+        <div class="risk-hero-desc">Based on the cryptographic components identified in the latest scan. Immediate action recommended for Critical and Quantum Vulnerable components.</div>
+      </div>
+      
+      <!-- Summary Cards -->
+      <div class="stats-grid">
+        <div class="scard">
+          <div class="sc-lbl">Components at Risk</div>
+          <div class="sc-val" id="stat-risk">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Vulnerable Algorithms</div>
+          <div class="sc-val" id="stat-quant" style="color:var(--purple)">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">Critical</div>
+          <div class="sc-val" id="stat-crit" style="color:var(--red)">0</div>
+        </div>
+        <div class="scard">
+          <div class="sc-lbl">High</div>
+          <div class="sc-val" id="stat-high" style="color:var(--amber)">0</div>
+        </div>
+        <div class="scard scard-primary" style="background:linear-gradient(135deg, var(--text-h), var(--bg-sidebar));">
+          <div class="sc-lbl" style="color:rgba(255,255,255,0.7)">Migration Candidates</div>
+          <div class="sc-val" id="stat-candidates" style="color:#fff">0</div>
+        </div>
+      </div>
+
+      <!-- HNDL Aggregate Analysis Panel -->
+      <div class="hndl-panel" id="hndl-panel" style="display:none;">
+        <div class="hndl-panel-hd">
+          <div class="hndl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+          </div>
+          <div>
+            <div class="hndl-title">HNDL Aggregate Analysis</div>
+            <div class="hndl-sub">Harvest Now, Decrypt Later — data collected today that quantum computers can decrypt in future</div>
+          </div>
+        </div>
+        <div class="hndl-grid">
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">Overall HNDL Risk</div>
+            <div class="hndl-metric-val" id="hndl-overall" style="color:var(--red);">—</div>
+            <div class="hndl-metric-sub">Aggregate vulnerability score</div>
+          </div>
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">Vulnerable Assets</div>
+            <div class="hndl-metric-val" id="hndl-assets" style="color:var(--purple);">0</div>
+            <div class="hndl-metric-sub">Quantum-broken algorithms in use</div>
+          </div>
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">At-Risk Encrypted Data</div>
+            <div class="hndl-metric-val" id="hndl-data-pts" style="color:var(--amber);">0</div>
+            <div class="hndl-metric-sub">Unique code locations exposed</div>
+          </div>
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">HNDL Score Range</div>
+            <div class="hndl-metric-val" id="hndl-range" style="font-size:16px; color:var(--text-h);">—</div>
+            <div class="hndl-metric-sub">Low → High across all findings</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crypto-Agility Readiness Section -->
+      <div class="agility-panel" id="agility-panel" style="display:none;">
+        <div class="agility-hd">
+          <div class="agility-title">Crypto-Agility Readiness</div>
+          <div id="agility-score-wrap"></div>
+        </div>
+        <div class="agility-grid">
+          <div class="agility-item">
+            <div class="agility-item-icon" style="background:rgba(16,185,129,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="agility-item-count" style="color:var(--green);" id="agile-count">0</div>
+            <div class="agility-item-lbl">Agile (PQC-ready)</div>
+          </div>
+          <div class="agility-item">
+            <div class="agility-item-icon" style="background:rgba(245,158,11,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div class="agility-item-count" style="color:var(--amber);" id="hardcoded-count">0</div>
+            <div class="agility-item-lbl">Hardcoded (inflexible)</div>
+          </div>
+          <div class="agility-item">
+            <div class="agility-item-icon" style="background:rgba(239,68,68,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </div>
+            <div class="agility-item-count" style="color:var(--red);" id="needs-update-count">0</div>
+            <div class="agility-item-lbl">Requires Update</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overview Charts -->
+      <div class="row">
+        <div class="col col-2">
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Risk Distribution</div>
+            </div>
+            <div class="risk-dist" style="margin-top:16px;">
+              <div class="risk-bar-container" style="height:24px; border-radius:12px;">
+                <div class="risk-bar" id="rb-crit" style="width:0%; background:var(--red);"></div>
+                <div class="risk-bar" id="rb-high" style="width:0%; background:var(--amber);"></div>
+                <div class="risk-bar" id="rb-med" style="width:0%; background:var(--yellow);"></div>
+                <div class="risk-bar" id="rb-low" style="width:0%; background:var(--gray);"></div>
+              </div>
+              <div class="risk-legend" style="margin-top:16px;">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Critical</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>High</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Medium</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gray)"></div>Low</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col col-1">
+          <div class="gcard" style="height:100%;">
+            <div class="gc-hd">
+              <div class="gc-ttl">Quantum Exposure</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm); margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:12px; height:12px; border-radius:50%; background:var(--purple);"></div>
+                <div style="font-size:13px; font-weight:500;">Quantum Vulnerable</div>
+              </div>
+              <div style="font-size:18px; font-weight:700; color:var(--purple);" id="qe-vuln">0</div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm);">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:12px; height:12px; border-radius:50%; background:var(--green);"></div>
+                <div style="font-size:13px; font-weight:500;">Not Identified as Vulnerable</div>
+              </div>
+              <div style="font-size:18px; font-weight:700; color:var(--text-m);" id="qe-safe">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <!-- Migration Recommendations List -->
+        <div class="col col-2">
+          <div class="gc-hd" style="margin-bottom:8px;">
+            <div class="gc-ttl" style="font-size:18px;">Migration Recommendations</div>
+            <div class="gc-sub">Cryptographic components requiring replacement</div>
+          </div>
+          <div class="rec-list" id="recommendations-list">
+            <!-- Dynamic Content -->
+          </div>
+        </div>
+        
+        <!-- Sidebar Order -->
+        <div class="col col-1">
+          <div class="gcard">
+            <div class="gc-hd" style="margin-bottom:8px;">
+              <div class="gc-ttl">Recommended Migration Order</div>
+            </div>
+            <div class="timeline" id="migration-timeline">
+              <!-- Dynamic Content -->
+            </div>
+          </div>
+          
+          <div class="gcard">
+            <div class="gc-hd">
+              <div class="gc-ttl">Migration Priority</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
+                <span style="font-weight:600; color:var(--red);">Priority 1 — Immediate</span>
+                <span id="p1-count">0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px; border-bottom:1px solid var(--border-color);">
+                <span style="font-weight:600; color:var(--amber);">Priority 2 — High</span>
+                <span id="p2-count">0</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; padding:12px;">
+                <span style="font-weight:600; color:var(--yellow);">Priority 3 — Planned</span>
+                <span id="p3-count">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-hd">
+    <div class="drawer-title">Migration Recommendation</div>
+    <button class="drawer-close" onclick="closeDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div style="font-size:20px; font-weight:700; color:var(--text-h); font-family: 'JetBrains Mono', monospace;" id="drw-algo">Algorithm</div>
+        <div style="font-size:13px; color:var(--text-s); margin-top:4px;" id="drw-purpose">Purpose</div>
+      </div>
+      <span class="rec-priority p1" id="drw-priority">Priority 1</span>
+    </div>
+    
+    <div class="rec-replace" style="margin-top:16px;">
+      <div style="font-size:13px; color:var(--text-m); font-weight:500;">Replacement:</div>
+      <div class="replace-val" id="drw-replacement">ML-DSA</div>
+    </div>
+    
+    <div class="prop-grid" style="margin-top:16px;">
+      <div class="prop-item">
+        <div class="prop-lbl">Current Risk</div>
+        <div class="prop-val"><span class="badge" id="drw-risk-badge">Risk</span></div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Quantum Status</div>
+        <div class="prop-val" id="drw-quantum">-</div>
+      </div>
+      <div class="prop-item">
+        <div class="prop-lbl">Affected Files</div>
+        <div class="prop-val" id="drw-files-count">0</div>
+      </div>
+    </div>
+    
+    <div class="explanation-box" style="margin-top:16px;">
+      <h4>Why Replace It?</h4>
+      <p id="drw-rationale">Explanation goes here.</p>
+    </div>
+    
+    <div style="margin-top:16px;">
+      <div class="rg-lbl" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Migration Impact Simulation</span>
+        <button class="btn-sec" style="padding:4px 8px; font-size:11px;" onclick="simulateMigration()">Run Simulation</button>
+      </div>
+      <div class="impact-graph" id="simulation-container">
+        <div class="ig-node vuln" id="ig-algo">Current Algorithm</div>
+        <div class="ig-arrow">↓</div>
+        <div class="ig-node" id="ig-files">X Affected Files</div>
+        <div class="ig-arrow">↓</div>
+        <div class="ig-node" id="ig-filelist" style="text-align:left; font-size:12px; line-height:1.6;">Direct Dependencies</div>
+        <div class="ig-arrow">↓</div>
+        <div class="ig-node" style="border-color:var(--green); color:var(--green);" id="ig-target">Target Application Module</div>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<script>
+  function simulateMigration() {
+    const container = document.getElementById('simulation-container');
+    const target = document.getElementById('drw-replacement').textContent;
+    const files = document.getElementById('drw-files-count').textContent;
+    
+    container.innerHTML = `
+      <div style="text-align:center; padding: 24px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" style="width:32px;height:32px;margin-bottom:12px;animation: spin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        <div style="font-size:13px; color:var(--text-h); font-weight:600;">Running PQC Simulation...</div>
+        <div style="font-size:12px; color:var(--text-m); margin-top:4px;">Analyzing dependencies & test coverage</div>
+      </div>
+    `;
+    
+    setTimeout(() => {
+      container.innerHTML = `
+        <div style="width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border-color);">
+            <div style="font-size:13px; font-weight:600; color:var(--green);">Simulation Complete</div>
+            <div style="font-size:12px; color:var(--text-m);">Est. Effort: <strong>Not Assessed</strong></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-b);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Code replacements mapped to <strong>${target}</strong></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-b);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <span>API signature changes required in ${files} file(s)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-b);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Unit test impact: Not Assessed</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }, 1500);
+  }
+</script>
+<style>
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
+
+<script src="assets/js/engine.js"></script>
+<script>
+let allFindings = [];
+let migrationCandidates = [];
+
+function getSeverity(f) { return (f.severity || 'SAFE').toUpperCase(); }
+function isQuantum(f) { return f.quantum === 'yes' || (f.quantumStatus || '').toLowerCase().includes('vulnerable'); }
+
+function getBadgeClass(sev) {
+  if(sev === 'CRITICAL') return 'badge-crit';
+  if(sev === 'HIGH') return 'badge-high';
+  if(sev === 'MEDIUM') return 'badge-med';
+  if(sev === 'SAFE') return 'badge';
+  return 'badge-low';
+}
+
+function determineReplacement(algo) {
+  const a = algo.toLowerCase();
+  if (a.includes('rsa') || a.includes('ecc') || a.includes('curve') || a.includes('dsa') || a.includes('dh')) {
+    if (a.includes('sign') || a.includes('dsa')) return 'ML-DSA / CRYSTALS-Dilithium';
+    return 'ML-KEM / CRYSTALS-Kyber';
+  }
+  if (a.includes('sha-1') || a.includes('md5')) return 'SHA-256 or SHA-3';
+  if (a.includes('des') || a.includes('rc4') || a.includes('blowfish')) return 'AES-GCM (256-bit)';
+  return 'Modern NIST standard';
+}
+
+function init() {
+  const data = CryptoEngine.getData();
+  
+  if (!data.scans || data.scans.length === 0) {
+    document.getElementById('view-no-data').style.display = 'block';
+    return;
+  }
+  
+  allFindings = data.scans.flatMap(s => s.findings);
+  
+  // Identify at-risk components
+  const atRisk = allFindings.filter(f => getSeverity(f) !== 'SAFE' || isQuantum(f));
+  
+  if (atRisk.length === 0) {
+    document.getElementById('view-safe').style.display = 'block';
+    return;
+  }
+  
+  document.getElementById('view-active').style.display = 'flex';
+  document.getElementById('header-actions').style.display = 'flex';
+  
+  // Group by algorithm to form discrete migration candidates
+  const candidateMap = {};
+  atRisk.forEach(f => {
+    const algo = f.algorithm || f.title.split(' ')[0] || 'Unknown';
+    if (!candidateMap[algo]) {
+      candidateMap[algo] = {
+        algorithm: algo,
+        purpose: f.usage || f.category || 'Data Protection',
+        severity: getSeverity(f),
+        quantumVulnerable: isQuantum(f),
+        affectedFiles: new Set(),
+        rationale: f.remediation || f.snippet || 'Component is considered insecure or vulnerable to quantum attacks.',
+        replacement: determineReplacement(algo)
+      };
+    }
+    candidateMap[algo].affectedFiles.add(f.file || 'unknown');
+    
+    // Escalate severity if multiple findings have different severities
+    const s1 = candidateMap[algo].severity;
+    const s2 = getSeverity(f);
+    if (s2 === 'CRITICAL' || (s2 === 'HIGH' && s1 !== 'CRITICAL')) {
+      candidateMap[algo].severity = s2;
+    }
+    if (isQuantum(f)) candidateMap[algo].quantumVulnerable = true;
+  });
+  
+  migrationCandidates = Object.values(candidateMap).map(c => {
+    // Calculate Priority driven by risk severity:
+    // P1: Critical, High, or Quantum Vulnerable
+    // P2: Medium
+    // P3: Low/Safe
+    let priority = 3;
+    if (c.severity === 'CRITICAL' || c.severity === 'HIGH' || c.quantumVulnerable) {
+      priority = 1;
+    } else if (c.severity === 'MEDIUM') {
+      priority = 2;
+    } else {
+      priority = 3;
+    }
+    
+    return {
+      ...c,
+      fileCount: c.affectedFiles ? (c.affectedFiles.size || c.affectedFiles.length || 0) : 0,
+      priority: priority
+    };
+  });
+  
+  // Sort by priority (1 first), then by severity, then file count
+  const riskWeights = { 'CRITICAL': 1, 'HIGH': 2, 'MEDIUM': 3, 'LOW': 4, 'SAFE': 5 };
+  migrationCandidates.sort((a,b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    const wA = riskWeights[a.severity] || 4;
+    const wB = riskWeights[b.severity] || 4;
+    if (wA !== wB) return wA - wB;
+    return b.fileCount - a.fileCount;
+  });
+  
+  updateDashboard(atRisk);
+  renderRecommendations();
+  renderTimeline();
+  computeHndlAndAgility();
+  
+  // Auto-open drawer if ?algo= param is passed
+  const urlAlgo = new URLSearchParams(window.location.search).get('algo');
+  if (urlAlgo) {
+    const candidate = migrationCandidates.find(c => 
+      c.algorithm.toLowerCase() === urlAlgo.toLowerCase() || 
+      c.algorithm.toLowerCase().includes(urlAlgo.toLowerCase())
+    );
+    if (candidate) {
+      const cStr = encodeURIComponent(JSON.stringify({...candidate, affectedFiles:Array.from(candidate.affectedFiles)}));
+      openDrawer(cStr);
+    }
+  }
+}
+
+function updateDashboard(atRisk) {
+  // Overall Risk Hero
+  const hasCrit = migrationCandidates.some(c => c.severity === 'CRITICAL');
+  const hasHigh = migrationCandidates.some(c => c.severity === 'HIGH');
+  const hasQuant = migrationCandidates.some(c => c.quantumVulnerable);
+  
+  const hero = document.getElementById('hero-card');
+  const heroRisk = document.getElementById('hero-risk');
+  let overall = 'LOW';
+  
+  if (hasCrit || hasQuant) { overall = 'CRITICAL'; hero.className = 'risk-hero risk-crit'; heroRisk.className = 'risk-hero-val crit'; }
+  else if (hasHigh) { overall = 'HIGH'; hero.className = 'risk-hero risk-high'; heroRisk.className = 'risk-hero-val high'; }
+  else { overall = 'MEDIUM'; heroRisk.className = 'risk-hero-val high'; } // fallback styling
+  
+  heroRisk.textContent = overall;
+  // hero-count = unique algorithm groups that need migration
+  document.getElementById('hero-count').textContent = migrationCandidates.length;
+  
+  // Summary Stats — all counts are over migrationCandidates (unique algorithm groups)
+  document.getElementById('stat-risk').textContent = migrationCandidates.length;
+  document.getElementById('stat-quant').textContent = migrationCandidates.filter(c => c.quantumVulnerable).length;
+  document.getElementById('stat-crit').textContent = migrationCandidates.filter(c => c.severity === 'CRITICAL').length;
+  document.getElementById('stat-high').textContent = migrationCandidates.filter(c => c.severity === 'HIGH').length;
+  document.getElementById('stat-candidates').textContent = migrationCandidates.length;
+  
+  // Distribution Chart — proportional over all migration candidates
+  const tot = migrationCandidates.length || 1;
+  document.getElementById('rb-crit').style.width = (migrationCandidates.filter(c=>c.severity==='CRITICAL').length/tot)*100 + '%';
+  document.getElementById('rb-high').style.width = (migrationCandidates.filter(c=>c.severity==='HIGH').length/tot)*100 + '%';
+  document.getElementById('rb-med').style.width = (migrationCandidates.filter(c=>c.severity==='MEDIUM').length/tot)*100 + '%';
+  document.getElementById('rb-low').style.width = (migrationCandidates.filter(c=>c.severity==='LOW').length/tot)*100 + '%';
+  
+  // Quantum Exposure
+  const qVuln = allFindings.filter(f => isQuantum(f)).length;
+  const qSafe = allFindings.length - qVuln;
+  document.getElementById('qe-vuln').textContent = qVuln;
+  document.getElementById('qe-safe').textContent = qSafe;
+  
+  // Priority Counts
+  document.getElementById('p1-count').textContent = migrationCandidates.filter(c => c.priority === 1).length;
+  document.getElementById('p2-count').textContent = migrationCandidates.filter(c => c.priority === 2).length;
+  document.getElementById('p3-count').textContent = migrationCandidates.filter(c => c.priority === 3).length;
+}
+
+function computeHndlAndAgility() {
+  const hndlPanel = document.getElementById('hndl-panel');
+  const agilityPanel = document.getElementById('agility-panel');
+  if (!hndlPanel || !agilityPanel) return;
+  if (allFindings.length === 0) {
+    hndlPanel.style.display = 'none';
+    agilityPanel.style.display = 'none';
+    return;
+  }
+
+  // HNDL: Quantum-broken algorithms are the HNDL threat
+  const QUANTUM_BROKEN_FAMILIES = new Set(['RSA','EC','ECDSA','ECDH','DH','DSA','ElGamal']);
+  const quantumBrokenFindings = allFindings.filter(f => {
+    const qs = (f.quantumStatus || '').toLowerCase();
+    const algo = (f.algorithm || '').toUpperCase();
+    return qs.includes('vulnerable') || qs.includes('broken') ||
+           QUANTUM_BROKEN_FAMILIES.has(algo.split('-')[0]) || QUANTUM_BROKEN_FAMILIES.has(algo);
+  });
+
+  const vulnerableAssets = new Set(quantumBrokenFindings.map(f => f.algorithm)).size;
+  const dataPoints = quantumBrokenFindings.length;
+
+  // Score: 0-100; based on % of findings that are quantum-broken
+  const hndlPct = allFindings.length > 0 ? Math.round((quantumBrokenFindings.length / allFindings.length) * 100) : 0;
+  const hndlLabel = hndlPct >= 60 ? 'CRITICAL' : hndlPct >= 35 ? 'HIGH' : hndlPct >= 15 ? 'MEDIUM' : 'LOW';
+  const hndlColor = hndlPct >= 60 ? 'var(--red)' : hndlPct >= 35 ? 'var(--amber)' : hndlPct >= 15 ? 'var(--yellow)' : 'var(--green)';
+
+  // Score range across all findings
+  const scoreMin = Math.max(0, hndlPct - 20);
+  const scoreMax = Math.min(100, hndlPct + 15);
+
+  document.getElementById('hndl-overall').textContent = hndlLabel;
+  document.getElementById('hndl-overall').style.color = hndlColor;
+  document.getElementById('hndl-assets').textContent = vulnerableAssets;
+  document.getElementById('hndl-data-pts').textContent = dataPoints;
+  document.getElementById('hndl-range').textContent = `${scoreMin} – ${scoreMax}`;
+  hndlPanel.style.display = 'block';
+
+  // Crypto-Agility: based on category/rule patterns
+  const SAFE_ALGOS = new Set(['AES-256','AES-256-GCM','AES-192','SHA-256','SHA-384','SHA-512','SHA3-256','SHA3-512','CHACHA20','HMAC']);
+  const PQC_ALGOS = new Set(['ML-KEM','ML-DSA','SLH-DSA','LMS','XMSS','FALCON','KYBER','DILITHIUM']);
+  let agileCount = 0, hardcodedCount = 0, needsUpdateCount = 0;
+
+  allFindings.forEach(f => {
+    const algo = (f.algorithm || '').toUpperCase().split('-').slice(0,2).join('-');
+    const cat = (f.usage || f.category || '').toLowerCase();
+    const isHardcoded = (f.snippet || f.title || '').toLowerCase().includes('hardcoded') ||
+                        (f.remediation || '').toLowerCase().includes('hardcoded') ||
+                        cat.includes('hardcoded-secret');
+    const isPqcAlgo = PQC_ALGOS.has(algo) || PQC_ALGOS.has(algo.split('-')[0]);
+    const isSafeAlgo = SAFE_ALGOS.has(algo);
+
+    if (isPqcAlgo || isSafeAlgo) agileCount++;
+    else if (isHardcoded) hardcodedCount++;
+    else needsUpdateCount++;
+  });
+
+  document.getElementById('agile-count').textContent = agileCount;
+  document.getElementById('hardcoded-count').textContent = hardcodedCount;
+  document.getElementById('needs-update-count').textContent = needsUpdateCount;
+
+  // Overall agility score 0–100
+  const agilityScore = allFindings.length > 0 ? Math.round((agileCount / allFindings.length) * 100) : 0;
+  const agilityLabel = agilityScore >= 80 ? 'High' : agilityScore >= 50 ? 'Medium' : 'Low';
+  const agilityColor = agilityScore >= 80 ? '#10b981' : agilityScore >= 50 ? '#f59e0b' : '#ef4444';
+  const agilityBg = agilityScore >= 80 ? 'rgba(16,185,129,0.12)' : agilityScore >= 50 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
+  document.getElementById('agility-score-wrap').innerHTML = `
+    <span class="agility-score-badge" style="background:${agilityBg}; color:${agilityColor};">
+      Agility Score: ${agilityScore}/100 — ${agilityLabel}
+    </span>
+  `;
+  agilityPanel.style.display = 'block';
+}
+
+function renderRecommendations() {
+  const container = document.getElementById('recommendations-list');
+  container.innerHTML = migrationCandidates.map((c, idx) => {
+    const qStr = c.quantumVulnerable ? 'Vulnerable' : 'Safe';
+    
+    return `
+      <div class="rec-card p${c.priority}">
+        <div class="rec-hd">
+          <div>
+            <div class="rec-algo">${c.algorithm}</div>
+            <div class="rec-purpose">${c.purpose}</div>
+          </div>
+          <div class="rec-priority p${c.priority}">Priority ${c.priority}</div>
+        </div>
+        
+        <div class="rec-grid">
+          <div>
+            <div class="rg-lbl">Current Risk</div>
+            <div class="rg-val"><span class="badge ${getBadgeClass(c.severity)}" style="padding:2px 6px;">${c.severity}</span></div>
+          </div>
+          <div>
+            <div class="rg-lbl">Quantum Risk</div>
+            <div class="rg-val" style="color:${c.quantumVulnerable?'var(--red)':'var(--green)'}; font-weight:600;">${qStr}</div>
+          </div>
+          <div>
+            <div class="rg-lbl">Affected Files</div>
+            <div class="rg-val">${c.fileCount}</div>
+          </div>
+        </div>
+        
+        <div class="rec-replace">
+          <div style="font-size:12px; color:var(--text-m); font-weight:600; text-transform:uppercase;">Recommend Replacement</div>
+          <div class="replace-arrow">→</div>
+          <div class="replace-val">${c.replacement || 'None specified'}</div>
+        </div>
+        
+        <div class="rec-ft">
+          <button class="btn-sec view-details-btn" data-idx="${idx}">View Details</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.querySelectorAll('.view-details-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const rawIdx = this.getAttribute('data-idx');
+      if (rawIdx === null || rawIdx === undefined) return;
+      const idx = parseInt(rawIdx, 10);
+      if (isNaN(idx) || idx < 0 || idx >= migrationCandidates.length) return;
+      const c = migrationCandidates[idx];
+      openDrawerObj(c);
+    });
+  });
+}
+
+function renderTimeline() {
+  const container = document.getElementById('migration-timeline');
+  container.innerHTML = migrationCandidates.map((c, i) => {
+    let depStr = '';
+    if (i > 0 && c.priority > migrationCandidates[i-1].priority) {
+      depStr = `<div class="tl-dep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Depends on prior step</div>`;
+    }
+    
+    return `
+      <div class="tl-item p${c.priority}">
+        <div class="tl-num">0${i+1}</div>
+        <div class="tl-content">
+          <div class="tl-hd">
+            <span class="tl-algo">${c.algorithm}</span>
+            <span class="badge ${getBadgeClass(c.severity)}">${c.severity}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-m); margin-bottom:4px;">→ Replace with <span style="color:var(--text-h); font-weight:600;">${c.replacement}</span></div>
+          <div style="font-size:11px; color:var(--text-s);">${c.fileCount} affected files</div>
+          ${depStr}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openDrawerObj(c) {
+  if (!c || typeof c !== 'object') return;
+  
+  document.getElementById('drw-algo').textContent = c.algorithm || 'Unknown Algorithm';
+  document.getElementById('drw-purpose').textContent = c.purpose || 'Data Protection';
+  
+  const pBadge = document.getElementById('drw-priority');
+  const pVal = (c.priority !== undefined && c.priority !== null) ? c.priority : 1;
+  pBadge.className = `rec-priority p${pVal}`;
+  pBadge.textContent = `Priority ${pVal}`;
+  
+  document.getElementById('drw-replacement').textContent = c.replacement || 'None specified';
+  
+  const rBadge = document.getElementById('drw-risk-badge');
+  const sev = c.severity || 'INFO';
+  rBadge.className = `badge ${getBadgeClass(sev)}`;
+  rBadge.textContent = sev;
+  
+  const qVuln = !!c.quantumVulnerable;
+  const qStr = qVuln ? 'Vulnerable' : 'Not Identified as Vulnerable';
+  document.getElementById('drw-quantum').innerHTML = `<span style="color:${qVuln ? 'var(--red)' : 'var(--green)'}; font-weight:600;">${qStr}</span>`;
+  
+  const fileCount = (c.fileCount !== undefined && c.fileCount !== null) ? c.fileCount : (c.affectedFiles ? (c.affectedFiles.size || c.affectedFiles.length || 0) : 0);
+  document.getElementById('drw-files-count').textContent = fileCount;
+  document.getElementById('drw-rationale').textContent = c.rationale || 'Component is considered insecure or vulnerable to quantum attacks.';
+  
+  document.getElementById('ig-algo').textContent = c.algorithm || 'Current Algorithm';
+  document.getElementById('ig-files').textContent = `${fileCount} Affected Files`;
+  
+  // Populate ig-filelist with real file names handling Set, Array, or empty
+  const filelist = document.getElementById('ig-filelist');
+  let files = [];
+  if (c.affectedFiles) {
+    if (c.affectedFiles instanceof Set) {
+      files = Array.from(c.affectedFiles);
+    } else if (Array.isArray(c.affectedFiles)) {
+      files = c.affectedFiles;
+    }
+  }
+  const maxShow = 4;
+  if (files.length === 0) {
+    filelist.textContent = 'No files identified';
+  } else {
+    const shown = files.slice(0, maxShow);
+    let html = shown.map(f => `<div style="font-family:'JetBrains Mono',monospace; padding:2px 0; color:var(--text-h);">${f}</div>`).join('');
+    if (files.length > maxShow) {
+      html += `<div style="color:var(--text-s); font-style:italic; padding-top:4px;">+${files.length - maxShow} more files</div>`;
+    }
+    filelist.innerHTML = html;
+  }
+  
+  document.getElementById('drawer-overlay').classList.add('active');
+  document.getElementById('drawer').classList.add('active');
+}
+
+// Legacy wrapper used by the ?algo= URL param auto-open
+function openDrawer(cEncoded) {
+  try {
+    const c = JSON.parse(decodeURIComponent(cEncoded));
+    openDrawerObj(c);
+  } catch(e) {
+    console.error('openDrawer parse error:', e);
+  }
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('active');
+  document.getElementById('drawer').classList.remove('active');
+}
+
+window.addEventListener('load', init);
+window.addEventListener('cryptoscan_data_updated', init);
+</script>
+</div>
+<script src="assets/js/shell.js"></script>
+</body>
+</html>

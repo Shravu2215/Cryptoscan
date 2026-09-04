@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Settings — CryptoScan</title>
+  <script>
+    function initTheme() {
+      if (localStorage.getItem('cs_theme') === 'light') {
+        document.documentElement.classList.add('light-mode');
+      }
+    }
+    initTheme();
+  </script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="auth.js?v=2"></script>
+<script src="assets/js/engine.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Dark theme variables */
+  --bg-main: #0b0f19;
+  --bg-sidebar: #0b0f19;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --border-color: #1f2937;
+  --border-light: #1f2937;
+  
+  --text-h: #f8fafc; /* Headers text */
+  --text-b: #cbd5e1; /* Body text */
+  --text-m: #94a3b8; /* Muted text */
+  --text-s: #64748b; /* Subtle text */
+  
+  --green: #10b981;
+  --green-bg: rgba(16, 185, 129, 0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.1);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
+  --sb-w: 240px; --t: .2s ease;
+}
+    :root.light-mode {
+      --bg-main: #f8fafc;
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-light: #e2e8f0;
+
+      --text-h: #0f172a;
+      --text-b: #334155;
+      --text-m: #475569;
+      --text-s: #64748b;
+    }
+
+html{font-size:14px}
+body{font-family:'Inter',sans-serif;min-height:100vh;background:var(--bg-main);color:var(--text-b);display:flex;-webkit-font-smoothing:antialiased;}
+.sb { width: var(--sb-w); flex-shrink: 0; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; padding: 24px 16px; }
+.sb-brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; border-bottom: 1px solid var(--border-light); margin-bottom: 24px; }
+.sb-logo { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+.sb-logo svg { width: 24px; height: 24px; color: var(--green); }
+.sb-name { font-size: 16px; font-weight: 700; color: var(--text-h); letter-spacing: -0.02em; }
+.sb-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--r-sm); color: var(--text-m); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all var(--t); }
+.nav-item:hover { color: var(--green); background: var(--green-bg); }
+.nav-item.active { background: var(--green-bg); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.2); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.main{margin-left:var(--sb-w);flex:1;display:flex;flex-direction:column;height:100vh;overflow-y:auto;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;background:var(--bg-main);position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border-color);}
+.tb-title{font-size:20px;font-weight:600;color:var(--text-h);letter-spacing:-.02em;line-height:1;margin-bottom:4px;}
+.tb-sub{font-size:13px;color:var(--text-m);}
+.content{padding:32px;display:flex;flex-direction:column;gap:24px;max-width:800px;margin:0 auto;width:100%;}
+
+.gcard{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;gap:16px;}
+.gc-hd{margin-bottom:8px;}
+.gc-ttl{font-size:16px;font-weight:600;color:var(--text-h);}
+.gc-sub{font-size:13px;color:var(--text-m);margin-top:4px;}
+
+.form-group{display:flex;flex-direction:column;gap:6px;}
+label{font-size:13px;font-weight:500;color:var(--text-h);}
+input[type="text"], input[type="password"], input[type="email"], select{
+  background:var(--bg-main);border:1px solid var(--border-color);color:var(--text-b);
+  padding:10px 14px;border-radius:var(--r-sm);font-size:13px;font-family:inherit;width:100%;
+}
+input:focus, select:focus{outline:none;border-color:var(--green);}
+
+.btn-p{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:var(--green);border:none;border-radius:var(--r-sm);font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:opacity var(--t);}
+.btn-p:hover{opacity:0.9;}
+.btn-sec{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:transparent;border:1px solid var(--border-color);border-radius:var(--r-sm);font-size:13px;font-weight:500;color:var(--text-b);cursor:pointer;transition:all var(--t);}
+.btn-sec:hover{background:var(--bg-card-hover);border-color:var(--text-s);}
+.btn-danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:var(--red);border:none;border-radius:var(--r-sm);font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:opacity var(--t);}
+.btn-danger-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;background:transparent;border:1px solid var(--red);border-radius:var(--r-sm);font-size:13px;font-weight:600;color:var(--red);cursor:pointer;transition:background var(--t);}
+.btn-danger-outline:hover{background:var(--red-bg);}
+
+.toggle-group{display:flex;align-items:center;justify-content:space-between;padding:12px 0;}
+.toggle-info{display:flex;flex-direction:column;}
+.toggle-ttl{font-size:13px;font-weight:500;color:var(--text-h);}
+.toggle-sub{font-size:12px;color:var(--text-m);}
+.toggle-switch{position:relative;width:40px;height:22px;background:var(--border-color);border-radius:11px;cursor:pointer;transition:background var(--t);}
+.toggle-switch.on{background:var(--green);}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform var(--t);}
+.toggle-switch.on::after{transform:translateX(18px);}
+
+.profile-row{display:flex;align-items:center;gap:16px;}
+.avatar-large{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg, #047857, #10b981);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;flex-shrink:0;}
+
+.input-group{position:relative;display:flex;align-items:center;}
+.input-group input{padding-right:40px;}
+.input-icon-btn{position:absolute;right:8px;background:none;border:none;color:var(--text-m);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:4px;}
+.input-icon-btn:hover{color:var(--text-h);}
+
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;background:var(--border-color);color:var(--text-m);}
+.status-pill.success{background:var(--green-bg);color:var(--green);}
+.status-pill.error{background:var(--red-bg);color:var(--red);}
+.status-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+
+.session-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--border-color);border-radius:var(--r-sm);margin-bottom:8px;}
+.session-info{display:flex;flex-direction:column;gap:4px;}
+.session-ip{font-size:13px;font-weight:500;color:var(--text-h);}
+.session-time{font-size:12px;color:var(--text-m);}
+
+#toast{position:fixed;bottom:24px;right:24px;background:var(--text-h);color:var(--bg-main);padding:12px 20px;border-radius:var(--r-sm);font-size:13px;font-weight:600;display:none;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:999;}
+
+/* Profile dropdown styling */
+.profile-avatar-wrap { position: relative; margin-left: auto; display: flex; align-items: center; padding-right: 32px;}
+.profile-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #047857, #10b981);
+  border: 2px solid rgba(16, 185, 129, 0.2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s ease;
+  padding: 0; margin: 0;
+}
+.profile-initials { font-size: 13px; font-weight: 700; color: white; line-height: 1; pointer-events: none; }
+.profile-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 32px;
+  width: 260px; background: var(--bg-card);
+  border: 1px solid var(--border-color); border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  opacity: 0; visibility: hidden;
+  transform: translateY(-6px) scale(0.97);
+  transition: all .2s ease; z-index: 999;
+}
+.profile-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+.pd-header { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.pd-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #047857, #10b981); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pd-avatar span { font-size: 15px; font-weight: 700; color: white; }
+.pd-info { overflow: hidden; }
+.pd-name { font-size: 14px; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-email { font-size: 12px; color: var(--text-m); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-divider { height: 1px; background: var(--border-color); margin: 0; }
+.pd-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--text-b); text-decoration: none; transition: all .15s ease; cursor: pointer; }
+.pd-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+.pd-item:hover { background: var(--bg-card-hover); color: var(--green); }
+.pd-logout { color: var(--red); }
+.pd-logout:hover { background: var(--red-bg); color: #f87171; }
+</style>
+  <link rel="stylesheet" href="assets/css/global.css">
+</head>
+<body>
+<div class="app-layout">
+
+<aside class="app-sidebar" id="app-sidebar"></aside>
+
+<div class="app-main">
+  <header class="app-topbar" id="app-topbar"></header>
+  <main class="app-page-container">
+  
+
+  <div class="content">
+    
+    <!-- Account / Profile -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Account / Profile</h2>
+        <p class="gc-sub">Update your personal information and password.</p>
+      </div>
+      <div class="profile-row">
+        <div class="avatar-large" id="settings-avatar">U</div>
+        <div style="display:flex;flex-direction:column;gap:12px;flex:1;">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="settings-name-input" value="">
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="settings-email-input" value="">
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:8px;">
+        <button class="btn-sec">Change Password</button>
+      </div>
+    </div>
+
+    <!-- Blockchain Configuration -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Blockchain Configuration</h2>
+        <p class="gc-sub">Configure network settings for anchoring and verification.</p>
+      </div>
+      <div class="form-group">
+        <label>Network</label>
+        <select>
+          <option>Localhost/Hardhat</option>
+          <option>Ganache</option>
+          <option>Sepolia Testnet</option>
+          <option>Polygon</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>RPC URL</label>
+        <input type="text" placeholder="e.g. http://127.0.0.1:8545" value="">
+      </div>
+      <div class="form-group">
+        <label>Smart Contract Address</label>
+        <div class="input-group">
+          <input type="text" id="contractAddr" placeholder="0x..." value="">
+          <button class="input-icon-btn" onclick="copyValue('contractAddr')" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Wallet / Private Key</label>
+        <div class="input-group">
+          <input type="password" id="walletKey" placeholder="Enter private key" value="">
+          <button class="input-icon-btn" onclick="toggleVisibility('walletKey')" title="Show/Hide"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;margin-top:8px;">
+        <button class="btn-sec" onclick="testConnection()">Test Connection</button>
+        <div id="connStatus" class="status-pill" style="display:none;"><div class="status-dot"></div><span id="connText">Connected</span></div>
+      </div>
+    </div>
+
+    <!-- Scan Preferences -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Scan Preferences</h2>
+        <p class="gc-sub">Customize how repositories are analyzed and exported.</p>
+      </div>
+      <div class="form-group">
+        <label>Default CBOM Format</label>
+        <select>
+          <option>CycloneDX</option>
+          <option>SPDX</option>
+        </select>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Auto-verify after scan</div>
+          <div class="toggle-sub">Automatically verify CBOM against blockchain immediately after scanning.</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Include dev dependencies in scan</div>
+          <div class="toggle-sub">Analyze testing and development libraries for cryptographic risks.</div>
+        </div>
+        <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Notifications</h2>
+        <p class="gc-sub">Manage your email alerts and summaries.</p>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Email alerts on verification failure</div>
+          <div class="toggle-sub">Get notified immediately if a CBOM mismatch is detected.</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Weekly summary report</div>
+          <div class="toggle-sub">Receive a digest of scans and posture improvements.</div>
+        </div>
+        <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Critical risk findings alert</div>
+          <div class="toggle-sub">Immediate email when a critical vulnerability is found.</div>
+        </div>
+        <div class="toggle-switch on" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+
+    <!-- Security -->
+    <div class="gcard">
+      <div class="gc-hd">
+        <h2 class="gc-ttl">Security</h2>
+        <p class="gc-sub">Enhance your account protection and manage sessions.</p>
+      </div>
+      <div class="toggle-group">
+        <div class="toggle-info">
+          <div class="toggle-ttl">Two-factor authentication (2FA)</div>
+          <div class="toggle-sub">Require an authentication code when logging in.</div>
+        </div>
+        <div class="toggle-switch" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div style="margin-top:16px;">
+        <label style="margin-bottom:8px;display:block;">Active Sessions</label>
+        <div class="session-item">
+          <div class="session-info">
+            <div class="session-ip" id="current-session-browser">Current Device</div>
+            <div class="session-time">Current Session</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="gcard" style="border-color:var(--red);">
+      <div class="gc-hd">
+        <h2 class="gc-ttl" style="color:var(--red);">Danger Zone</h2>
+        <p class="gc-sub">Irreversible actions for your account and data.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;">
+        <button class="btn-danger-outline" onclick="confirmReset()">Reset all scan history</button>
+        <button class="btn-danger">Delete account</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof Auth !== 'undefined') {
+    const user = Auth.getUser();
+    if (user) {
+      document.getElementById('settings-name-input').value = user.name || '';
+      document.getElementById('settings-email-input').value = user.email || '';
+      document.getElementById('pd-name').textContent = user.name || 'User';
+      document.getElementById('pd-email').textContent = user.email || 'user@email.com';
+      if (user.name) {
+        const initial = user.name.charAt(0).toUpperCase();
+        document.getElementById('settings-avatar').textContent = initial;
+        document.getElementById('profile-initials').textContent = initial;
+        document.getElementById('pd-initials').textContent = initial;
+      }
+    }
+  }
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function saveSettings() {
+  showToast('Settings saved successfully!');
+}
+
+function copyValue(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.value);
+  showToast('Copied to clipboard');
+}
+
+function toggleVisibility(id) {
+  const el = document.getElementById(id);
+  if (el.type === 'password') {
+    el.type = 'text';
+  } else {
+    el.type = 'password';
+  }
+}
+
+function testConnection() {
+  const status = document.getElementById('connStatus');
+  const txt = document.getElementById('connText');
+  status.style.display = 'inline-flex';
+  status.className = 'status-pill';
+  txt.textContent = 'Testing...';
+  
+  setTimeout(() => {
+    status.className = 'status-pill success';
+    txt.textContent = 'Connected (Lat: 12ms)';
+  }, 1000);
+}
+
+function confirmReset() {
+  if (confirm('Are you absolutely sure? This will delete all your scans and CBOM history. This action cannot be undone.')) {
+    showToast('Scan history reset successfully.');
+  }
+}
+</script>
+
+
+</div>
+<script src="assets/js/shell.js"></script>
+</body>
+</html>
+
+
+

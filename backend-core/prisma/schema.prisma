@@ -1,0 +1,126 @@
+// CryptoScan / ECDAT - Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String?   // hashed with bcrypt, optional for oauth
+  name       String?
+  provider   String   @default("local")
+  providerId String?
+  avatar     String?
+  role       String   @default("Developer")
+  createdAt  DateTime @default(now())
+
+  repos     Repo[]
+  auditLogs AuditLog[]
+}
+
+model Repo {
+  id              String        @id @default(uuid())
+  name            String
+  filePath        String        // path on disk where uploaded repo/zip is stored
+  uploadedBy      String
+  user            User          @relation(fields: [uploadedBy], references: [id])
+  businessContext String?       @default("STANDARD") // CRITICAL, IMPORTANT, STANDARD
+  createdAt       DateTime      @default(now())
+
+  scans        Scan[]
+  cbomVersions CbomVersion[]
+}
+
+model Scan {
+  id             String   @id @default(uuid())
+  repoId         String
+  repo           Repo     @relation(fields: [repoId], references: [id])
+  status         String   @default("PENDING")
+  commitHash     String?
+  scannerVersion String?  @default("2.0.0")
+  createdAt      DateTime @default(now())
+  completedAt    DateTime?
+
+  findings    Finding[]
+  cbom        Cbom?
+  anchor      Anchor?
+  cbomVersion CbomVersion?
+}
+
+model Finding {
+  id                String   @id @default(uuid())
+  scanId            String
+  scan              Scan     @relation(fields: [scanId], references: [id])
+  filePath          String   
+  lineNumber        Int?
+  algorithm         String   
+  library           String?  
+  usage             String?  
+  keySize           Int?
+  quantumStatus     String?  
+  severity          String   
+  description       String   
+  recommendation    String?
+  confidence        String   @default("Likely")
+  suppressed        Boolean  @default(false)
+  suppressionReason String?
+  status            String   @default("ACTIVE") // ACTIVE, RESOLVED
+  createdAt         DateTime @default(now())
+}
+
+model Cbom {
+  id          String   @id @default(uuid())
+  scanId      String   @unique
+  scan        Scan     @relation(fields: [scanId], references: [id])
+  format      String   @default("CycloneDX-lite")
+  content     String   // full CBOM document (CycloneDX-lite JSON)
+  quantumRisk String?  // overall quantum risk rating
+  createdAt   DateTime @default(now())
+}
+
+// Append-only evidence of security-relevant actions. `entryHash` commits to
+// this record and the preceding one, making deletion/reordering detectable.
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  action       String
+  method       String
+  path         String
+  statusCode   Int
+  requestHash  String?
+  previousHash String?
+  entryHash    String   @unique
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Anchor {
+  id          String   @id @default(uuid())
+  scanId      String   @unique
+  scan        Scan     @relation(fields: [scanId], references: [id])
+  contentHash String   // hash of findings+cbom that was anchored
+  txHash      String   // REAL blockchain transaction hash — never fake this
+  signature   String   // real digital signature
+  network     String   // e.g. sepolia
+  createdAt   DateTime @default(now())
+}
+
+model CbomVersion {
+  id            String   @id @default(uuid())
+  repoId        String
+  repo          Repo     @relation(fields: [repoId], references: [id])
+  scanId        String   @unique
+  scan          Scan     @relation(fields: [scanId], references: [id])
+  versionNumber Int
+  versionLabel  String   // e.g. CBOM-v1, CBOM-v2
+  content       String   // full CycloneDX 1.6 CBOM document JSON
+  createdAt     DateTime @default(now())
+}

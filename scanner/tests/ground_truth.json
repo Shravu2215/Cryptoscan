@@ -1,0 +1,134 @@
+{
+  "fixtures/vulnerable/01-weak-password-hash.js": {
+    "expected_rule_ids": ["md5-weak-password-hash"],
+    "expected_min_count": 1
+  },
+  "fixtures/vulnerable/02-ecb-mode.js": {
+    "expected_rule_ids": ["aes-ecb-mode"],
+    "expected_min_count": 1
+  },
+  "fixtures/vulnerable/03-hardcoded-key.js": {
+    "expected_rule_ids": ["aes-hardcoded-key", "aes-missing-aead", "entropy-secret-high-confidence"],
+    "expected_min_count": 2
+  },
+  "fixtures/vulnerable/04-insecure-random.js": {
+    "expected_rule_ids": ["insecure-rng"],
+    "expected_min_count": 1
+  },
+  "fixtures/vulnerable/05-static-iv-reuse.js": {
+    "expected_rule_ids": ["aes-missing-aead", "aes-static-iv-reuse"],
+    "expected_min_count": 2
+  },
+  "fixtures/vulnerable/06-no-integrity-check.js": {
+    "expected_rule_ids": ["aes-missing-aead"],
+    "expected_min_count": 1
+  },
+  "fixtures/vulnerable/07-rsa-key-size.js": {
+    "expected_rule_ids": ["rsa-key-generation"],
+    "expected_min_count": 1
+  },
+  "fixtures/vulnerable/08-timing-unsafe-compare.js": {
+    "expected_rule_ids": ["timing-unsafe-compare"],
+    "expected_min_count": 1
+  },
+  "fixtures/fixed/01-weak-password-hash.js": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/fixed/02-ecb-mode.js": {
+    "expected_rule_ids": ["aes-aead-mode"],
+    "expected_min_count": 1
+  },
+  "fixtures/fixed/03-hardcoded-key.js": {
+    "expected_rule_ids": ["aes-aead-mode"],
+    "expected_min_count": 1
+  },
+  "fixtures/fixed/04-insecure-random.js": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/fixed/05-static-iv-reuse.js": {
+    "expected_rule_ids": ["aes-missing-aead"],
+    "expected_min_count": 1
+  },
+  "fixtures/fixed/06-no-integrity-check.js": {
+    "expected_rule_ids": ["aes-aead-mode"],
+    "expected_min_count": 1
+  },
+  "fixtures/fixed/07-rsa-key-size.js": {
+    "expected_rule_ids": ["rsa-key-generation"],
+    "expected_min_count": 1
+  },
+  "fixtures/fixed/08-timing-unsafe-compare.js": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/config/.env.vuln": {
+    "expected_rule_ids": ["entropy-secret-high-confidence", "entropy-secret-name-hint-only"],
+    "expected_min_count": 2
+  },
+  "fixtures/config/Dockerfile.vuln": {
+    "expected_rule_ids": ["dockerfile-hardcoded-secret", "tls-verification-disabled"],
+    "expected_min_count": 2
+  },
+  "fixtures/config/app-vuln.ini": {
+    "expected_rule_ids": ["entropy-secret-high-confidence"],
+    "expected_min_count": 1
+  },
+  "fixtures/config/config-vuln.yml": {
+    "expected_rule_ids": ["config-plaintext-secret", "tls-verification-disabled"],
+    "expected_min_count": 2
+  },
+  "fixtures/config/config-clean.yml": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/sca/package-vuln.json": {
+    "expected_rule_ids": ["sca-npm-md5", "sca-npm-node-rsa", "sca-npm-jsonwebtoken"],
+    "expected_min_count": 3
+  },
+  "fixtures/sca/package-clean.json": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/sca/requirements-vuln.txt": {
+    "expected_rule_ids": ["sca-pip-pycrypto", "sca-pip-rsa", "sca-pip-pycryptodome"],
+    "expected_min_count": 3
+  },
+  "fixtures/sca/requirements-clean.txt": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/sca/pom-vuln.xml": {
+    "expected_rule_ids": ["sca-maven-bcprov-jdk15on"],
+    "expected_min_count": 1
+  },
+  "fixtures/sca/pom-clean.xml": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/infra/nginx-vuln.conf": {
+    "expected_rule_ids": ["infra-weak-tls-protocol", "infra-weak-cipher-suite"],
+    "expected_min_count": 2
+  },
+  "fixtures/infra/nginx-clean.conf": {
+    "expected_rule_ids": [],
+    "expected_min_count": 0
+  },
+  "fixtures/infra/k8s-secret-vuln.yaml": {
+    "expected_rule_ids": ["infra-k8s-secret-plaintext"],
+    "expected_min_count": 1
+  },
+  "fixtures/infra/k8s-secret-clean.yaml": {
+    "expected_rule_ids": ["config-plaintext-secret"],
+    "expected_min_count": 1
+  },
+  "fixtures/infra/terraform-vuln.tf": {
+    "expected_rule_ids": ["infra-terraform-hardcoded-secret"],
+    "expected_min_count": 1
+  },
+  "fixtures/infra/terraform-clean.tf": {
+    "expected_rule_ids": ["entropy-secret-name-hint-only"],
+    "expected_min_count": 1
+  }
+}

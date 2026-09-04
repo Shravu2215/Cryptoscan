@@ -1,0 +1,14 @@
+{
+  "name": "cryptoscan-integrity-service",
+  "version": "1.0.0",
+  "engines": { "node": ">=24.7.0" },
+  "description": "Integrity service — Merkle tree, hybrid ECDSA+ML-DSA-65 signatures, KMS, IPFS, and timestamping for CryptoScan.",
+  "main": "merkle.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node merkle.test.js && node hybrid-signature.test.js && node batch-merkle.test.js && node kms.test.js"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  }
+}

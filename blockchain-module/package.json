@@ -1,0 +1,23 @@
+{
+  "name": "cryptoscan-blockchain",
+  "version": "1.0.0",
+  "engines": { "node": ">=24.7.0" },
+  "description": "Blockchain/Smart Contract module — anchors scan content hashes on-chain (real hash + real signature + real tx, never a dummy tx id)",
+  "scripts": {
+    "node": "hardhat node",
+    "compile": "hardhat compile",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "anchor": "node scripts/anchor.js",
+    "verify:onchain": "node scripts/verify.js",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.0"
+  }
+}
