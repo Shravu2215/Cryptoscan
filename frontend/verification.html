@@ -479,7 +479,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         
         <div class="pl-step done" id="step-0">
           <div class="pl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="pl-lbl">CBOM Loaded</div>
+          <div class="pl-lbl">01 CBOM Loaded</div>
         </div>
         <div class="pl-step" id="step-1">
           <div class="pl-icon">02</div>
@@ -487,15 +487,15 @@ tbody tr:hover { background: var(--bg-card-hover); }
         </div>
         <div class="pl-step" id="step-2">
           <div class="pl-icon">03</div>
-          <div class="pl-lbl">Digital Signature</div>
+          <div class="pl-lbl">Merkle Tree</div>
         </div>
         <div class="pl-step" id="step-3">
           <div class="pl-icon">04</div>
-          <div class="pl-lbl">Blockchain Anchor</div>
+          <div class="pl-lbl">Digital Signature</div>
         </div>
         <div class="pl-step" id="step-4">
           <div class="pl-icon">05</div>
-          <div class="pl-lbl">Merkle Tree</div>
+          <div class="pl-lbl">Blockchain Anchor</div>
         </div>
         <div class="pl-step" id="step-5">
           <div class="pl-icon">06</div>
@@ -757,17 +757,24 @@ async function startVerification() {
     return;
   }
   
-  // ─── Step 2: Digital Signature (skipped — no signing key in frontend) ───
+  // ─── Step 2: Merkle Tree (will be populated after verify API returns merkleData) ───
   updateStep(2, 'active');
-  document.getElementById('pl-progress').style.width = '40%';
-  await delay(400);
+  document.getElementById('pl-progress').style.width = '35%';
+  await delay(300);
+  // Mark as pending until verify result comes in
   updateStep(2, 'warn');
+
+  // ─── Step 3: Digital Signature (skipped — no signing key in frontend) ───
+  updateStep(3, 'active');
+  document.getElementById('pl-progress').style.width = '50%';
+  await delay(400);
+  updateStep(3, 'warn');
   document.getElementById('sig-status').className = 'status-badge sb-warn';
   document.getElementById('sig-status').textContent = 'Skipped (No Signer)';
   
-  // ─── Step 3: Blockchain Anchor — check if already anchored first ───
-  updateStep(3, 'active');
-  document.getElementById('pl-progress').style.width = '60%';
+  // ─── Step 4: Blockchain Anchor — check if already anchored first ───
+  updateStep(4, 'active');
+  document.getElementById('pl-progress').style.width = '65%';
   
   let anchorResult = null;
   let alreadyAnchored = false;
@@ -794,8 +801,8 @@ async function startVerification() {
         document.getElementById('sig-algo').textContent = 'ECDSA (secp256k1)';
         document.getElementById('sig-signer').textContent = 'Hardhat Account #0';
         document.getElementById('sig-time').textContent = '—';
-        updateStep(2, 'done');
         updateStep(3, 'done');
+        updateStep(4, 'done');
       }
     }
   } catch(ignore) { /* not anchored yet, proceed */ }
@@ -833,13 +840,13 @@ async function startVerification() {
         document.getElementById('sig-algo').textContent = 'ECDSA (secp256k1)';
         document.getElementById('sig-signer').textContent = anchorResult.signer || 'Hardhat Account #0';
         document.getElementById('sig-time').textContent = new Date().toLocaleString();
-        updateStep(2, 'done');
+        updateStep(3, 'done');
       }
       
-      updateStep(3, 'done');
+      updateStep(4, 'done');
     } catch(e) {
       console.error('Blockchain anchor failed:', e);
-      updateStep(3, 'fail');
+      updateStep(4, 'fail');
       document.getElementById('anch-status').className = 'status-badge sb-invalid';
       document.getElementById('anch-status').textContent = '✗ Anchor Failed';
       
@@ -847,9 +854,9 @@ async function startVerification() {
     }
   }
   
-  // ─── Step 4: Verify — GET /scan/:scanId/verify ───
-  updateStep(4, 'active');
-  document.getElementById('pl-progress').style.width = '80%';
+  // ─── Step 5: Verify — GET /scan/:scanId/verify ───
+  updateStep(5, 'active');
+  document.getElementById('pl-progress').style.width = '82%';
   
   let verifyResult = null;
   try {
@@ -875,17 +882,16 @@ async function startVerification() {
     // Fill comparison section
     document.getElementById('comp-chain').textContent = verifyResult.onChainHash || '—';
 
-    // ─── Step 5: Merkle Tree ───
-    updateStep(4, 'done');
-    updateStep(5, 'active');
-    document.getElementById('pl-progress').style.width = '90%';
-    await delay(300);
+    // ─── Step 2 (Merkle Tree): now render and mark done/warn ───
     if (verifyResult.merkleData) {
       renderMerkleTree(verifyResult.merkleData);
-      updateStep(5, 'done');
+      updateStep(2, 'done');
     } else {
-      updateStep(5, 'warn');
+      updateStep(2, 'warn');
     }
+
+    updateStep(5, 'done');
+    document.getElementById('pl-progress').style.width = '95%';
     
     // Blockchain History
     renderBlockchainHistory(verifyResult);
@@ -893,7 +899,6 @@ async function startVerification() {
     if (verifyResult.verified) {
       // ✅ Full verification passed
       document.getElementById('pl-progress').style.width = '100%';
-      updateStep(5, 'done');
       
       document.getElementById('hash-box').className = 'hash-box match';
       document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> MATCH — VERIFIED';
@@ -904,7 +909,6 @@ async function startVerification() {
     } else {
       // ❌ Verification failed — hash mismatch
       document.getElementById('pl-progress').style.width = '100%';
-      updateStep(5, 'fail');
       
       document.getElementById('hash-box').className = 'hash-box mismatch';
       document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> MISMATCH — INTEGRITY FAILED';
@@ -919,13 +923,13 @@ async function startVerification() {
     
     if (anchorResult) {
       // Anchor succeeded but verify failed — incomplete
-      updateStep(4, 'warn');
+      updateStep(5, 'warn');
       document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> VERIFY CALL FAILED';
       document.getElementById('comp-result').className = 'comp-res warn';
       setHero('incomplete', 'VERIFICATION INCOMPLETE', 'CBOM was anchored but the verification API returned an error: ' + e.message);
     } else {
       // Both anchor and verify failed
-      updateStep(4, 'fail');
+      updateStep(5, 'fail');
       document.getElementById('comp-result').innerHTML = '✗ NOT VERIFIED';
       document.getElementById('comp-result').className = 'comp-res mismatch';
       setHero('failed', 'VERIFICATION FAILED', 'Both blockchain anchoring and verification failed. Check that the Hardhat network and backend are running.');
