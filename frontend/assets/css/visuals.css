@@ -1,0 +1,211 @@
+/**
+ * CryptoScan Visual Graphics System
+ * Contains reusable graphic styles, animations, and container definitions.
+ */
+
+/* ==========================================================================
+   GLOBAL BACKGROUNDS
+   ========================================================================== */
+
+.visual-bg-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+/* Cyber Grid */
+.cyber-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
+  background-image: 
+    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  transform-origin: center top;
+  transform: perspective(1000px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+  animation: gridMove 20s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes gridMove {
+  0% { transform: perspective(1000px) rotateX(60deg) translateY(0) translateZ(-200px); }
+  100% { transform: perspective(1000px) rotateX(60deg) translateY(40px) translateZ(-200px); }
+}
+
+/* Glow Orbs */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  animation: floatOrb 15s ease-in-out infinite alternate;
+}
+
+.glow-orb.cyan {
+  background: radial-gradient(circle, var(--cs-cyan) 0%, transparent 70%);
+  width: 600px;
+  height: 600px;
+  top: -100px;
+  right: -100px;
+}
+
+.glow-orb.violet {
+  background: radial-gradient(circle, var(--cs-violet) 0%, transparent 70%);
+  width: 500px;
+  height: 500px;
+  bottom: -100px;
+  left: -100px;
+  animation-delay: -5s;
+}
+
+.glow-orb.magenta {
+  background: radial-gradient(circle, var(--cs-magenta) 0%, transparent 70%);
+  width: 400px;
+  height: 400px;
+  top: 40%;
+  left: 40%;
+  animation-delay: -10s;
+  opacity: 0.1;
+}
+
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -30px) scale(1.1); }
+  100% { transform: translate(-20px, 40px) scale(0.95); }
+}
+
+/* Particles */
+.particle {
+  position: absolute;
+  background: var(--cs-cyan);
+  border-radius: 50%;
+  opacity: 0;
+  animation: particleFloat 8s infinite linear;
+}
+
+@keyframes particleFloat {
+  0% { transform: translateY(0) scale(0); opacity: 0; }
+  20% { transform: translateY(-20px) scale(1); opacity: 0.5; }
+  80% { transform: translateY(-80px) scale(1); opacity: 0.5; }
+  100% { transform: translateY(-100px) scale(0); opacity: 0; }
+}
+
+/* ==========================================================================
+   VISUALIZATION CONTAINERS
+   ========================================================================== */
+
+.visual-container {
+  position: relative;
+  width: 100%;
+  min-height: 300px;
+  background: var(--cs-surface-hover);
+  border: 1px solid var(--cs-border-subtle);
+  border-radius: var(--cs-radius-lg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.visual-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at center, transparent 0%, var(--cs-bg) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   SVG & GRAPHICS STYLES
+   ========================================================================== */
+
+/* Network Graph */
+.node-circle {
+  fill: var(--cs-surface-hover);
+  stroke: var(--cs-border);
+  stroke-width: 2;
+  transition: all 0.3s ease;
+}
+
+.node-icon {
+  fill: var(--cs-text-muted);
+}
+
+.edge-line {
+  stroke: var(--cs-border-subtle);
+  stroke-width: 1.5;
+  stroke-dasharray: 4;
+  animation: dashFlow 20s linear infinite;
+}
+
+.edge-glow {
+  stroke: var(--cs-cyan);
+  stroke-width: 3;
+  opacity: 0.3;
+  filter: blur(4px);
+}
+
+@keyframes dashFlow {
+  to { stroke-dashoffset: -1000; }
+}
+
+/* Pulse Animation for active nodes */
+.node-pulse {
+  animation: nodePulse 2s infinite;
+  transform-origin: center;
+}
+
+@keyframes nodePulse {
+  0% { filter: drop-shadow(0 0 0 rgba(139, 92, 246, 0.8)); }
+  70% { filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0)); }
+  100% { filter: drop-shadow(0 0 0 rgba(139, 92, 246, 0)); }
+}
+
+/* Scan Pipeline Progress */
+.scan-line {
+  stroke: var(--cs-violet);
+  stroke-width: 2;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: scanProgress 4s ease-in-out forwards;
+}
+
+@keyframes scanProgress {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Blockchain Blocks */
+.bc-block {
+  fill: rgba(255, 255, 255, 0.02);
+  stroke: var(--cs-border);
+  stroke-width: 1;
+  transition: all 0.3s ease;
+}
+
+.bc-block.verified {
+  stroke: var(--cs-success);
+  fill: rgba(16, 185, 129, 0.05);
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.2));
+}
+
+.bc-hash {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  fill: var(--cs-text-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyber-grid, .glow-orb, .particle, .edge-line, .node-pulse, .scan-line {
+    animation: none !important;
+  }
+}

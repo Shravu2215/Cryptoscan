@@ -21,6 +21,19 @@ class AppShell {
       link.href = 'assets/css/global.css';
       document.head.prepend(link);
     }
+    if (!document.querySelector('link[href*="visuals.css"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'assets/css/visuals.css';
+      document.head.appendChild(link);
+    }
+
+    // Inject Visuals JS
+    if (!document.querySelector('script[src*="visuals.js"]')) {
+      const script = document.createElement('script');
+      script.src = 'assets/js/visuals.js';
+      document.body.appendChild(script);
+    }
 
     this.renderSidebar(page);
     this.renderTopbar(page);
