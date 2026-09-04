@@ -118,11 +118,86 @@ function severityLabel(score) {
   return 'info';
 }
 
+// --- 5. HNDL ("Harvest Now, Decrypt Later") exposure model ----------------
+// A finding protecting long-lived data is riskier than the same finding
+// protecting ephemeral data: an attacker can record ciphertext today and
+// decrypt it once a cryptographically-relevant quantum computer exists.
+//
+// - MIGRATION_TIME_YEARS: realistic time to plan + execute a migration once
+//   started (audit, dual-run, cutover).
+// - QUANTUM_THREAT_HORIZON_YEARS: conservative industry estimate of when a
+//   cryptographically-relevant quantum computer could arrive.
+// If (dataLifetime + migrationTime) still exceeds the threat horizon, the
+// data is exposed for that many years after the threat materializes.
+const DEFAULT_DATA_LIFETIME_YEARS = 10;
+const MIGRATION_TIME_YEARS = 3;
+const QUANTUM_THREAT_HORIZON_YEARS = 7;
+
+/**
+ * Normalizes a caller-supplied data lifetime (years) to a safe numeric value.
+ * Missing/invalid input falls back to a conservative default so risk is
+ * never silently underestimated.
+ *
+ * @param {number|undefined} years
+ * @returns {{ value: number, isDefault: boolean }}
+ */
+function normalizeDataLifetime(years) {
+  if (typeof years !== 'number' || Number.isNaN(years) || years < 0) {
+    return { value: DEFAULT_DATA_LIFETIME_YEARS, isDefault: true };
+  }
+  return { value: years, isDefault: false };
+}
+
+/**
+ * How many years past the projected quantum-threat horizon this data
+ * remains exposed, given how long it lives and how long migration takes.
+ * Clamped to 0 — data that's rotated/expired well before the threat
+ * horizon has no HNDL exposure window.
+ *
+ * @param {{value:number}|number} normalizedLifetime - result of normalizeDataLifetime(), or a raw year count
+ * @returns {number} exposure window in years (>= 0)
+ */
+function calculateQuantumExposureWindow(normalizedLifetime) {
+  const years = (normalizedLifetime && typeof normalizedLifetime === 'object')
+    ? normalizedLifetime.value
+    : normalizedLifetime;
+  const window = (years ?? DEFAULT_DATA_LIFETIME_YEARS) + MIGRATION_TIME_YEARS - QUANTUM_THREAT_HORIZON_YEARS;
+  return Math.max(0, window);
+}
+
+/**
+ * Scales a primitive's base quantum-vulnerability score by how long its
+ * exposure window is, so two equally-broken primitives are differentiated
+ * by how much HNDL risk they actually carry.
+ *
+ * @param {number} baseQuantumVulnerability - 0-100, from quantumVulnerabilityScore()
+ * @param {number} exposureWindowYears - from calculateQuantumExposureWindow()
+ * @returns {number} 0-100 HNDL exposure score
+ */
+function quantumExposureScore(baseQuantumVulnerability, exposureWindowYears) {
+  if (!baseQuantumVulnerability || baseQuantumVulnerability <= 0) return 0;
+  const scaled = Math.min(100, Math.max(0, exposureWindowYears) * 10);
+  return Math.round((scaled * baseQuantumVulnerability) / 100);
+}
+
+// --- 6. Business-context multiplier ----------------------------------------
+// The same technical risk matters more against critical business assets.
+const BUSINESS_IMPORTANCE_MULTIPLIERS = {
+  Critical: 1.25,
+  High: 1.15,
+  Medium: 1.0,
+  Low: 0.9,
+};
+const DEFAULT_BUSINESS_MULTIPLIER = 1.0;
+
 /**
  * @param {{primitive:string, keySize?:number, mode?:string}} finding
  * @param {string} purpose - output of purposeDetection.detectPurpose(...).purpose
+ * @param {object} [options={}]
+ * @param {number} [options.dataLifetime] - expected data lifetime in years (HNDL)
+ * @param {string} [options.businessImportance] - e.g. 'Critical' | 'High' | 'Medium' | 'Low'
  */
-function scoreFinding(finding, purpose) {
+function scoreFinding(finding, purpose, options = {}) {
   const quantumVulnerability = quantumVulnerabilityScore(finding.primitive, finding.keySize);
   const keyStrength = keyStrengthScore(finding.primitive, finding.keySize);
   const classicalDeprecation = classicalDeprecationScore(finding.primitive, finding.mode);
@@ -136,12 +211,30 @@ function scoreFinding(finding, purpose) {
 
   const score = Math.round(Math.min(100, Math.max(0, raw)));
 
+  // HNDL exposure folded into a pre-business-context risk score.
+  const normLifetime = normalizeDataLifetime(options.dataLifetime);
+  const exposureWindow = calculateQuantumExposureWindow(normLifetime);
+  const exposureBonus = quantumExposureScore(quantumVulnerability, exposureWindow);
+  const preBusinessRiskScore = Math.round(Math.min(100, Math.max(0, score * 0.7 + exposureBonus * 0.3)));
+
+  const appliedMultiplier = BUSINESS_IMPORTANCE_MULTIPLIERS[options.businessImportance] ?? DEFAULT_BUSINESS_MULTIPLIER;
+  const businessAdjustedRiskScore = Math.round(Math.min(100, preBusinessRiskScore * appliedMultiplier));
+
   return {
     score,
     severity: severityLabel(score),
     breakdown: { quantumVulnerability, keyStrength, classicalDeprecation, usageCriticality },
     weights: WEIGHTS,
+    preBusinessRiskScore,
+    businessAdjustedRiskScore,
+    appliedMultiplier,
   };
 }
 
-module.exports = { scoreFinding, severityLabel };
+module.exports = {
+  scoreFinding,
+  severityLabel,
+  normalizeDataLifetime,
+  calculateQuantumExposureWindow,
+  quantumExposureScore,
+};

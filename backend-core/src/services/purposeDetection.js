@@ -121,23 +121,107 @@ const PQC_MIGRATION_TABLE = {
   },
 };
 
+// Asymmetric primitive families whose PQC replacement is a different
+// algorithm family entirely (KEM or signature scheme), so running the
+// classical and PQC algorithms in parallel during the transition (hybrid
+// mode) is the currently recommended migration path — it preserves
+// interoperability/rollback safety while the PQC side is battle-tested.
+// Symmetric ciphers (AES/ChaCha20) and hashes only need a key-size/algorithm
+// bump, not a hybrid rollout, so they're excluded.
+const HYBRID_BY_DEFAULT_FAMILIES = new Set(['RSA', 'ECC', 'DH', 'DSA']);
+const HYBRID_ELIGIBLE_PURPOSES = new Set(['key_exchange', 'digital_signature']);
+
+function isHybridByDefault(primitiveFamily, purpose) {
+  return HYBRID_BY_DEFAULT_FAMILIES.has(primitiveFamily) && HYBRID_ELIGIBLE_PURPOSES.has(purpose);
+}
+
+function hasConcreteGuidance(primitiveFamily, purpose) {
+  const family = PQC_MIGRATION_TABLE[primitiveFamily];
+  return Boolean(family && family[purpose]);
+}
+
+// Base agility per primitive family: how much of a structural rework its
+// migration requires. Symmetric ciphers/strong hashes need only a key-size
+// check (high agility); legacy asymmetric primitives with large ecosystem
+// footprints (RSA, DSA, DH) need more rework than newer ECC deployments.
+const PRIMITIVE_AGILITY_BASE = {
+  ECC: 40,
+  RSA: 30,
+  DH: 30,
+  DSA: 25,
+  AES: 45,
+  ChaCha20: 45,
+  'SHA-256': 45,
+  DES: 10,
+  MD5: 10,
+  SHA1: 15,
+};
+const DEFAULT_PRIMITIVE_AGILITY_BASE = 20;
+
+// How straightforward the migration is for a given purpose, independent of
+// primitive: swapping a KEM or a symmetric cipher is a comparatively
+// contained protocol change; swapping a signature scheme ripples out into
+// certificates/tooling/signature-size assumptions, so it scores lower.
+const PURPOSE_AGILITY_SCORE = {
+  key_exchange: 30,
+  data_encryption: 30,
+  mac: 25,
+  integrity_hashing: 25,
+  digital_signature: 25,
+  password_hashing: 20,
+  random_generation: 20,
+};
+const DEFAULT_PURPOSE_AGILITY_SCORE = 15;
+
+/**
+ * Crypto-agility score (0-100): how ready/straightforward migrating this
+ * (primitive, purpose) pair to its PQC/updated target is, combining:
+ *   - primitive base agility (ecosystem rework required)
+ *   - purpose agility (how contained the protocol-level swap is)
+ *   - a bonus for having concrete, authored migration guidance at all
+ *     (vs. only a generic "manual review required" fallback)
+ */
+function calculateCryptoAgilityScore(primitiveFamily, purpose) {
+  const base = PRIMITIVE_AGILITY_BASE[primitiveFamily] ?? DEFAULT_PRIMITIVE_AGILITY_BASE;
+  const purposeScore = PURPOSE_AGILITY_SCORE[purpose] ?? DEFAULT_PURPOSE_AGILITY_SCORE;
+
+  const family = PQC_MIGRATION_TABLE[primitiveFamily];
+  let guidanceBonus = 0;
+  if (family && family[purpose]) {
+    guidanceBonus = 30;
+  } else if (family && family.unknown) {
+    guidanceBonus = 10;
+  }
+
+  return Math.max(0, Math.min(100, base + purposeScore + guidanceBonus));
+}
+
 function getMigrationGuidance(primitiveFamily, purpose) {
+  const hybridByDefault = isHybridByDefault(primitiveFamily, purpose);
+  const cryptoAgilityScore = calculateCryptoAgilityScore(primitiveFamily, purpose);
+
   const family = PQC_MIGRATION_TABLE[primitiveFamily];
   if (!family) {
     return {
       recommendation: 'Manual review required',
       standard: null,
       rationale: `No migration guidance authored yet for primitive family "${primitiveFamily}". Do not guess — flag for manual crypto review.`,
+      hybridByDefault,
+      cryptoAgilityScore,
     };
   }
-  return (
-    family[purpose] ||
-    family.unknown || {
-      recommendation: 'Manual review required',
-      standard: null,
-      rationale: `Purpose "${purpose}" not mapped for ${primitiveFamily}. Confirm real usage before recommending a migration target.`,
-    }
-  );
+  const guidance = family[purpose] || family.unknown || {
+    recommendation: 'Manual review required',
+    standard: null,
+    rationale: `Purpose "${purpose}" not mapped for ${primitiveFamily}. Confirm real usage before recommending a migration target.`,
+  };
+  return { ...guidance, hybridByDefault, cryptoAgilityScore };
 }
 
-module.exports = { detectPurpose, getMigrationGuidance, PQC_MIGRATION_TABLE };
+module.exports = {
+  detectPurpose,
+  getMigrationGuidance,
+  isHybridByDefault,
+  calculateCryptoAgilityScore,
+  PQC_MIGRATION_TABLE,
+};

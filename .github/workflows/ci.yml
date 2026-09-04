@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-core:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend-core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend-core/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test
+
+  integrity-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # integrity-service has no package.json of its own — it rides on
+      # blockchain-module's `ethers` install (see providers/awsKmsEthSigner.js
+      # and hybrid-signature.js fallback requires).
+      - run: npm ci
+        working-directory: blockchain-module
+      - run: |
+          node kms.test.js
+          node merkle.test.js
+          node batch-merkle.test.js
+          node timestamp.test.js
+          node hybrid-signature.test.js
+        working-directory: integrity-service
+
+  blockchain-module:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blockchain-module
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: blockchain-module/package-lock.json
+      - run: npm ci
+      - run: npx hardhat compile
+      # Only fully self-contained tests run in CI:
+      #  - CryptoAnchor.test.js uses hardhat's built-in in-process network.
+      #  - ipfs.test.js only needs outbound internet (it exercises real
+      #    failure paths against api.pinata.cloud with an invalid token —
+      #    no secrets required).
+      #
+      # NOT run here: batchAnchor, finalE2E, independentVerify, publicChain,
+      # history, security — these dial a real JsonRpcProvider at
+      # 127.0.0.1:8545 and/or a funded Sepolia testnet wallet, and expect a
+      # contract already deployed at the address in deployed-*.json. That
+      # needs a live `hardhat node` + matching deployment + funded/test
+      # PRIVATE_KEY, which isn't reproducible on a stateless CI runner. Run
+      # those manually against a real environment before an on-chain
+      # release, not on every push.
+      - run: npx hardhat test test/CryptoAnchor.test.js test/ipfs.test.js
+
+  scanner:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scanner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pytest tests/ -v
+
+  cbom-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cbom-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cbom-service/package-lock.json
+      - run: npm ci
+      - run: npm test

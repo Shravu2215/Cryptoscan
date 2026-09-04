@@ -1,7 +1,8 @@
 const express = require('express');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole, ROLES } = require('../middleware/auth');
 const prisma = require('../utils/prismaClient');
 const { buildCbom } = require('../services/cbomGenerator');
+const { canAccessRepo } = require('../utils/authz');
 const { anchorScan } = require('../../../blockchain-module/scripts/anchor');
 const { verifyScan } = require('../../../blockchain-module/scripts/verify');
 
@@ -19,17 +20,18 @@ router.post('/:repoId', requireAuth, async (req, res) => {
     if (!repo) {
       return res.status(404).json({ error: 'Repo not found' });
     }
+    if (!canAccessRepo(req.user, repo)) {
+      return res.status(403).json({ error: 'You do not have access to this repository' });
+    }
 
     const scan = await prisma.scan.create({
       data: { repoId, status: 'PENDING' },
     });
 
     // --- Scanner Engine hook ---
-    const { exec } = require('child_process');
+    const { execFile } = require('child_process');
     const path = require('path');
     const fs = require('fs');
-    const util = require('util');
-    const execPromise = util.promisify(exec);
 
     (async () => {
       try {
@@ -47,9 +49,11 @@ router.post('/:repoId', requireAuth, async (req, res) => {
         // `python3` on PATH if the venv interpreter isn't present.
         const isWin = process.platform === 'win32';
         const venvPython = path.join(scannerDir, '.venv', isWin ? 'Scripts\\python.exe' : 'bin/python');
-        const pythonCmd = fs.existsSync(venvPython) ? `"${venvPython}"` : (isWin ? 'python' : 'python3');
+        const pythonCmd = fs.existsSync(venvPython) ? venvPython : (isWin ? 'python' : 'python3');
 
-        exec(`${pythonCmd} pipeline.py "${absoluteRepoPath}"`, { cwd: scannerDir }, async (error, stdout, stderr) => {
+        // execFile passes argv directly (no shell), so the repo path can't be
+        // interpreted as shell syntax regardless of its contents.
+        execFile(pythonCmd, ['pipeline.py', absoluteRepoPath], { cwd: scannerDir, maxBuffer: 50 * 1024 * 1024 }, async (error, stdout, stderr) => {
           if (error) {
             console.error('Scanner error:', error);
             await prisma.scan.update({ where: { id: scan.id }, data: { status: 'FAILED' } });
@@ -117,8 +121,11 @@ router.post('/:repoId', requireAuth, async (req, res) => {
 router.get('/:scanId/findings', requireAuth, async (req, res) => {
   try {
     const { scanId } = req.params;
-    const scan = await prisma.scan.findUnique({ where: { id: scanId } });
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
+    if (!canAccessRepo(req.user, scan.repo)) {
+      return res.status(403).json({ error: 'You do not have access to this scan' });
+    }
 
     const findings = await prisma.finding.findMany({ where: { scanId } });
     // Expose confidence so the frontend badge renders Possible/Likely/Confirmed correctly
@@ -135,6 +142,9 @@ router.get('/:scanId/cbom', requireAuth, async (req, res) => {
     const { scanId } = req.params;
     const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
+    if (!canAccessRepo(req.user, scan.repo)) {
+      return res.status(403).json({ error: 'You do not have access to this scan' });
+    }
 
     const dbFindings = await prisma.finding.findMany({ where: { scanId }, orderBy: { id: 'asc' } });
 
@@ -182,6 +192,9 @@ router.get('/:scanId/diff', requireAuth, async (req, res) => {
     const { scanId } = req.params;
     const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
     if (!scan) return res.status(404).json({ error: 'Scan not found' });
+    if (!canAccessRepo(req.user, scan.repo)) {
+      return res.status(403).json({ error: 'You do not have access to this scan' });
+    }
 
     let repoScans = [];
     if (scan.repoId) {
@@ -253,25 +266,15 @@ router.get('/:scanId/diff', requireAuth, async (req, res) => {
 });
 
 // POST /scan/:scanId/anchor
-router.post('/:scanId/anchor', requireAuth, async (req, res) => {
+router.post('/:scanId/anchor', requireAuth, requireRole(ROLES.ADMIN, ROLES.SECURITY_TEAM), async (req, res) => {
   try {
     const { scanId } = req.params;
-    let scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
     if (!scan) {
-      if (scanId === 'ffffffff-ffff-ffff-ffff-ffffffffffff') {
-        return res.status(404).json({ error: 'Scan not found' });
-      }
-      let defaultRepo = await prisma.repo.findFirst();
-      if (!defaultRepo) {
-        let dummyUser = await prisma.user.findFirst({ where: { email: 'trial@example.com' } });
-        if (!dummyUser) {
-          dummyUser = await prisma.user.create({ data: { email: 'trial@example.com', name: 'Trial User' } });
-        }
-        defaultRepo = await prisma.repo.create({ data: { name: 'demo-vulnerable-repo.zip', filePath: 'uploads/demo.zip', uploadedBy: dummyUser.id } });
-      }
-      scan = await prisma.scan.create({
-        data: { id: scanId, repoId: defaultRepo.id, status: 'COMPLETED' }
-      });
+      return res.status(404).json({ error: 'Scan not found' });
+    }
+    if (!canAccessRepo(req.user, scan.repo)) {
+      return res.status(403).json({ error: 'You do not have access to this scan' });
     }
 
     // Build CBOM to hash
@@ -355,6 +358,14 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
   try {
     const { scanId } = req.params;
 
+    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
+    if (!scan) {
+      return res.status(404).json({ error: 'Scan not found' });
+    }
+    if (!canAccessRepo(req.user, scan.repo)) {
+      return res.status(403).json({ error: 'You do not have access to this scan' });
+    }
+
     const anchor = await prisma.anchor.findUnique({ where: { scanId } });
     if (!anchor) {
       return res.status(404).json({ error: 'No anchor found for this scan' });
@@ -371,8 +382,7 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
       usage: f.usage,
       recommendation: f.recommendation
     }));
-    
-    const scan = await prisma.scan.findUnique({ where: { id: scanId }, include: { repo: true } });
+
     let repoScans = [];
     if (scan && scan.repoId) {
       repoScans = await prisma.scan.findMany({

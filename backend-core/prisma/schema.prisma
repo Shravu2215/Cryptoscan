@@ -21,9 +21,11 @@ model User {
   provider  String   @default("local")
   providerId String?
   avatar    String?
+  role      String   @default("Developer")
   createdAt DateTime @default(now())
 
   repos     Repo[]
+  auditLogs AuditLog[]
 }
 
 model Repo {
@@ -79,6 +81,24 @@ model Cbom {
   content    String   // full CBOM document (CycloneDX-lite JSON)
   quantumRisk String? // overall quantum risk rating
   createdAt  DateTime @default(now())
+}
+
+// Append-only evidence of security-relevant actions.  `entryHash` commits to
+// this record and the preceding one, making deletion/reordering detectable.
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  action       String
+  method       String
+  path         String
+  statusCode   Int
+  requestHash  String?
+  previousHash String?
+  entryHash    String   @unique
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Anchor {

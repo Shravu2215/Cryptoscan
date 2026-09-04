@@ -449,7 +449,10 @@ form.addEventListener('submit', async (e) => {
   try {
     const displayName = company ? `${name} (${company})` : name;
 
-    const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '' || window.location.protocol === 'file:') ? 'http://localhost:3000' : 'https://cryptoscan-backend.onrender.com';
+    // Same-origin by default (backend-core serves this frontend statically);
+    // only fall back to an explicit dev server URL when opened directly as
+    // a local file (file://), where relative fetches can't resolve.
+    const API_BASE = (window.location.protocol === 'file:') ? 'http://localhost:3000' : '';
     const res = await fetch(`${API_BASE}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

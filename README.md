@@ -79,17 +79,23 @@ cp .env.example .env
 npm run prisma:migrate
 ```
 
-Configure `backend-core/.env`:
+Configure `backend-core/.env` (see `.env.example` for the full, up-to-date list):
 ```env
 DATABASE_URL="file:./dev.db"
-JWT_SECRET="your-secure-random-jwt-secret"
+JWT_SECRET="your-secure-random-jwt-secret"       # >= 32 random chars — validated at startup
 JWT_EXPIRES_IN="7d"
+DATA_ENCRYPTION_KEY=                              # base64-encoded 32-byte AES-256 key
 PORT=3000
 MAX_UPLOAD_SIZE_MB=50
 RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
 SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
-PRIVATE_KEY=0x<YOUR_SEPOLIA_PRIVATE_KEY>
+PRIVATE_KEY=0x<YOUR_SEPOLIA_PRIVATE_KEY>          # only used when KMS_PROVIDER=env (default)
+KMS_PROVIDER=env                                  # or "aws-kms" — see Production Deployment
+ALLOWED_ORIGINS=                                  # required in production (comma-separated)
+FRONTEND_URL=http://localhost:3000                # base URL for OAuth redirects
 ```
+
+The server validates this configuration at startup (`src/utils/validateEnv.js`) and refuses to boot with a placeholder/missing `JWT_SECRET`, missing `DATABASE_URL`, or a malformed `DATA_ENCRYPTION_KEY`. In production it additionally requires `ALLOWED_ORIGINS` and either `PRIVATE_KEY` or `KMS_PROVIDER=aws-kms`.
 
 ### 2. Blockchain Module Setup
 ```bash
@@ -139,6 +145,32 @@ npx serve . -l 8080
 
 ---
 
+## 🐳 Production Deployment (Self-Hosted Docker, Single VM)
+
+The stack ships as a `docker-compose.yml` at the repo root: `nginx` (single ingress on port 80) → `backend-core` (serves the API and the static frontend from the same origin) + `cbom-service`, backed by `redis` (rate-limit storage) and a persisted SQLite volume.
+
+```bash
+# 1. Configure secrets (never commit this file)
+cp backend-core/.env.example backend-core/.env
+# Fill in JWT_SECRET, DATA_ENCRYPTION_KEY, ALLOWED_ORIGINS, PRIVATE_KEY (or KMS_PROVIDER=aws-kms), FRONTEND_URL
+# Set NODE_ENV=production
+
+# 2. Build and start
+docker compose up -d --build
+
+# 3. Check health
+curl http://localhost/health
+```
+
+Notes on the deployment:
+- **Build context is the repo root**, not `backend-core/` — `backend-core/Dockerfile` bundles `blockchain-module/`, `integrity-service/`, and `scanner/` into the same image because it reaches into them via relative `require()`s and spawns `scanner/pipeline.py` as a subprocess for every scan. These are not split into separate containers.
+- **Database**: SQLite persists on a named Docker volume (`backend-db`), mounted at `/data`. `prisma migrate deploy` runs automatically on container start before the server boots.
+- **Key management**: by default the classical anchoring signature is signed from `PRIVATE_KEY` in `.env` (fine for a single trusted VM). To use a real KMS instead, set `KMS_PROVIDER=aws-kms`, `AWS_KMS_KEY_ID`, `AWS_REGION`, provide standard AWS credentials to the container, and install the optional `@aws-sdk/client-kms` dependency in `backend-core`. This path is implemented (`integrity-service/providers/awsKmsEthSigner.js`) but has not been exercised against a live AWS KMS key — validate it against a real `ECC_SECG_P256K1` key and a testnet transaction before pointing it at anything holding real value.
+- **TLS**: the bundled `nginx/nginx.conf` is HTTP-only; put a TLS-terminating proxy or load balancer in front of it (or add a cert directly to that config) before exposing this to the public internet.
+- **`cbom-service`** is containerized and health-checked but not currently linked from the frontend — it's an independent CBOM/findings API, reachable through nginx at `/cbom-api/`.
+
+---
+
 ## 🔍 Cryptographic Workflows & Verification
 
 ### Performing a Scan & Generating Findings
@@ -165,34 +197,42 @@ npx serve . -l 8080
 ---
 
 ## 🧪 Regression Test Suites
- 
-CryptoScan includes comprehensive automated tests covering all modules:
- 
+
+CryptoScan includes automated tests covering each module. `.github/workflows/ci.yml` runs the fully self-contained subset of these on every push/PR; a few suites need live infrastructure (a funded Sepolia wallet, a running local Hardhat node) and are intended to be run manually, not in CI.
+
 ```bash
 # 1. Integrity Service (Merkle, Batch Merkle, KMS, RFC 3161 Timestamp, Hybrid Signatures)
 cd integrity-service
 node hybrid-signature.test.js    # 24 tests
 node merkle.test.js              # 23 tests
 node batch-merkle.test.js        # 9 tests
-node timestamp.test.js           # 19 tests
+node timestamp.test.js           # 19 tests (includes one live RFC 3161 TSA request — needs internet)
 node kms.test.js                 # 8 tests
 
 # 2. Blockchain Smart Contract & Anchoring Suite (Hardhat)
 cd ../blockchain-module
-npm test                         # 52 tests (Batch, Sepolia, IPFS, History, Security, E2E)
+npx hardhat test test/CryptoAnchor.test.js test/ipfs.test.js   # CI-safe: in-process network + real-failure-path IPFS checks
+# The remaining suites (batchAnchor, finalE2E, independentVerify, publicChain,
+# history, security) require a live `hardhat node` at 127.0.0.1:8545 and/or a
+# funded Sepolia wallet + previously deployed contract — run these manually:
+# npx hardhat node                       # in one terminal
+# npx hardhat test                       # in another, runs the full suite
 
-# 3. Backend Core Integration Suite
+# 3. Backend Core Test Suites
 cd ../backend-core
-node test/scans.test.js          # Smoke & integration checks
+npm test                         # test/migrationSimulation.test.js — 13 unit tests, no server required
+npm run test:integration         # test/scans.test.js — smoke tests against a running `npm start` server
 
 # 4. Scanner AST Analysis Suite
 cd ../scanner
-.\.venv\Scripts\python -m pytest tests  # 79 tests
+.\.venv\Scripts\python -m pytest tests  # 112 tests
 
 # 5. CBOM & Findings Suite
 cd ../cbom-service
-node test/run.js                 # 16 checks
+npm install && npm test          # test/run.js — end-to-end smoke test on an ephemeral port
 ```
 
-### ✅ Test Results Summary: **All test suites 100% PASSED**
-All unit, integration, live Sepolia, and regression suites are green.
+### Test status
+All suites listed above pass as of the latest change. Two things worth knowing if you're extending this:
+- `backend-core`'s `npm test` previously referenced six test files that didn't exist in the repo; it now only runs the test files that are actually present (`migrationSimulation.test.js`). `scans.test.js` is a separate integration suite (`npm run test:integration`) since it needs a running server.
+- The Docker Compose build (`docker compose build`) has been reviewed file-by-file but could not be executed to completion in this environment (no working Docker daemon available) — validate a full `docker compose up -d --build` locally before relying on it for a real deployment.

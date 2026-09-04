@@ -147,12 +147,55 @@ function reset() {
   keyHistory.clear();
 }
 
+/**
+ * Returns an ethers-compatible Signer for the classical ECDSA/secp256k1 layer.
+ *
+ * This is the seam production KMS/HSM integrations should plug into: callers
+ * (anchor.js, hybrid-signature.js) get a Signer object and call its async
+ * `.signMessage()` / `.sendTransaction()` methods — they never touch raw key
+ * material directly, whether the key lives in an env var (today) or a real
+ * KMS (once KMS_PROVIDER=aws-kms is configured and credentials are wired up).
+ *
+ * @param {import('ethers').Provider} [provider] - Optional ethers provider to attach (needed to send transactions).
+ * @returns {Promise<import('ethers').Signer>}
+ */
+async function getSigner(provider) {
+  let ethers;
+  try {
+    ethers = require('ethers');
+  } catch {
+    ethers = require('../blockchain-module/node_modules/ethers');
+  }
+
+  const provider_ = process.env.KMS_PROVIDER || 'env';
+
+  if (provider_ === 'aws-kms') {
+    const { AwsKmsEthSigner } = require('./providers/awsKmsEthSigner');
+    return new AwsKmsEthSigner({
+      keyId: requireEnv('AWS_KMS_KEY_ID'),
+      region: process.env.AWS_REGION || requireEnv('AWS_REGION'),
+      provider,
+    });
+  }
+
+  const key = getSigningKey();
+  const wallet = new ethers.Wallet(key.privateKey);
+  return provider ? wallet.connect(provider) : wallet;
+}
+
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set when KMS_PROVIDER=aws-kms`);
+  return value;
+}
+
 const kms = {
   getSigningKey,
   rotateKey,
   getKeyInfo,
   getKeyById,
   reset,
+  getSigner,
 };
 
 module.exports = {
@@ -161,5 +204,6 @@ module.exports = {
   getKeyInfo,
   getKeyById,
   reset,
+  getSigner,
   kms,
 };
