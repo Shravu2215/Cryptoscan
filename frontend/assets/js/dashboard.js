@@ -162,8 +162,8 @@ class CryptoDashboard {
           stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" 
           stroke-linecap="round" transform="rotate(-90 60 60)" filter="url(#scoreGlow)"
           style="transition: stroke-dashoffset 1.5s ease-out;" />
-        <text x="60" y="68" font-size="28" font-weight="700" fill="var(--text-primary)" text-anchor="middle">${score}</text>
-        <text x="60" y="85" font-size="10" fill="var(--text-muted)" text-anchor="middle">/ 100</text>
+        <text x="60" y="66" font-size="38" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="-1">${score}</text>
+        <text x="60" y="86" font-size="12" font-weight="600" fill="var(--text-muted)" text-anchor="middle">/ 100</text>
       </svg>
     `;
   }
