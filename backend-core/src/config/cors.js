@@ -34,7 +34,7 @@ function corsOptions() {
   return {
     origin(origin, callback) {
       // Same-origin / non-browser requests (curl, server-to-server) have no Origin header.
-      if (!origin) return callback(null, true);
+      if (!origin || origin === 'null') return callback(null, true);
       if (allowedOrigins.some(pattern => originMatches(origin, pattern))) {
         return callback(null, true);
       }
