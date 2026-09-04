@@ -8,16 +8,6 @@
     function initTheme() {
       if (localStorage.getItem('cs_theme') === 'light') {
         document.documentElement.classList.add('light-mode');
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Findings — CryptoScan</title>
-  <script>
-    function initTheme() {
-      if (localStorage.getItem('cs_theme') === 'light') {
-        document.documentElement.classList.add('light-mode');
       }
     }
     initTheme();
@@ -355,7 +345,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
     backdrop-filter: blur(4px);
 }
 .inp-search { flex: 1; max-width: 300px; }
-.inp-search:focus, .filter-sel:focus { outline: none; border-color: var(--accent-cyan); } }
+.inp-search:focus, .filter-sel:focus { outline: none; border-color: var(--accent-cyan); }
   
   .chips-area {
     display: flex; gap: 8px; padding: 12px 24px; background: var(--bg-main);
@@ -426,17 +416,18 @@ tbody tr:hover { background: var(--bg-card-hover); }
 <div class="app-layout">
 
 <aside class="app-sidebar" id="app-sidebar"></aside>
-
 <div class="app-main">
   <header class="app-topbar" id="app-topbar"></header>
-        <div style="font-size:18px; font-weight:600; color:var(--text-h);">No scan results yet</div>
-        <div class="empty-msg">Run a repository scan to discover cryptographic findings.</div>
-        <button class="btn-p" style="margin-top:16px;" onclick="window.location.href='scan.html'">Start Scan</button>
-      </div>
-    </div>
 
-    <!-- Active Findings View -->
-    <div id="view-active" style="display:none; display:flex; flex-direction:column; gap:24px;">
+  <!-- No Data State -->
+  <div id="view-no-data" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;">
+    <div style="font-size:18px; font-weight:600; color:var(--text-h);">No scan results yet</div>
+    <div class="empty-msg">Run a repository scan to discover cryptographic findings.</div>
+    <button class="btn-p" style="margin-top:16px;" onclick="window.location.href='scan.html'">Start Scan</button>
+  </div>
+
+  <!-- Active Findings View -->
+  <div id="view-active" style="display:none; flex-direction:column; gap:24px;">
       
       <!-- Summary Cards -->
       <div class="stats-grid">
@@ -571,7 +562,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
       </div>
     </div>
   </div>
-</main>
+</div>
 </div>
 
 <!-- Detail Drawer -->
@@ -665,19 +656,27 @@ function init() {
   const data = CryptoEngine.getData();
   
   if (!data.scans || data.scans.length === 0) {
-    document.getElementById('view-no-data').style.display = 'block';
+    document.getElementById('view-no-data').style.display = 'flex';
+    document.getElementById('view-active').style.display = 'none';
     return;
   }
   
+  document.getElementById('view-no-data').style.display = 'none';
   document.getElementById('view-active').style.display = 'flex';
-  document.getElementById('btn-export').style.display = 'inline-flex';
   
+  // Flatten findings from all scans, preserving per-scan metadata
   allFindings = data.scans.flatMap(s => {
+    if (!s.findings || !Array.isArray(s.findings)) return [];
     return s.findings.map(f => ({
       ...f,
-      repoName: s.repoName
+      scanId: s.scanId,
+      repoName: s.repoName || f.repoName || ''
     }));
   });
+  
+  // Reset algorithm filter before repopulating
+  const algSel = document.getElementById('filter-algo');
+  algSel.innerHTML = '<option value="ALL">All Algorithms</option>';
   
   populateAlgorithmFilter();
   updateSummaryStats();
