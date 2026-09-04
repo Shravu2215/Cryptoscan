@@ -80,7 +80,7 @@ router.post('/:repoId', requireAuth, async (req, res) => {
               severity: (f.severity || 'Informational').toUpperCase(),
               description: f.message || f.raw_call || '',
               recommendation: f.recommendation || null,
-              confidence: f.confidence || 'Likely',
+              confidence: `${f.confidence || 'Likely'}|${f.detection_method || 'ast'}`,
               suppressed: Boolean(f.suppressed),
               suppressionReason: f.suppression_reason || null
             }));
@@ -395,10 +395,16 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
 
     // Recompute hash using Merkle root if available (matching anchor.js)
     let recomputedHash = anchor.contentHash;
+    let merkleData = null;
     try {
       const { buildMerkleTree } = require('../../../integrity-service/merkle');
       if (cbom.components && cbom.components.length > 0) {
-        recomputedHash = '0x' + buildMerkleTree(cbom.components).root;
+        const treeResult = buildMerkleTree(cbom.components);
+        recomputedHash = '0x' + treeResult.root;
+        merkleData = {
+          tree: treeResult.tree,
+          leaves: treeResult.leaves
+        };
       }
     } catch (_) {
       const crypto = require('crypto');
@@ -441,7 +447,8 @@ router.get('/:scanId/verify', requireAuth, async (req, res) => {
       signatureValid,
       txHash: anchor.txHash,
       network: anchor.network,
-      error: blockchainError
+      error: blockchainError,
+      merkleData: merkleData
     });
   } catch (err) {
     console.error('Verify error:', err);

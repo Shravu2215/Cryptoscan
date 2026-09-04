@@ -772,9 +772,9 @@
             </button>
             <div class="ph-avatar" id="main-avatar">U</div>
             <a href="#" class="ph-change">Change photo</a>
-            <div class="ph-name" id="main-name"><//div>
-            <div class="ph-badge" id="main-job"><//div>
-            <div class="ph-email" id="main-email"><//div>
+            <div class="ph-name" id="main-name"></div>
+            <div class="ph-badge" id="main-job"></div>
+            <div class="ph-email" id="main-email"></div>
             <div class="ph-since">Member since Aug 2026</div>
           </div>
 
@@ -785,44 +785,23 @@
             </div>
             <div class="stats-grid">
               <div class="stat-tile">
-                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
+                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4"/></svg>
                 <div>
-                  <div class="stat-val">12</div>
-                  <div class="stat-lbl">Repos Scanned</div>
+                  <div class="stat-val" id="stat-repos-count">0</div>
+                  <div class="stat-lbl">Connected Repos</div>
                 </div>
               </div>
               <div class="stat-tile">
-                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 <div>
-                  <div class="stat-val">48</div>
-                  <div class="stat-lbl">Total Findings</div>
+                  <div class="stat-val" id="stat-scans-count">0</div>
+                  <div class="stat-lbl">Total Scans</div>
                 </div>
               </div>
               <div class="stat-tile">
-                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
+                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div>
-                  <div class="stat-val" style="color:var(--red);">1</div>
-                  <div class="stat-lbl">Critical Risks</div>
-                </div>
-              </div>
-              <div class="stat-tile">
-                <svg class="stat-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
-                  stroke-width="2">
-                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <div>
-                  <div class="stat-val" style="font-size:16px;">Today</div>
+                  <div class="stat-val" id="stat-last-scan" style="font-size:16px;">Never</div>
                   <div class="stat-lbl">Last Scan Date</div>
                 </div>
               </div>
@@ -849,12 +828,12 @@
             <div class="details-grid">
               <div class="form-group">
                 <label>Full Name</label>
-                <div class="input-view" id="view-name"><//div>
+                <div class="input-view" id="view-name"></div>
                 <input type="text" class="input-edit" id="edit-name" value="">
               </div>
               <div class="form-group">
                 <label>Email Address</label>
-                <div class="input-view" id="view-email"><//div>
+                <div class="input-view" id="view-email"></div>
                 <input type="email" class="input-edit" id="edit-email" value="">
               </div>
               <div class="form-group">
@@ -941,6 +920,31 @@
         }
       }
 
+      if (typeof CryptoEngine !== 'undefined') {
+        const data = CryptoEngine.getData();
+        const scans = data.scans || [];
+        
+        // Connected Repos (unique repo names)
+        const repos = new Set(scans.map(s => s.repository));
+        document.getElementById('stat-repos-count').textContent = repos.size;
+        
+        // Total Scans
+        document.getElementById('stat-scans-count').textContent = scans.length;
+        
+        // Last Scan Date
+        if (scans.length > 0) {
+          const sorted = [...scans].sort((a,b) => new Date(b.date) - new Date(a.date));
+          const lastDate = new Date(sorted[0].date).toLocaleDateString();
+          document.getElementById('stat-last-scan').textContent = lastDate;
+        } else {
+          document.getElementById('stat-last-scan').textContent = 'Never';
+        }
+      }
+    });
+
+    window.addEventListener('cryptoscan_data_updated', () => {
+      const ev = new Event('DOMContentLoaded');
+      document.dispatchEvent(ev);
     });
 
     function toggleEditMode(enable = true) {

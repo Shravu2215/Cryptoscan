@@ -406,6 +406,20 @@ body {
             </div>
             <div class="toggle"></div>
           </div>
+          <div class="config-row">
+            <div class="cr-left">
+              <div class="cr-title">Advanced Detection Layers</div>
+              <div class="cr-sub">Enable multi-layer detection (AST, Regex, Secret, SCA, Config).</div>
+              <div style="display:flex; gap:12px; margin-top:8px; font-size:12px; color:var(--text-b);">
+                <div style="display:flex; align-items:center; gap:4px;"><span style="color:var(--green)">✓</span> AST Analysis</div>
+                <div style="display:flex; align-items:center; gap:4px;"><span style="color:var(--green)">✓</span> Regex</div>
+                <div style="display:flex; align-items:center; gap:4px;"><span style="color:var(--green)">✓</span> Secrets</div>
+                <div style="display:flex; align-items:center; gap:4px;"><span style="color:var(--green)">✓</span> Dependency/SCA</div>
+                <div style="display:flex; align-items:center; gap:4px;"><span style="color:var(--green)">✓</span> Config/TLS</div>
+              </div>
+            </div>
+            <div class="toggle" style="align-self:flex-start;"></div>
+          </div>
         </div>
         <div style="text-align: right;">
           <button class="btn-sec" onclick="resetScan()" style="margin-right: 8px;">Cancel</button>
@@ -422,19 +436,31 @@ body {
         <div class="pipeline">
           <div class="pipe-step active" id="pipe-1">
             <div class="pipe-icon"></div>
-            <div class="pipe-label">Repository Analysis</div>
+            <div class="pipe-label">Repository Loaded</div>
           </div>
           <div class="pipe-step" id="pipe-2">
             <div class="pipe-icon"></div>
-            <div class="pipe-label">Cryptographic Detection</div>
+            <div class="pipe-label">Files Analyzed</div>
           </div>
           <div class="pipe-step" id="pipe-3">
             <div class="pipe-icon"></div>
-            <div class="pipe-label">Risk Assessment</div>
+            <div class="pipe-label">Cryptographic Detection</div>
           </div>
           <div class="pipe-step" id="pipe-4">
             <div class="pipe-icon"></div>
             <div class="pipe-label">CBOM Generation</div>
+          </div>
+          <div class="pipe-step" id="pipe-5">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">Risk Assessment</div>
+          </div>
+          <div class="pipe-step" id="pipe-6">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">PQC/Migration Analysis</div>
+          </div>
+          <div class="pipe-step" id="pipe-7">
+            <div class="pipe-icon"></div>
+            <div class="pipe-label">Integrity Verification</div>
           </div>
         </div>
       </div>
@@ -472,7 +498,15 @@ body {
           Scan Complete
         </div>
         
-        <div class="summary-grid">
+        <div class="summary-grid" style="grid-template-columns: repeat(6, 1fr);">
+          <div class="sum-card">
+            <div class="sum-lbl">Files Scanned</div>
+            <div class="sum-val">1,423</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-lbl">Crypto Comps</div>
+            <div class="sum-val">25</div>
+          </div>
           <div class="sum-card">
             <div class="sum-lbl">Total Findings</div>
             <div class="sum-val" id="res-total">0</div>
@@ -481,20 +515,22 @@ body {
             <div class="sum-lbl">Critical Risk</div>
             <div class="sum-val" id="res-crit">0</div>
           </div>
-          <div class="sum-card sc-high">
-            <div class="sum-lbl">High Risk</div>
-            <div class="sum-val" id="res-high">0</div>
-          </div>
           <div class="sum-card" style="border-left: 4px solid var(--purple);">
-            <div class="sum-lbl">Quantum Vulnerable</div>
+            <div class="sum-lbl">Quantum Vuln</div>
             <div class="sum-val" id="res-quantum">0</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-lbl">Risk Score</div>
+            <div class="sum-val" id="res-score" style="font-size:16px;">Not calculated</div>
           </div>
         </div>
 
         <div style="text-align: right; margin-top: 24px;">
           <button class="btn-sec" onclick="resetScan()" style="margin-right: 8px;">Run Another Scan</button>
           <button class="btn-p" onclick="viewFindings()" style="margin-right: 8px;">View Findings</button>
-          <button class="btn-p" onclick="viewCBOM()" style="background:var(--text-h); color:var(--bg-main); font-weight:700;">View CBOM</button>
+          <button class="btn-p" onclick="viewCBOM()" style="margin-right: 8px;">View CBOM</button>
+          <button class="btn-p" onclick="window.location.href='risk-migration.html'" style="margin-right: 8px;">View Risk & Migration</button>
+          <button class="btn-p" onclick="window.location.href='verification.html'" style="background:var(--text-h); color:var(--bg-main); font-weight:700;">Verify</button>
         </div>
       </div>
 
@@ -636,8 +672,9 @@ function addLog(msg) {
 }
 
 function setPipe(step) {
-  for(let i=1; i<=4; i++) {
+  for(let i=1; i<=7; i++) {
     const el = document.getElementById('pipe-'+i);
+    if (!el) continue;
     if (i < step) {
       el.className = 'pipe-step done';
       el.querySelector('.pipe-icon').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:12px;height:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
@@ -716,7 +753,7 @@ async function startRealScan() {
       // Update UI with real data if available from the backend payload
       // The backend may or may not return intermediate progress. We strictly use what it provides.
       if (finalData.progress) {
-         if (finalData.progress.stage === 'RISK_ASSESSMENT') { setPipe(3); addLog('Risk assessment running...'); }
+         if (finalData.progress.stage === 'RISK_ASSESSMENT') { setPipe(5); addLog('Risk assessment running...'); }
          if (finalData.progress.stage === 'CBOM_GENERATION') { setPipe(4); addLog('Generating CBOM representation...'); }
       }
       
@@ -730,7 +767,7 @@ async function startRealScan() {
       return;
     }
 
-    setPipe(5); // All complete
+    setPipe(8); // All complete
     addLog('Scan completed successfully.');
     document.getElementById('live-files').textContent = 'Analyzing...'; // No backend metric available
     document.getElementById('live-components').textContent = 'Analyzing...';
@@ -762,7 +799,7 @@ function populateCompletionState(rawFindings) {
   });
 
   document.getElementById('res-crit').textContent = c;
-  document.getElementById('res-high').textContent = h;
+
   document.getElementById('res-quantum').textContent = q;
 
   const chart = document.getElementById('risk-chart');

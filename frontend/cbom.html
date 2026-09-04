@@ -617,10 +617,46 @@ tbody tr:hover { background: var(--bg-card-hover); }
       <div id="drw-quantum" style="font-size:14px; font-weight:500;">-</div>
     </div>
     
-    <div style="margin-top:8px;">
+    <div style="margin-top:16px;">
       <div class="prop-lbl" style="margin-bottom:8px;">Usage Context</div>
       <div style="font-size:13px; color:var(--text-m); line-height:1.5;" id="drw-usage">
         Usage information extracted from repository scan.
+      </div>
+    </div>
+    
+    <div style="margin-top:24px; padding-top:24px; border-top:1px solid var(--border-color);">
+      <div class="prop-lbl" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+        <span>Provenance & Dependency Graph</span>
+      </div>
+      <div style="background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm); padding:16px; position:relative; min-height:180px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;">
+        
+        <!-- Interactive Graph Mockup -->
+        <div style="display:flex; align-items:center; justify-content:center; gap:24px; position:relative; width:100%;">
+          
+          <div style="background:var(--bg-card); border:1px solid var(--border-color); padding:12px; border-radius:var(--r-sm); z-index:2; text-align:center; min-width:100px;">
+            <div style="font-size:11px; color:var(--text-m); margin-bottom:4px;">App Entry</div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-h); font-family: 'JetBrains Mono', monospace;" id="drw-graph-file">-</div>
+          </div>
+          
+          <div style="height:2px; background:var(--green); flex:1; position:relative; z-index:1;">
+            <div style="position:absolute; right:0; top:-4px; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-left:8px solid var(--green);"></div>
+          </div>
+          
+          <div style="background:var(--green-bg); border:1px solid var(--green); padding:12px; border-radius:var(--r-sm); z-index:2; text-align:center; min-width:100px; box-shadow:0 0 12px rgba(16,185,129,0.1);">
+            <div style="font-size:11px; color:var(--green); margin-bottom:4px;">This Component</div>
+            <div style="font-size:13px; font-weight:700; color:var(--text-h);" id="drw-graph-algo">AES-128</div>
+          </div>
+          
+          <div style="height:2px; background:var(--border-color); flex:1; position:relative; z-index:1;">
+            <div style="position:absolute; right:0; top:-4px; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-left:8px solid var(--border-color);"></div>
+          </div>
+          
+          <div style="background:var(--bg-card); border:1px dashed var(--border-color); padding:12px; border-radius:var(--r-sm); z-index:2; text-align:center; min-width:100px;">
+            <div style="font-size:11px; color:var(--text-m); margin-bottom:4px;">Provider</div>
+            <div style="font-size:12px; font-weight:600; color:var(--text-h);" id="drw-graph-lib">PyCrypto</div>
+          </div>
+          
+        </div>
       </div>
     </div>
     
@@ -917,6 +953,10 @@ function openDrawer(c) {
   document.getElementById('drw-quantum').innerHTML = `<span style="color:${c.quantumVulnerable?'var(--red)':'var(--green)'};">${qStr}</span>`;
   
   document.getElementById('drw-usage').textContent = c.usageContext;
+  
+  document.getElementById('drw-graph-file').textContent = c.file ? c.file.split('/').pop() : 'Unknown';
+  document.getElementById('drw-graph-algo').textContent = c.algorithm;
+  document.getElementById('drw-graph-lib').textContent = c.library;
   
   document.getElementById('drawer-overlay').classList.add('active');
   document.getElementById('drawer').classList.add('active');

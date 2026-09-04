@@ -89,6 +89,21 @@ class Finding:
         raw = f"{self.rule_id}:{self.algorithm}:{self.code_snippet.strip()}"
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
+    @property
+    def detection_method(self) -> str:
+        """Infers the detection layer from language and rule_id."""
+        if self.language in {"python", "javascript"} and not self.rule_id.startswith("entropy-"):
+            return "ast"
+        if self.rule_id.startswith("entropy-"):
+            return "entropy"
+        if self.language == "infra" or "infra" in self.rule_id:
+            return "infra"
+        if self.language == "manifest" or self.rule_id.startswith("sca-"):
+            return "manifest"
+        if self.rule_id.startswith("config-"):
+            return "config"
+        return "regex"
+
     def to_dict(self):
         d = asdict(self)
         d["severity"] = self.severity.value
@@ -97,4 +112,5 @@ class Finding:
         d["suppressed"] = self.suppressed
         d["suppression_reason"] = self.suppression_reason
         d["fingerprint"] = self.fingerprint
+        d["detection_method"] = self.detection_method
         return d

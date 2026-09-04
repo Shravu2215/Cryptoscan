@@ -407,6 +407,33 @@ tbody tr:hover { background: var(--bg-card-hover); }
     width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block;
   }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* Merkle Tree */
+  .merkle-panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-lg); padding: 24px; }
+  .merkle-root-box {
+    background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(16,185,129,0.07));
+    border: 1px solid rgba(139,92,246,0.3); border-radius: var(--r-md); padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+  }
+  .merkle-root-lbl { font-size: 11px; font-weight: 700; color: var(--purple); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .merkle-root-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-h); word-break: break-all; }
+  .merkle-leaves { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .merkle-leaf {
+    background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-sm);
+    padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-m);
+    cursor: pointer; transition: all var(--t); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .merkle-leaf:hover { border-color: var(--purple); color: var(--text-h); background: rgba(139,92,246,0.05); }
+  .merkle-leaf.selected { border-color: var(--purple); background: rgba(139,92,246,0.1); color: var(--purple); }
+  .merkle-depth-label { font-size: 11px; color: var(--text-s); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* Blockchain History */
+  .bh-item { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border-color); }
+  .bh-item:last-child { border-bottom: none; }
+  .bh-icon-wrap { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .bh-algo { font-size: 13px; font-weight: 600; color: var(--text-h); margin-bottom: 4px; }
+  .bh-meta { font-size: 12px; color: var(--text-m); font-family: 'JetBrains Mono', monospace; }
+  .bh-status { margin-left: auto; flex-shrink: 0; }
 </style>
   <link rel="stylesheet" href="assets/css/global.css">
 </head>
@@ -444,7 +471,7 @@ tbody tr:hover { background: var(--bg-card-hover); }
         <div class="vh-desc" id="hero-desc">Verification required</div>
       </div>
 
-      <!-- Pipeline -->
+      <!-- Pipeline (6 stages) -->
       <div class="gc-hd"><div class="gc-ttl">Verification Process</div></div>
       <div class="pipeline">
         <div class="pl-line"></div>
@@ -468,6 +495,10 @@ tbody tr:hover { background: var(--bg-card-hover); }
         </div>
         <div class="pl-step" id="step-4">
           <div class="pl-icon">05</div>
+          <div class="pl-lbl">Merkle Tree</div>
+        </div>
+        <div class="pl-step" id="step-5">
+          <div class="pl-icon">06</div>
           <div class="pl-lbl">Integrity</div>
         </div>
       </div>
@@ -563,6 +594,46 @@ tbody tr:hover { background: var(--bg-card-hover); }
         </div>
         
       </div>
+
+      <!-- Merkle Tree Integrity Visual -->
+      <div class="merkle-panel" id="merkle-panel" style="display:none;">
+        <div class="gc-hd" style="margin-bottom:0;">
+          <div>
+            <div class="gc-ttl">Merkle Tree Integrity</div>
+            <div class="gc-sub">Each CBOM component is hashed as a leaf node. The root represents the canonical fingerprint of the entire inventory.</div>
+          </div>
+          <span class="status-badge sb-none" id="merkle-status">Not Built</span>
+        </div>
+
+        <div class="merkle-root-box" style="margin-top:20px;">
+          <div style="flex:1; overflow:hidden;">
+            <div class="merkle-root-lbl">&#128274; Merkle Root</div>
+            <div class="merkle-root-val" id="merkle-root">—</div>
+          </div>
+          <button class="copy-btn" style="position:static; margin-left:16px;" onclick="copyMerkleRoot()">Copy</button>
+        </div>
+
+        <div class="merkle-depth-label">Leaf Nodes — click a leaf to inspect its hash</div>
+        <div class="merkle-leaves" id="merkle-leaves"></div>
+
+        <div id="merkle-leaf-detail" style="display:none; margin-top:16px; background:var(--bg-main); border:1px solid var(--border-color); border-radius:var(--r-sm); padding:16px;">
+          <div style="font-size:11px; font-weight:700; color:var(--purple); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Leaf Detail</div>
+          <div class="dl-list">
+            <div class="dl-item"><span class="dl-lbl">Component</span><span class="dl-val" id="leaf-component">—</span></div>
+            <div class="dl-item"><span class="dl-lbl">Leaf Hash</span><span class="dl-val" id="leaf-hash" style="font-family:'JetBrains Mono',monospace; font-size:11px;">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blockchain Verification History -->
+      <div class="gcard" id="bh-panel" style="display:none;">
+        <div class="gc-hd">
+          <div class="gc-ttl">Blockchain Verification History</div>
+          <div class="gc-sub">Anchored scan records on-chain</div>
+        </div>
+        <div id="bh-list"></div>
+      </div>
+
     </div>
   </div>
 </main>
@@ -581,6 +652,7 @@ function getToken() {
 }
 let activeScan = null;
 let currentHashHex = '';
+let merkleRootHex = '';
 
 function init() {
   const data = CryptoEngine.getData();
@@ -599,6 +671,12 @@ function init() {
   document.getElementById('det-scan').textContent = activeScan.scanId.substring(0,8);
   document.getElementById('det-time').textContent = activeScan.timestamp;
   document.getElementById('det-count').textContent = activeScan.assetsFound;
+}
+
+function copyMerkleRoot() {
+  if (merkleRootHex) {
+    navigator.clipboard.writeText(merkleRootHex);
+  }
 }
 
 // Generate SHA-256 hash in browser
@@ -796,11 +874,26 @@ async function startVerification() {
     
     // Fill comparison section
     document.getElementById('comp-chain').textContent = verifyResult.onChainHash || '—';
+
+    // ─── Step 5: Merkle Tree ───
+    updateStep(4, 'done');
+    updateStep(5, 'active');
+    document.getElementById('pl-progress').style.width = '90%';
+    await delay(300);
+    if (verifyResult.merkleData) {
+      renderMerkleTree(verifyResult.merkleData);
+      updateStep(5, 'done');
+    } else {
+      updateStep(5, 'warn');
+    }
+    
+    // Blockchain History
+    renderBlockchainHistory(verifyResult);
     
     if (verifyResult.verified) {
       // ✅ Full verification passed
       document.getElementById('pl-progress').style.width = '100%';
-      updateStep(4, 'done');
+      updateStep(5, 'done');
       
       document.getElementById('hash-box').className = 'hash-box match';
       document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> MATCH — VERIFIED';
@@ -811,7 +904,7 @@ async function startVerification() {
     } else {
       // ❌ Verification failed — hash mismatch
       document.getElementById('pl-progress').style.width = '100%';
-      updateStep(4, 'fail');
+      updateStep(5, 'fail');
       
       document.getElementById('hash-box').className = 'hash-box mismatch';
       document.getElementById('comp-result').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:14px;height:14px"><path d="M6 18L18 6M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> MISMATCH — INTEGRITY FAILED';
@@ -850,6 +943,69 @@ function copyHash() {
     btn.textContent = 'Copied!';
     setTimeout(() => btn.textContent = 'Copy', 2000);
   }
+}
+
+function renderMerkleTree(merkleData) {
+  const panel = document.getElementById('merkle-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  const root = merkleData.root || (merkleData.tree && merkleData.tree[merkleData.tree.length - 1] && merkleData.tree[merkleData.tree.length - 1][0]) || null;
+  const leaves = merkleData.leaves || [];
+
+  if (root) {
+    merkleRootHex = '0x' + root;
+    document.getElementById('merkle-root').textContent = merkleRootHex;
+    document.getElementById('merkle-status').className = 'status-badge sb-valid';
+    document.getElementById('merkle-status').textContent = '✓ Verified';
+  }
+
+  const leavesEl = document.getElementById('merkle-leaves');
+  leavesEl.innerHTML = leaves.map((leaf, i) => {
+    const short = leaf.substring(0, 16) + '…';
+    return `<div class="merkle-leaf" title="${leaf}" onclick="showLeafDetail(${i}, '${leaf}')">#${i+1} ${short}</div>`;
+  }).join('');
+}
+
+function showLeafDetail(idx, hash) {
+  document.querySelectorAll('.merkle-leaf').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+  const detail = document.getElementById('merkle-leaf-detail');
+  detail.style.display = 'block';
+  document.getElementById('leaf-component').textContent = `Component #${idx + 1}`;
+  document.getElementById('leaf-hash').textContent = hash;
+}
+
+function renderBlockchainHistory(verifyResult) {
+  const panel = document.getElementById('bh-panel');
+  const list = document.getElementById('bh-list');
+  if (!panel || !list || !activeScan) return;
+  panel.style.display = 'block';
+
+  const txHash = verifyResult.txHash || '—';
+  const network = verifyResult.network || 'Hardhat Localhost';
+  const anchoredAt = verifyResult.anchoredAt ? new Date(verifyResult.anchoredAt).toLocaleString() : new Date().toLocaleString();
+  const status = verifyResult.verified ? 'Verified' : (verifyResult.onChainHash ? 'Anchored' : 'Pending');
+  const statusClass = status === 'Verified' ? 'sb-valid' : status === 'Anchored' ? 'sb-warn' : 'sb-none';
+
+  list.innerHTML = `
+    <div class="bh-item">
+      <div class="bh-icon-wrap" style="background:rgba(16,185,129,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div class="bh-algo">${activeScan.repoName} — Scan ${activeScan.scanId.substring(0,8)}</div>
+        <div class="bh-meta">
+          Network: ${network} &nbsp;|&nbsp;
+          ${txHash !== '—' ? 'Tx: ' + txHash.substring(0, 20) + '…' : 'Tx: Not anchored'} &nbsp;|&nbsp;
+          ${anchoredAt}
+        </div>
+        ${merkleRootHex ? `<div class="bh-meta" style="margin-top:4px;">Merkle Root: ${merkleRootHex.substring(0,20)}…</div>` : ''}
+      </div>
+      <div class="bh-status"><span class="status-badge ${statusClass}">${status}</span></div>
+    </div>
+  `;
 }
 
 window.addEventListener('load', init);

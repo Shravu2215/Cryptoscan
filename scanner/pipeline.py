@@ -164,6 +164,7 @@ def scan_repo(repo_path, scan_id=None):
             "recommendation": f.recommendation,
             "raw_call": getattr(f, 'code_snippet', ''),
             "confidence": f.confidence.value,
+            "detection_method": f.detection_method,
             "suppressed": f.suppressed,
             "suppression_reason": f.suppression_reason,
         })

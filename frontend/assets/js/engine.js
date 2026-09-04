@@ -165,7 +165,8 @@ const CryptoEngine = {
       usage: f.usage,
       keySize: f.keySize ? `${f.keySize}-bit` : 'N/A',
       quantumStatus: f.quantumStatus,
-      confidence: f.confidence || 'Likely',
+      confidence: (f.confidence || 'Likely|ast').split('|')[0],
+      detection_method: (f.confidence || 'Likely|ast').split('|')[1] || 'ast',
       suppressed: Boolean(f.suppressed),
       suppressionReason: f.suppressionReason || null,
       status: f.status || 'ACTIVE'

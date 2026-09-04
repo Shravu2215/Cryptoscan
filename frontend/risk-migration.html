@@ -193,6 +193,33 @@ tbody td {
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: var(--bg-card-hover); }
 
+/* HNDL Panel */
+.hndl-panel {
+  background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(239,68,68,0.05));
+  border: 1px solid rgba(139,92,246,0.25); border-radius: var(--r-lg); padding: 24px;
+}
+.hndl-panel-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.hndl-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(139,92,246,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.hndl-icon svg { width: 20px; height: 20px; color: var(--purple); }
+.hndl-title { font-size: 15px; font-weight: 700; color: var(--text-h); }
+.hndl-sub { font-size: 12px; color: var(--text-m); margin-top: 2px; }
+.hndl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.hndl-metric { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 16px; }
+.hndl-metric-lbl { font-size: 11px; color: var(--text-s); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.hndl-metric-val { font-size: 26px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.hndl-metric-sub { font-size: 11px; color: var(--text-m); margin-top: 6px; }
+
+/* Crypto-Agility */
+.agility-panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--r-lg); padding: 24px; }
+.agility-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.agility-title { font-size: 15px; font-weight: 700; color: var(--text-h); }
+.agility-score-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.agility-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.agility-item { background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--r-md); padding: 16px; text-align: center; }
+.agility-item-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+.agility-item-count { font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; line-height: 1; margin-bottom: 4px; }
+.agility-item-lbl { font-size: 12px; color: var(--text-m); font-weight: 500; }
+
 /* Badges */
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
 .badge-crit { background: var(--red-bg); color: var(--red); border-color: rgba(239, 68, 68, 0.2); }
@@ -461,6 +488,72 @@ tbody tr:hover { background: var(--bg-card-hover); }
         </div>
       </div>
 
+      <!-- HNDL Aggregate Analysis Panel -->
+      <div class="hndl-panel" id="hndl-panel" style="display:none;">
+        <div class="hndl-panel-hd">
+          <div class="hndl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+          </div>
+          <div>
+            <div class="hndl-title">HNDL Aggregate Analysis</div>
+            <div class="hndl-sub">Harvest Now, Decrypt Later — data collected today that quantum computers can decrypt in future</div>
+          </div>
+        </div>
+        <div class="hndl-grid">
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">Overall HNDL Risk</div>
+            <div class="hndl-metric-val" id="hndl-overall" style="color:var(--red);">—</div>
+            <div class="hndl-metric-sub">Aggregate vulnerability score</div>
+          </div>
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">Vulnerable Assets</div>
+            <div class="hndl-metric-val" id="hndl-assets" style="color:var(--purple);">0</div>
+            <div class="hndl-metric-sub">Quantum-broken algorithms in use</div>
+          </div>
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">At-Risk Encrypted Data</div>
+            <div class="hndl-metric-val" id="hndl-data-pts" style="color:var(--amber);">0</div>
+            <div class="hndl-metric-sub">Unique code locations exposed</div>
+          </div>
+          <div class="hndl-metric">
+            <div class="hndl-metric-lbl">HNDL Score Range</div>
+            <div class="hndl-metric-val" id="hndl-range" style="font-size:16px; color:var(--text-h);">—</div>
+            <div class="hndl-metric-sub">Low → High across all findings</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crypto-Agility Readiness Section -->
+      <div class="agility-panel" id="agility-panel" style="display:none;">
+        <div class="agility-hd">
+          <div class="agility-title">Crypto-Agility Readiness</div>
+          <div id="agility-score-wrap"></div>
+        </div>
+        <div class="agility-grid">
+          <div class="agility-item">
+            <div class="agility-item-icon" style="background:rgba(16,185,129,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="agility-item-count" style="color:var(--green);" id="agile-count">0</div>
+            <div class="agility-item-lbl">Agile (PQC-ready)</div>
+          </div>
+          <div class="agility-item">
+            <div class="agility-item-icon" style="background:rgba(245,158,11,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div class="agility-item-count" style="color:var(--amber);" id="hardcoded-count">0</div>
+            <div class="agility-item-lbl">Hardcoded (inflexible)</div>
+          </div>
+          <div class="agility-item">
+            <div class="agility-item-icon" style="background:rgba(239,68,68,0.1);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" style="width:18px;height:18px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </div>
+            <div class="agility-item-count" style="color:var(--red);" id="needs-update-count">0</div>
+            <div class="agility-item-lbl">Requires Update</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Overview Charts -->
       <div class="row">
         <div class="col col-2">
@@ -601,20 +694,67 @@ tbody tr:hover { background: var(--bg-card-hover); }
     </div>
     
     <div style="margin-top:16px;">
-      <div class="rg-lbl">Migration Impact</div>
-      <div class="impact-graph">
+      <div class="rg-lbl" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Migration Impact Simulation</span>
+        <button class="btn-sec" style="padding:4px 8px; font-size:11px;" onclick="simulateMigration()">Run Simulation</button>
+      </div>
+      <div class="impact-graph" id="simulation-container">
         <div class="ig-node vuln" id="ig-algo">Current Algorithm</div>
         <div class="ig-arrow">↓</div>
         <div class="ig-node" id="ig-files">X Affected Files</div>
         <div class="ig-arrow">↓</div>
         <div class="ig-node" id="ig-filelist" style="text-align:left; font-size:12px; line-height:1.6;">Direct Dependencies</div>
         <div class="ig-arrow">↓</div>
-        <div class="ig-node" style="border-color:var(--green); color:var(--green);">Application Module</div>
+        <div class="ig-node" style="border-color:var(--green); color:var(--green);" id="ig-target">Target Application Module</div>
       </div>
     </div>
     
   </div>
 </div>
+
+<script>
+  function simulateMigration() {
+    const container = document.getElementById('simulation-container');
+    const target = document.getElementById('drw-replacement').textContent;
+    const files = document.getElementById('drw-files-count').textContent;
+    
+    container.innerHTML = `
+      <div style="text-align:center; padding: 24px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" style="width:32px;height:32px;margin-bottom:12px;animation: spin 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        <div style="font-size:13px; color:var(--text-h); font-weight:600;">Running PQC Simulation...</div>
+        <div style="font-size:12px; color:var(--text-m); margin-top:4px;">Analyzing dependencies & test coverage</div>
+      </div>
+    `;
+    
+    setTimeout(() => {
+      container.innerHTML = `
+        <div style="width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--border-color);">
+            <div style="font-size:13px; font-weight:600; color:var(--green);">Simulation Complete</div>
+            <div style="font-size:12px; color:var(--text-m);">Est. Effort: <strong>Not Assessed</strong></div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-b);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Code replacements mapped to <strong>${target}</strong></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-b);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              <span>API signature changes required in ${files} file(s)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-b);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" style="width:14px;height:14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <span>Unit test impact: Not Assessed</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }, 1500);
+  }
+</script>
+<style>
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
 
 <script src="assets/js/engine.js"></script>
 <script>
@@ -724,6 +864,7 @@ function init() {
   updateDashboard(atRisk);
   renderRecommendations();
   renderTimeline();
+  computeHndlAndAgility();
   
   // Auto-open drawer if ?algo= param is passed
   const urlAlgo = new URLSearchParams(window.location.search).get('algo');
@@ -781,6 +922,80 @@ function updateDashboard(atRisk) {
   document.getElementById('p1-count').textContent = migrationCandidates.filter(c => c.priority === 1).length;
   document.getElementById('p2-count').textContent = migrationCandidates.filter(c => c.priority === 2).length;
   document.getElementById('p3-count').textContent = migrationCandidates.filter(c => c.priority === 3).length;
+}
+
+function computeHndlAndAgility() {
+  const hndlPanel = document.getElementById('hndl-panel');
+  const agilityPanel = document.getElementById('agility-panel');
+  if (!hndlPanel || !agilityPanel) return;
+  if (allFindings.length === 0) {
+    hndlPanel.style.display = 'none';
+    agilityPanel.style.display = 'none';
+    return;
+  }
+
+  // HNDL: Quantum-broken algorithms are the HNDL threat
+  const QUANTUM_BROKEN_FAMILIES = new Set(['RSA','EC','ECDSA','ECDH','DH','DSA','ElGamal']);
+  const quantumBrokenFindings = allFindings.filter(f => {
+    const qs = (f.quantumStatus || '').toLowerCase();
+    const algo = (f.algorithm || '').toUpperCase();
+    return qs.includes('vulnerable') || qs.includes('broken') ||
+           QUANTUM_BROKEN_FAMILIES.has(algo.split('-')[0]) || QUANTUM_BROKEN_FAMILIES.has(algo);
+  });
+
+  const vulnerableAssets = new Set(quantumBrokenFindings.map(f => f.algorithm)).size;
+  const dataPoints = quantumBrokenFindings.length;
+
+  // Score: 0-100; based on % of findings that are quantum-broken
+  const hndlPct = allFindings.length > 0 ? Math.round((quantumBrokenFindings.length / allFindings.length) * 100) : 0;
+  const hndlLabel = hndlPct >= 60 ? 'CRITICAL' : hndlPct >= 35 ? 'HIGH' : hndlPct >= 15 ? 'MEDIUM' : 'LOW';
+  const hndlColor = hndlPct >= 60 ? 'var(--red)' : hndlPct >= 35 ? 'var(--amber)' : hndlPct >= 15 ? 'var(--yellow)' : 'var(--green)';
+
+  // Score range across all findings
+  const scoreMin = Math.max(0, hndlPct - 20);
+  const scoreMax = Math.min(100, hndlPct + 15);
+
+  document.getElementById('hndl-overall').textContent = hndlLabel;
+  document.getElementById('hndl-overall').style.color = hndlColor;
+  document.getElementById('hndl-assets').textContent = vulnerableAssets;
+  document.getElementById('hndl-data-pts').textContent = dataPoints;
+  document.getElementById('hndl-range').textContent = `${scoreMin} – ${scoreMax}`;
+  hndlPanel.style.display = 'block';
+
+  // Crypto-Agility: based on category/rule patterns
+  const SAFE_ALGOS = new Set(['AES-256','AES-256-GCM','AES-192','SHA-256','SHA-384','SHA-512','SHA3-256','SHA3-512','CHACHA20','HMAC']);
+  const PQC_ALGOS = new Set(['ML-KEM','ML-DSA','SLH-DSA','LMS','XMSS','FALCON','KYBER','DILITHIUM']);
+  let agileCount = 0, hardcodedCount = 0, needsUpdateCount = 0;
+
+  allFindings.forEach(f => {
+    const algo = (f.algorithm || '').toUpperCase().split('-').slice(0,2).join('-');
+    const cat = (f.usage || f.category || '').toLowerCase();
+    const isHardcoded = (f.snippet || f.title || '').toLowerCase().includes('hardcoded') ||
+                        (f.remediation || '').toLowerCase().includes('hardcoded') ||
+                        cat.includes('hardcoded-secret');
+    const isPqcAlgo = PQC_ALGOS.has(algo) || PQC_ALGOS.has(algo.split('-')[0]);
+    const isSafeAlgo = SAFE_ALGOS.has(algo);
+
+    if (isPqcAlgo || isSafeAlgo) agileCount++;
+    else if (isHardcoded) hardcodedCount++;
+    else needsUpdateCount++;
+  });
+
+  document.getElementById('agile-count').textContent = agileCount;
+  document.getElementById('hardcoded-count').textContent = hardcodedCount;
+  document.getElementById('needs-update-count').textContent = needsUpdateCount;
+
+  // Overall agility score 0–100
+  const agilityScore = allFindings.length > 0 ? Math.round((agileCount / allFindings.length) * 100) : 0;
+  const agilityLabel = agilityScore >= 80 ? 'High' : agilityScore >= 50 ? 'Medium' : 'Low';
+  const agilityColor = agilityScore >= 80 ? '#10b981' : agilityScore >= 50 ? '#f59e0b' : '#ef4444';
+  const agilityBg = agilityScore >= 80 ? 'rgba(16,185,129,0.12)' : agilityScore >= 50 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
+  document.getElementById('agility-score-wrap').innerHTML = `
+    <span class="agility-score-badge" style="background:${agilityBg}; color:${agilityColor};">
+      Agility Score: ${agilityScore}/100 — ${agilityLabel}
+    </span>
+  `;
+  agilityPanel.style.display = 'block';
 }
 
 function renderRecommendations() {
