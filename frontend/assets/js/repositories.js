@@ -5,7 +5,8 @@
 class RepositoriesPage {
   constructor() {
     this.allScans = [];
-    this.latestScans = [];
+    this.repositories = [];
+    this.repos = [];
     this.currentFilter = 'ALL';
     this.searchQuery = '';
     
@@ -13,27 +14,40 @@ class RepositoriesPage {
   }
 
   init() {
-    // 1. Fetch data
-    const data = window.CryptoEngine ? window.CryptoEngine.getData() : { scans: [] };
+    // 1. Load data from CryptoEngine
+    const data = CryptoEngine ? CryptoEngine.getData() : { repositories: [], scans: [] };
     this.allScans = data.scans || [];
+    this.repositories = data.repositories || [];
 
-    // 2. Group by repoId to get only the LATEST scan per repository
+    // 2. Determine latest scan per repository
     const latestByRepo = {};
     this.allScans.forEach(scan => {
-      // Since scans are unshifted, the first one encountered is the newest
-      if (!latestByRepo[scan.repoId]) {
-        latestByRepo[scan.repoId] = scan;
+      const repoId = scan.repoId;
+      if (!latestByRepo[repoId] || new Date(scan.timestamp) > new Date(latestByRepo[repoId].timestamp)) {
+        latestByRepo[repoId] = scan;
       }
     });
-    this.latestScans = Object.values(latestByRepo);
 
-    // 3. Attach listeners
+    // 3. Build repo list with aggregated metrics
+    this.repos = this.repositories.map(repo => {
+      const latestScan = latestByRepo[repo.id];
+      const metrics = latestScan ? this.calculateScoreAndRisk(latestScan) : { score: 100, risk: 'HEALTHY', counts: { critical:0, high:0, medium:0, low:0 }, quantumReadyPct: 100, lastScan: '' };
+      return {
+        ...repo,
+        score: metrics.score,
+        risk: metrics.risk,
+        counts: metrics.counts,
+        quantumReadyPct: metrics.quantumReadyPct || 100,
+        lastScan: latestScan ? new Date(latestScan.timestamp).toLocaleDateString() : ''
+      };
+    });
+
+    // 4. Attach listeners
     this.attachListeners();
 
-    // 4. Render
+    // 5. Render
     this.renderMetrics();
     this.renderGrid();
-    
   }
 
   attachListeners() {
@@ -86,13 +100,13 @@ class RepositoriesPage {
   }
 
   renderMetrics() {
-    let total = this.latestScans.length;
+    let total = this.repos.length;
     let healthy = 0;
     let attention = 0;
     let critical = 0;
 
-    this.latestScans.forEach(scan => {
-      const { risk } = this.calculateScoreAndRisk(scan);
+    this.repos.forEach(repo => {
+      const risk = repo.risk;
       if (risk === 'HEALTHY') healthy++;
       else if (risk === 'ATTENTION') attention++;
       else if (risk === 'CRITICAL') critical++;
@@ -129,21 +143,20 @@ class RepositoriesPage {
     const grid = document.getElementById('repo-grid');
     const emptyState = document.getElementById('repo-empty-state');
     
-    // Check global empty
-    if (this.latestScans.length === 0) {
+    // Show empty state if no repositories exist
+    if (this.repos.length === 0) {
       grid.style.display = 'none';
       emptyState.style.display = 'flex';
       return;
     }
 
-    // Filter
-    const filtered = this.latestScans.filter(scan => {
-      const { risk } = this.calculateScoreAndRisk(scan);
-      
-      const matchSearch = scan.repoName.toLowerCase().includes(this.searchQuery);
+    // Apply search and filter
+    const filtered = this.repos.filter(repo => {
+      const matchSearch = repo.name.toLowerCase().includes(this.searchQuery);
       let matchFilter = true;
-      if (this.currentFilter !== 'ALL' && this.currentFilter !== risk) {
-        matchFilter = false;
+      if (this.currentFilter !== 'ALL') {
+        const repoStatus = repo.risk || 'HEALTHY';
+        if (repoStatus !== this.currentFilter) matchFilter = false;
       }
       return matchSearch && matchFilter;
     });
@@ -159,16 +172,10 @@ class RepositoriesPage {
     grid.style.display = 'grid';
     grid.innerHTML = '';
 
-    filtered.forEach(scan => {
-      const { score, risk, counts } = this.calculateScoreAndRisk(scan);
-      
-      // Calculate quantum readiness percentage
-      const qTotal = scan.cbom ? scan.cbom.length : 0;
-      const qVuln = scan.quantumCount || 0;
-      let qPct = 100;
-      if (qTotal > 0) {
-        qPct = Math.round(((qTotal - qVuln) / qTotal) * 100);
-      }
+    filtered.forEach(repo => {
+      const score = repo.score || 100;
+      const counts = repo.counts || { critical: 0, high: 0, medium: 0, low: 0 };
+      const qPct = repo.quantumReadyPct || 100;
 
       const card = document.createElement('div');
       card.className = 'repo-card';
@@ -180,7 +187,7 @@ class RepositoriesPage {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
             </div>
             <div class="rc-text">
-              <div class="rc-name">${scan.repoName}</div>
+              <div class="rc-name">${repo.name}</div>
               <div class="rc-source">GitHub / Workspace</div>
             </div>
           </div>
@@ -190,37 +197,19 @@ class RepositoriesPage {
         </div>
 
         <div class="rc-findings">
-          <div class="finding-badge fb-crit">
-            <span class="count">${counts.critical}</span>
-            <span class="lbl">Critical</span>
-          </div>
-          <div class="finding-badge fb-high">
-            <span class="count">${counts.high}</span>
-            <span class="lbl">High</span>
-          </div>
-          <div class="finding-badge fb-med">
-            <span class="count">${counts.medium}</span>
-            <span class="lbl">Medium</span>
-          </div>
-          <div class="finding-badge fb-low">
-            <span class="count">${counts.low}</span>
-            <span class="lbl">Low</span>
-          </div>
+          <div class="finding-badge fb-crit"><span class="count">${counts.critical}</span><span class="lbl">Critical</span></div>
+          <div class="finding-badge fb-high"><span class="count">${counts.high}</span><span class="lbl">High</span></div>
+          <div class="finding-badge fb-med"><span class="count">${counts.medium}</span><span class="lbl">Medium</span></div>
+          <div class="finding-badge fb-low"><span class="count">${counts.low}</span><span class="lbl">Low</span></div>
         </div>
 
         <div class="rc-meta">
-          <div class="meta-item">
-            <span class="meta-lbl">Quantum Readiness</span>
-            <span class="meta-val ${qPct === 100 ? 'quantum-ready' : ''}">${qPct}%</span>
-          </div>
-          <div class="meta-item" style="text-align: right;">
-            <span class="meta-lbl">Last Scan</span>
-            <span class="meta-val">${new Date(scan.timestamp).toLocaleDateString()}</span>
-          </div>
+          <div class="meta-item"><span class="meta-lbl">Quantum Readiness</span><span class="meta-val ${qPct === 100 ? 'quantum-ready' : ''}">${qPct}%</span></div>
+          <div class="meta-item" style="text-align: right;"><span class="meta-lbl">Last Scan</span><span class="meta-val">${repo.lastScan || ''}</span></div>
         </div>
 
         <div class="rc-actions">
-          <a href="findings.html?repo=${encodeURIComponent(scan.repoName)}" class="btn-rc-primary">View Repository</a>
+          <a href="findings.html?repo=${encodeURIComponent(repo.name)}" class="btn-rc-primary">View Repository</a>
           <a href="scan.html" class="btn-rc-secondary">Scan Again</a>
         </div>
       `;
