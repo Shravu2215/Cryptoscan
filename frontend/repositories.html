@@ -99,7 +99,29 @@
         <!-- EMPTY STATE -->
         <div class="repo-empty-state" id="repo-empty-state" style="display: none;">
           <div class="empty-graphic" id="empty-graphic-container">
-            <!-- SVG rendered via VisualsEngine -->
+            <svg viewBox="0 0 300 80" width="100%" height="100%">
+              <defs>
+                <filter id="es-glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="es-glow-violet" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              <line x1="50" y1="40" x2="150" y2="40" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6"/>
+              <line x1="150" y1="40" x2="250" y2="40" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6"/>
+              
+              <circle cx="50" cy="40" r="16" fill="#0b0f19" stroke="#22d3ee" stroke-width="2" filter="url(#es-glow-cyan)"/>
+              <path d="M44 36h12v8h-12zM44 36v-2a6 6 0 0112 0v2" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+              
+              <circle cx="150" cy="40" r="22" fill="#0b0f19" stroke="#8b5cf6" stroke-width="2" filter="url(#es-glow-violet)"/>
+              <path d="M142 40l6 6 10-10" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+              
+              <circle cx="250" cy="40" r="16" fill="#0b0f19" stroke="#22d3ee" stroke-width="2" filter="url(#es-glow-cyan)"/>
+              <path d="M244 40h12M244 36h8M244 44h8" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+            </svg>
           </div>
           <h2>No repositories connected yet</h2>
           <p>Connect your first repository to start analyzing cryptographic security and posture.</p>

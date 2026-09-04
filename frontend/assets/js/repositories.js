@@ -34,10 +34,6 @@ class RepositoriesPage {
     this.renderMetrics();
     this.renderGrid();
     
-    // Render Empty Graphic
-    if (window.Visuals) {
-      window.Visuals.renderSecurityNetwork('empty-graphic-container');
-    }
   }
 
   attachListeners() {
